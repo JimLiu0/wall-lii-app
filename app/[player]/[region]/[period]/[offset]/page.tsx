@@ -6,10 +6,17 @@ import { fetchDailySnapshots, fetchWeeklySnapshots } from '@/utils/getPlayerStat
 import PlayerGraph from '@/components/PlayerGraph';
 import StatsSummary from '@/components/StatsSummary';
 import getPeriodLabel from '@/utils/getPeriodLabel';
+
+interface Snapshot {
+  player_name: string;
+  rating: number;
+  snapshot_time: string;
+  region: string;
+}
 export default function PlayerPage() {
   const { player, region, period, offset } = useParams();
   const offsetInt = Number(offset ?? 0); // fallback to 0 if not present
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<Snapshot[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,7 +27,7 @@ export default function PlayerPage() {
       !Number.isNaN(offsetInt)
     ) {
       const fetchData = async () => {
-        let res: any[] = [];
+        let res: Snapshot[] = [];
         if (period === 'week') {
           res = await fetchWeeklySnapshots(player, region, offsetInt);
         } else if (period === 'day') {
@@ -31,7 +38,7 @@ export default function PlayerPage() {
       };
       fetchData();
     }
-  }, [player, region, period]);
+  }, [player, region, period, offsetInt]);
 
   if (loading) return <div className="text-white p-4">Loading stats...</div>;
   if (!data.length) return <div className="text-white p-4">No data found for {player} in {region}.</div>;

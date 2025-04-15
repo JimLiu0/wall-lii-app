@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 
 interface TooltipProps {
   active?: boolean;
-  payload?: any[];
+  payload?: { value: number; payload: any }[];
   label?: string;
 }
 
