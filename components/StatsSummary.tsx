@@ -10,11 +10,30 @@ export default function StatsSummary({ data }: Props) {
   const min = Math.min(...ratings);
 
   return (
-    <div className="space-y-2">
-      <div>🎮 Games Played: {games_played}</div>
-      <div>{net >= 0 ? '📈' : '📉'} Rating Change: <span className={net >= 0 ? "text-green-500" : "text-red-500"}>{net > 0 ? `+${net}` : net}</span></div>
-      <div>🏔️ Highest Rating: <span className="text-green-500">{max}</span></div>
-      <div>🏞️ Lowest Rating: <span className="text-red-500">{min}</span></div>
+    <div className="bg-gray-900 p-6 rounded-lg shadow-lg space-y-4 w-fit text-left">
+      <div className="text-2xl font-bold text-white">📊 Session Stats</div>
+  
+      <div className="flex justify-between text-lg">
+        <span className="text-white pr-4">🎮 Games Played</span>
+        <span className="font-bold text-white">{games_played}</span>
+      </div>
+  
+      <div className="flex justify-between text-lg">
+        <span className="text-white pr-4">🔄 Rating Change</span>
+        <span className={`font-bold ${net >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+          {net > 0 ? `+${net}` : net}
+        </span>
+      </div>
+  
+      <div className="flex justify-between text-lg">
+        <span className="text-white pr-4">🔥 Highest Rating</span>
+        <span className="font-bold text-green-300">{max}</span>
+      </div>
+  
+      <div className="flex justify-between text-lg">
+        <span className="text-white pr-4">💩 Lowest Rating</span>
+        <span className="font-bold text-red-300">{min}</span>
+      </div>
     </div>
   );
 }
