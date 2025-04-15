@@ -12,7 +12,7 @@ export default function StatsSummary({ data }: Props) {
   return (
     <div className="space-y-2">
       <div>🎮 Games Played: {games_played}</div>
-      <div>📈 Rating Change: <span className={net >= 0 ? "text-green-500" : "text-red-500"}>{net > 0 ? `+${net}` : net}</span></div>
+      <div>{net >= 0 ? '📈' : '📉'} Rating Change: <span className={net >= 0 ? "text-green-500" : "text-red-500"}>{net > 0 ? `+${net}` : net}</span></div>
       <div>🏔️ Highest Rating: <span className="text-green-500">{max}</span></div>
       <div>🏞️ Lowest Rating: <span className="text-red-500">{min}</span></div>
     </div>
