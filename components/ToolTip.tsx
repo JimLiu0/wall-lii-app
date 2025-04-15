@@ -1,8 +1,14 @@
 import { DateTime } from 'luxon';
 
+interface PayloadData {
+  rating: number;
+  prevRating: number | null;
+  snapshot_time: string;
+}
+
 interface TooltipProps {
   active?: boolean;
-  payload?: { value: number; payload: any }[];
+  payload?: { value: number; payload: PayloadData }[];
   label?: string;
 }
 
