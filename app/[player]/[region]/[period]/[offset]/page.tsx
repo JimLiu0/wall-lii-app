@@ -47,7 +47,7 @@ export default function PlayerPage() {
     <div className="flex flex-col md:flex-row gap-6 p-6 text-white">
       <div className="w-full md:w-2/3">
         <div className="text-2xl font-bold text-white mb-4 text-center">
-          {`${String(player).toUpperCase()}'s ${period === 'week' ? 'Weekly' : 'Daily'} Record – ${getPeriodLabel(period, offsetInt)}`}
+          {`${String(player).toUpperCase()}'s ${period === 'week' ? 'Weekly' : 'Daily'} Record – ${getPeriodLabel(String(period), offsetInt)}`}
         </div>
         <PlayerGraph data={data} />
       </div>

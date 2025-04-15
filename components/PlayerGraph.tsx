@@ -30,7 +30,7 @@ export default function PlayerGraph({ data }: Props) {
         />
         <YAxis
           domain={['dataMin - 50', 'dataMax + 50']}
-          tickFormatter={(value) => Math.round(value)}
+          tickFormatter={(value) => Math.round(value).toString()}
         />
         <Tooltip content={<RatingTooltip />} />
         <Line type="monotone" dataKey="rating" stroke="#00BFFF" dot />
