@@ -1,3 +1,4 @@
+import { dedupData } from './getDedupData';
 import { supabase } from './supabaseClient';
 import { DateTime } from 'luxon';
 
@@ -25,10 +26,7 @@ export async function fetchWeeklySnapshots(playerName: string, region: string, o
   }
 
   // Remove consecutive duplicate ratings
-  const filtered = data.filter((entry, index, arr) => {
-    if (index === 0) return true;
-    return entry.rating !== arr[index - 1].rating;
-  });
+  const filtered = dedupData(data);
 
   return filtered;
 }

@@ -6,6 +6,7 @@ import { fetchDailySnapshots, fetchWeeklySnapshots } from '@/utils/getPlayerStat
 import PlayerGraph from '@/components/PlayerGraph';
 import StatsSummary from '@/components/StatsSummary';
 import getPeriodLabel from '@/utils/getPeriodLabel';
+import Link from 'next/link';
 
 interface Snapshot {
   player_name: string;
@@ -50,7 +51,10 @@ export default function PlayerPage() {
       <div className="flex flex-col md:flex-row gap-6 w-full text-white">
         <div className="w-full md:w-2/3">
           <div className="text-2xl font-bold text-white mb-4 text-center">
-            {`${String(player).toUpperCase()}'s ${period === 'week' ? 'Weekly' : 'Daily'} Record – ${getPeriodLabel(String(period), offsetInt)}`}
+              <Link href={`/profile/${player}/${region}`} className="hover:underline text-blue-500">
+                {String(player).toUpperCase()}
+              </Link>
+              {`'s ${period === 'week' ? 'Weekly' : 'Daily'} Record in ${String(region).toUpperCase()} – ${getPeriodLabel(String(period), offsetInt)}`}
           </div>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
             {/* View toggle */}
