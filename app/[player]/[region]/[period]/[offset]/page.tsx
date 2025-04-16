@@ -7,12 +7,15 @@ interface PageParams {
   offset: string;
 }
 
-export default function PlayerPage({
+interface PageProps {
+  params: Promise<PageParams>;
+}
+
+export default async function PlayerPage({
   params,
-}: {
-  params: PageParams;
-}) {
-  const { player, region, period, offset } = params;
+}: PageProps) {
+  const resolvedParams = await params;
+  const { player, region, period, offset } = resolvedParams;
   
   // Map old period format to new format
   const periodMap: Record<string, string> = {

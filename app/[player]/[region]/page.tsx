@@ -7,6 +7,16 @@ interface PageParams {
   region: string;
 }
 
+interface SearchParams {
+  v?: string;
+  o?: string;
+}
+
+interface PageProps {
+  params: Promise<PageParams>;
+  searchParams: Promise<SearchParams>;
+}
+
 interface PlayerData {
   name: string;
   rank: number;
@@ -19,13 +29,15 @@ interface PlayerData {
 export default async function PlayerPage({
   params,
   searchParams,
-}: {
-  params: PageParams;
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
-  const { player, region } = params;
-  const view = (searchParams.v as string) || 's';
-  const offset = parseInt((searchParams.o as string) || '0', 10);
+}: PageProps) {
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([
+    params,
+    searchParams
+  ]);
+  
+  const { player, region } = resolvedParams;
+  const view = resolvedSearchParams.v || 's';
+  const offset = parseInt(resolvedSearchParams.o || '0', 10);
 
   // Fetch all data for the player
   const { data, error } = await supabase
