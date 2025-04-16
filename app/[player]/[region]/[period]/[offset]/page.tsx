@@ -14,6 +14,7 @@ export default async function PlayerPage({
   params: Promise<PageParams>;
 }) {
   const resolvedParams = await params;
+  resolvedParams.player = decodeURIComponent(resolvedParams.player);
   const { player, region, period, offset } = resolvedParams;
 
   return (
