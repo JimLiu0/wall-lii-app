@@ -1,20 +1,17 @@
 import { Suspense } from 'react';
-import PlayerProfile from '@/components/PlayerProfile'
+import LeaderboardContent from '@/components/LeaderboardContent';
 
 interface PageParams {
-  player: string;
   region: string;
-  period: string;
-  offset: string;
 }
 
-export default async function PlayerPage({
+export default async function LeaderboardPage({
   params,
 }: {
   params: Promise<PageParams>;
 }) {
   const resolvedParams = await params;
-  const { player, region, period, offset } = resolvedParams;
+  const { region } = resolvedParams;
 
   return (
     <Suspense fallback={
@@ -24,12 +21,7 @@ export default async function PlayerPage({
         </div>
       </div>
     }>
-      <PlayerProfile
-        player={player}
-        region={region}
-        period={period}
-        offset={offset}
-      />
+      <LeaderboardContent region={region} />
     </Suspense>
   );
 }
