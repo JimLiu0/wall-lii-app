@@ -24,6 +24,16 @@ export default function StatsSummary({ data }: Props) {
           {net > 0 ? `+${net}` : net}
         </span>
       </div>
+      
+      <div className="flex justify-between text-lg">
+        <span className="text-white pr-4">🌱 Starting Rating</span>
+        <span className="font-bold">{ratings[0]}</span>
+      </div>
+
+      <div className="flex justify-between text-lg">
+        <span className="text-white pr-4">🌿 Ending Rating</span>
+        <span className="font-bold">{ratings[ratings.length - 1]}</span>
+      </div>
   
       <div className="flex justify-between text-lg">
         <span className="text-white pr-4">🔥 Highest Rating</span>

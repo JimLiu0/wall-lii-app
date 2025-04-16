@@ -1,5 +1,4 @@
-import { Suspense } from 'react';
-import PlayerProfile from '@/components/PlayerProfile'
+import { redirect } from 'next/navigation';
 
 interface PageParams {
   player: string;
@@ -8,29 +7,24 @@ interface PageParams {
   offset: string;
 }
 
-export default async function PlayerPage({
+export default function PlayerPage({
   params,
 }: {
-  params: Promise<PageParams>;
+  params: PageParams;
 }) {
-  const resolvedParams = await params;
-  resolvedParams.player = decodeURIComponent(resolvedParams.player);
-  const { player, region, period, offset } = resolvedParams;
+  const { player, region, period, offset } = params;
+  
+  // Map old period format to new format
+  const periodMap: Record<string, string> = {
+    's': 's',
+    'w': 'w',
+    'd': 'd',
+    'season': 's',
+    'week': 'w',
+    'day': 'd'
+  };
 
-  return (
-    <Suspense fallback={
-      <div className="container mx-auto p-4">
-        <div className="bg-gray-900 rounded-lg p-6">
-          <div className="text-2xl font-bold text-white mb-4 text-center">Loading...</div>
-        </div>
-      </div>
-    }>
-      <PlayerProfile
-        player={player}
-        region={region}
-        period={period}
-        offset={offset}
-      />
-    </Suspense>
-  );
-}
+  const newPeriod = periodMap[period] || 's';
+  
+  redirect(`/${player}/${region.toLowerCase()}?v=${newPeriod}&o=${offset}`);
+} 
