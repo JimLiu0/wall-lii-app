@@ -1,5 +1,11 @@
 import { Suspense } from 'react';
 import LeaderboardContent from '@/components/LeaderboardContent';
+import { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Global Leaderboard | Wall-lii',
+  description: 'View the global leaderboard rankings for all regions in Wall-lii',
+};
 
 export default async function HomePage() {
   return (

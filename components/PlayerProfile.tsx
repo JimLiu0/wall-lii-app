@@ -64,13 +64,13 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     const params = new URLSearchParams(searchParams);
     params.set('v', periodMap[newView]);
     params.set('o', '0');
-    router.push(`/${player}/${region.toLowerCase()}?${params.toString()}`);
+    router.push(`/${region.toLowerCase()}/${player}?${params.toString()}`);
   };
 
   const updateOffset = (newOffset: number) => {
     const params = new URLSearchParams(searchParams);
     params.set('o', newOffset.toString());
-    router.push(`/${player}/${region.toLowerCase()}?${params.toString()}`);
+    router.push(`/${region.toLowerCase()}/${player}?${params.toString()}`);
   };
 
   return (

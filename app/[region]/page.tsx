@@ -1,8 +1,24 @@
 import { Suspense } from 'react';
 import LeaderboardContent from '@/components/LeaderboardContent';
+import { Metadata } from 'next';
 
 interface PageParams {
   region: string;
+}
+
+const regionNames = {
+  na: 'North America',
+  eu: 'Europe',
+  ap: 'Asia Pacific',
+  cn: 'China'
+};
+
+export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
+  const regionName = regionNames[params.region as keyof typeof regionNames] || params.region.toUpperCase();
+  return {
+    title: `${regionName} Leaderboard | Wall-lii`,
+    description: `View the ${regionName} regional leaderboard rankings in Wall-lii`,
+  };
 }
 
 export default async function LeaderboardPage({

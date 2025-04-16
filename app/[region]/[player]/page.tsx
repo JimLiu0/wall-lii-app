@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import PlayerProfile from '@/components/PlayerProfile';
+import { Metadata } from 'next';
 
 interface PageParams {
   player: string;
@@ -15,6 +16,23 @@ interface SearchParams {
 interface PageProps {
   params: Promise<PageParams>;
   searchParams: Promise<SearchParams>;
+}
+
+const regionNames = {
+  na: 'North America',
+  eu: 'Europe',
+  ap: 'Asia Pacific',
+  cn: 'China'
+};
+
+export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
+  const decodedPlayer = decodeURIComponent(params.player);
+  const regionName = regionNames[params.region as keyof typeof regionNames] || params.region.toUpperCase();
+  
+  return {
+    title: `${decodedPlayer} | ${regionName} Player Profile | Wall-lii`,
+    description: `View ${decodedPlayer}'s player profile and statistics for the ${regionName} region in Wall-lii`,
+  };
 }
 
 interface PlayerData {
