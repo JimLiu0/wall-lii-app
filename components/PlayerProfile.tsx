@@ -7,9 +7,9 @@ import PlayerGraph from '@/components/PlayerGraph';
 import StatsSummary from '@/components/StatsSummary';
 import getPeriodLabel from '@/utils/getPeriodLabel';
 import { dedupData } from '@/utils/getDedupData';
-import Link from 'next/link';
 
 type TimeView = 'all' | 'week' | 'day';
+type GameMode = 's' | 'd';
 
 interface PlayerData {
   name: string;
@@ -18,6 +18,12 @@ interface PlayerData {
   peak: number;
   region: string;
   data: { snapshot_time: string; rating: number }[];
+  availableModes: {
+    regions: string[];
+    gameModes: string[];
+    defaultRegion: string;
+    defaultGameMode: string;
+  };
 }
 
 interface Props {
@@ -33,6 +39,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   const router = useRouter();
   const view: TimeView = viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all';
   const offsetNum = offset || 0;
+  const gameMode = searchParams.get('g') as GameMode || 's';
 
   const filteredData = useMemo(() => {
     let filtered = playerData.data;
@@ -64,14 +71,31 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     const params = new URLSearchParams(searchParams);
     params.set('v', periodMap[newView]);
     params.set('o', '0');
-    router.push(`/${region.toLowerCase()}/${player}?${params.toString()}`);
+    router.push(`/${player}?${params.toString()}`);
   };
 
   const updateOffset = (newOffset: number) => {
     const params = new URLSearchParams(searchParams);
     params.set('o', newOffset.toString());
-    router.push(`/${region.toLowerCase()}/${player}?${params.toString()}`);
+    router.push(`/${player}?${params.toString()}`);
   };
+
+  const updateGameMode = (newGameMode: GameMode) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('g', newGameMode);
+    router.push(`/${player}?${params.toString()}`);
+  };
+
+  const updateRegion = (newRegion: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('r', newRegion.toLowerCase());
+    router.push(`/${player}?${params.toString()}`);
+  };
+
+  const { availableModes } = playerData;
+  const hasSolo = availableModes.gameModes.includes('0');
+  const hasDuo = availableModes.gameModes.includes('1');
+  const hasMultipleRegions = availableModes.regions.length > 1;
 
   return (
     <div className="container mx-auto p-4">
@@ -88,9 +112,27 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-4xl font-bold text-white">{playerData.name}</h1>
-              <Link href={`/${playerData.region.toLowerCase()}`} className="bg-gray-800 px-3 py-1 rounded text-gray-300 hover:bg-gray-700">
-                {playerData.region.toUpperCase()}
-              </Link>
+              <div className="flex gap-2">
+                {hasMultipleRegions ? (
+                  availableModes.regions.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => updateRegion(r)}
+                      className={`px-3 py-1 rounded transition-colors ${
+                        region.toLowerCase() === r.toLowerCase()
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      {r.toUpperCase()}
+                    </button>
+                  ))
+                ) : (
+                  <span className="bg-gray-800 px-3 py-1 rounded text-gray-300">
+                    {region.toUpperCase()}
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-8 mt-4">
@@ -113,6 +155,31 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-2/3">
             <div className="mb-6">
+              {(hasSolo && hasDuo) && (
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => updateGameMode('s')}
+                    className={`px-4 py-2 rounded ${
+                      gameMode === 's'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    Solo
+                  </button>
+                  <button
+                    onClick={() => updateGameMode('d')}
+                    className={`px-4 py-2 rounded ${
+                      gameMode === 'd'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    Duo
+                  </button>
+                </div>
+              )}
+
               {view !== 'all' && (
                 <div className="mt-4 flex items-center gap-3 text-white">
                   <button onClick={() => updateOffset(offsetNum + 1)} className="hover:text-blue-500">←</button>
