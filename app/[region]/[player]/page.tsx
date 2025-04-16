@@ -25,9 +25,10 @@ const regionNames = {
   cn: 'China'
 };
 
-export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
-  const decodedPlayer = decodeURIComponent(params.player);
-  const regionName = regionNames[params.region as keyof typeof regionNames] || params.region.toUpperCase();
+export async function generateMetadata({ params }: { params: Promise<PageParams> }): Promise<Metadata> {
+  const resolvedParams = await params;
+  const decodedPlayer = decodeURIComponent(resolvedParams.player);
+  const regionName = regionNames[resolvedParams.region as keyof typeof regionNames] || resolvedParams.region.toUpperCase();
   
   return {
     title: `${decodedPlayer} | ${regionName} Player Profile | Wall-lii`,
