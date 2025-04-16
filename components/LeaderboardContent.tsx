@@ -172,7 +172,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
               </button>
             </div>
 
-            <span>Leaderboard</span>
+            <span>Top 1000</span>
           </div>
         </div>
 
