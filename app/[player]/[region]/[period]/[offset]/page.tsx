@@ -125,7 +125,7 @@ export default function PlayerProfile({
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
+    <div className="container mx-auto p-4">
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="flex items-center gap-6 mb-8">
           <div className="relative w-24 h-24">
@@ -223,7 +223,7 @@ export default function PlayerProfile({
           </div>
 
           {(
-            <div className="w-full md:w-1/3">
+            <div className="w-full md:w-1/3 flex justify-center items-center">
               <StatsSummary data={playerData.data} />
             </div>
           )}
