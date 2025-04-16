@@ -12,6 +12,11 @@ interface LeaderboardEntry {
   region: string;
 }
 
+interface Props {
+  region: string;
+  defaultSolo?: boolean;
+}
+
 const regions = ['na', 'eu', 'ap', 'cn'] as const;
 const emojiMap = {
   'na': '🇺🇸',
@@ -30,12 +35,18 @@ function processRanks(data: LeaderboardEntry[]): LeaderboardEntry[] {
     }));
 }
 
-export default function LeaderboardContent({ region }: { region: string }) {
+export default function LeaderboardContent({ region, defaultSolo = true }: Props) {
   const router = useRouter();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [solo, setSolo] = useState(true);
+  const [solo, setSolo] = useState(defaultSolo);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Save preferences to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('preferredRegion', region);
+    localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
+  }, [region, solo]);
 
   useEffect(() => {
     async function fetchLeaderboard() {

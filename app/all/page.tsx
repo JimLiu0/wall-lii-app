@@ -1,13 +1,13 @@
 import { Suspense } from 'react';
+import LeaderboardContent from '@/components/LeaderboardContent';
 import { Metadata } from 'next';
-import HomeContent from '@/components/HomeContent';
 
 export const metadata: Metadata = {
-  title: 'Hearthstone Battlegrounds Leaderboard | Wall-lii',
-  description: 'View hearthstone battlegrounds leaderboard rankings for all regions in Wall-lii',
+  title: 'Global Hearthstone Battlegrounds Leaderboard | Wall-lii',
+  description: 'View the global hearthstone battlegrounds leaderboard rankings for all regions in Wall-lii',
 };
 
-export default async function HomePage() {
+export default async function AllPage() {
   return (
     <Suspense fallback={
       <div className="container mx-auto p-4">
@@ -16,7 +16,7 @@ export default async function HomePage() {
         </div>
       </div>
     }>
-      <HomeContent />
+      <LeaderboardContent region="all" defaultSolo={true} />
     </Suspense>
   );
-}
+} 
