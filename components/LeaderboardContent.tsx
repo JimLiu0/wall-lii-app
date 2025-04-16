@@ -126,7 +126,7 @@ export default function LeaderboardContent({ region }: { region: string }) {
               {regions.map((r) => (
                 <button
                   key={r}
-                  onClick={() => router.push(`/${r}`)}
+                  onClick={() => router.push(`/lb/${r}`)}
                   className={`px-4 py-1.5 rounded-full transition ${
                     region === r
                       ? 'bg-blue-600 text-white'
@@ -201,7 +201,7 @@ export default function LeaderboardContent({ region }: { region: string }) {
                   <td className="px-4 py-3 text-gray-300">{entry.rank}</td>
                   <td className="px-4 py-3">
                     <Link
-                      href={`/${entry.region.toLowerCase()}/${entry.player_name}?v=s&o=0`}
+                      href={`/${entry.player_name}?r=${entry.region.toLowerCase()}&v=s&o=0`}
                       className="text-blue-400 hover:text-blue-300 transition-colors"
                     >
                       {entry.player_name}
@@ -210,7 +210,7 @@ export default function LeaderboardContent({ region }: { region: string }) {
                   {region === 'all' && (
                     <td className="px-4 py-3">
                       <Link
-                        href={`/${entry.region.toLowerCase()}`}
+                        href={`/lb/${entry.region.toLowerCase()}`}
                         className="inline-block text-2xl hover:scale-110 transition-transform"
                       >
                         {emojiMap[entry.region.toLowerCase() as keyof typeof emojiMap] || entry.region}

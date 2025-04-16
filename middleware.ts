@@ -1,8 +1,22 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+const validRegions = ['na', 'eu', 'ap', 'cn'];
+
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
+
+  // Skip processing for /lb/[region] URLs
+  if (pathname.startsWith('/lb/')) {
+    return NextResponse.next();
+  }
+
+  // Handle root-level region URLs (e.g., /na -> /lb/na)
+  if (validRegions.includes(pathname.slice(1).toLowerCase())) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/lb${pathname}`;
+    return NextResponse.redirect(url);
+  }
 
   // Handle URLs like /player/d/0 or /player/w/0 (without region)
   const shortFormatRegex = /^\/([^\/]+)\/(d|day|w|week)\/(\d+)$/;
@@ -10,6 +24,11 @@ export function middleware(request: NextRequest) {
 
   if (shortMatch) {
     const [, player, view, offset] = shortMatch;
+    
+    // Skip if the player is a valid region
+    if (validRegions.includes(player.toLowerCase())) {
+      return NextResponse.next();
+    }
     
     // Normalize view parameter (d/day -> d, w/week -> w)
     const normalizedView = view.startsWith('d') ? 'd' : 'w';
@@ -34,6 +53,11 @@ export function middleware(request: NextRequest) {
   if (oldMatch) {
     const [, region, player, view, offset] = oldMatch;
     
+    // Skip if the first segment is 'lb'
+    if (region === 'lb') {
+      return NextResponse.next();
+    }
+    
     // Normalize view parameter (d/day -> d, w/week -> w)
     const normalizedView = view.startsWith('d') ? 'd' : 'w';
     
@@ -51,6 +75,11 @@ export function middleware(request: NextRequest) {
 
   if (oldPlayerMatch) {
     const [, region, player] = oldPlayerMatch;
+    
+    // Skip if the first segment is 'lb'
+    if (region === 'lb') {
+      return NextResponse.next();
+    }
     
     // Create the new URL with query parameters
     const url = request.nextUrl.clone();
@@ -70,6 +99,11 @@ export function middleware(request: NextRequest) {
 // Configure matcher to only run middleware on specific paths
 export const config = {
   matcher: [
+    // Match root-level region paths
+    '/na',
+    '/eu',
+    '/ap',
+    '/cn',
     // Match paths without region
     '/:player/d/:offset',
     '/:player/day/:offset',
@@ -81,5 +115,7 @@ export const config = {
     '/:region/:player/w/:offset',
     '/:region/:player/week/:offset',
     '/:region/:player',
+    // Exclude /lb/[region] paths
+    '/((?!lb/).*)',
   ],
 }; 
