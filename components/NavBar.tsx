@@ -7,7 +7,7 @@ export default function NavBar() {
       <div className="container mx-auto pl-2 py-2">
         <Link href="/" className="flex items-center gap-3 w-fit hover:opacity-80 transition-opacity">
           <Image
-            src="/logo.png"
+            src="/android-chrome-512x512.png"
             alt="Wall-lii Logo"
             width={64}
             height={64}
