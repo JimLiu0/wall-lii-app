@@ -88,7 +88,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-4xl font-bold text-white">{playerData.name}</h1>
-              <Link href={`/lb/${playerData.region.toLowerCase()}`} className="bg-gray-800 px-3 py-1 rounded text-gray-300 hover:bg-gray-700">
+              <Link href={`/${playerData.region.toLowerCase()}`} className="bg-gray-800 px-3 py-1 rounded text-gray-300 hover:bg-gray-700">
                 {playerData.region.toUpperCase()}
               </Link>
             </div>

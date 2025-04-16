@@ -35,7 +35,8 @@ export default async function PlayerPage({
     searchParams
   ]);
   
-  const { player, region } = resolvedParams;
+  const { region } = resolvedParams;
+  const player = decodeURIComponent(resolvedParams.player);
   const view = resolvedSearchParams.v || 's';
   const offset = parseInt(resolvedSearchParams.o || '0', 10);
 
@@ -88,4 +89,4 @@ export default async function PlayerPage({
       />
     </Suspense>
   );
-}
+} 
