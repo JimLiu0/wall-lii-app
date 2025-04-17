@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { DateTime } from 'luxon';
 import PlayerGraph from '@/components/PlayerGraph';
 import StatsSummary from '@/components/StatsSummary';
@@ -38,6 +38,48 @@ interface Props {
 export default function PlayerProfile({ player, region, view: viewParam, offset, playerData }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [isEditing, setIsEditing] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Handle escape key and click outside
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsEditing(false);
+        setInputValue('');
+      }
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (isEditing && formRef.current && !formRef.current.contains(e.target as Node)) {
+        setIsEditing(false);
+        setInputValue('');
+      }
+    };
+
+    if (isEditing) {
+      document.addEventListener('keydown', handleEscape);
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isEditing]);
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (inputValue.trim() && inputValue !== playerData.name) {
+      router.push(`/${inputValue.trim()}`);
+    } else {
+      setIsEditing(false);
+      setInputValue('');
+    }
+  };
+
   const view: TimeView = viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all';
   const offsetNum = offset || 0;
   const gameMode = searchParams.get('g') as GameMode || 's';
@@ -73,9 +115,9 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
       if (filtered.length > 0) {
 
         // Get all entries before the window
-        const beforeWindow = previousWindowData.filter(item => 
+        const beforeWindow = previousWindowData.filter(item =>
           DateTime.fromISO(item.snapshot_time) < startTime
-        ).sort((a, b) => 
+        ).sort((a, b) =>
           DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis()
         );
 
@@ -84,7 +126,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
           // Find the last consecutive duplicate rating from before the window
           let lastDuplicateIndex = 0;
           const firstRating = beforeWindow[0].rating;
-          
+
           for (let i = 1; i < beforeWindow.length; i++) {
             if (beforeWindow[i].rating === firstRating) {
               lastDuplicateIndex = i;
@@ -92,7 +134,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
               break;
             }
           }
-          
+
           filtered.unshift(beforeWindow[lastDuplicateIndex]);
         }
 
@@ -155,15 +197,64 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="flex flex-col gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <div className="relative w-20 h-20">
-              <div className="w-20 h-20 rounded-full bg-gray-700 overflow-hidden">
-                <div className="w-full h-full bg-gray-600 flex items-center justify-center text-2xl text-gray-400">
+            <div className="relative w-16 sm:w-20 h-16 sm:h-20 shrink-0">
+              <div className="w-full h-full rounded-full bg-gray-700 overflow-hidden">
+                <div className="w-full h-full bg-gray-600 flex items-center justify-center text-xl sm:text-2xl text-gray-400">
                   {playerData.name[0].toUpperCase()}
                 </div>
               </div>
             </div>
 
-            <h1 className="text-4xl font-bold text-white">{playerData.name}</h1>
+            {isEditing ? (
+              <div className="flex flex-col gap-2 w-full">
+                <form ref={formRef} onSubmit={handleSubmit} className="flex items-center gap-2">
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    placeholder={playerData.name}
+                    className="text-2xl sm:text-4xl font-bold bg-gray-800 text-white px-3 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                    autoFocus
+                  />
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      type="submit"
+                      className="p-2 hover:bg-gray-700 rounded transition-colors"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsEditing(false);
+                        setInputValue('');
+                      }}
+                      className="p-2 hover:bg-gray-700 rounded transition-colors"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              <div
+                className="group flex items-center gap-2 cursor-pointer w-full"
+                onClick={() => {
+                  setIsEditing(true);
+                  setTimeout(() => inputRef.current?.focus(), 0);
+                }}
+              >
+                <h1 className="text-2xl sm:text-4xl font-bold text-white group-hover:text-gray-300 transition-colors break-all">
+                  {playerData.name}
+                </h1>
+                <div className="text-gray-400 flex items-center gap-1 shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-search" viewBox="0 0 16 16">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
+                  </svg>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-8">
@@ -191,8 +282,8 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     <button
                       onClick={() => gameMode !== 's' && updateGameMode('s')}
                       className={`px-3 py-2 rounded transition-colors ${gameMode === 's'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                         }`}
                     >
                       Solo
@@ -202,8 +293,8 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     <button
                       onClick={() => gameMode !== 'd' && updateGameMode('d')}
                       className={`px-3 py-2 rounded transition-colors ${gameMode === 'd'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                         }`}
                     >
                       Duo
@@ -217,8 +308,8 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                       key={r}
                       onClick={() => region !== r && updateRegion(r)}
                       className={`px-3 py-2 rounded transition-colors ${region.toLowerCase() === r.toLowerCase()
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                         }`}
                     >
                       {r.toUpperCase()}
@@ -233,8 +324,8 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     key={value}
                     onClick={() => view !== value && updateView(value as TimeView)}
                     className={`px-3 py-2 rounded transition-colors ${view === value
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                       }`}
                   >
                     {value === 'all' ? 'Season' : value.charAt(0).toUpperCase() + value.slice(1)}
@@ -253,8 +344,8 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   <button
                     disabled={offsetNum === 0}
                     className={`px-3 py-2 rounded transition-colors ${offsetNum === 0
-                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                       }`}
                     onClick={() => updateOffset(0)}
                   >
@@ -263,8 +354,8 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   <button
                     disabled={offsetNum === 0}
                     className={`px-3 py-2 rounded transition-colors ${offsetNum === 0
-                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                       }`}
                     onClick={() => updateOffset(offsetNum - 1)}
                   >
