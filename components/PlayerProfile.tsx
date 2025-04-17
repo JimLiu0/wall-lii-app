@@ -62,6 +62,26 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
         const itemTime = DateTime.fromISO(item.snapshot_time);
         return itemTime >= startTime && itemTime <= endTime;
       });
+
+      // Find the previous window's latest different rating entry
+      const currentWindowStartTime = startTime;
+      const previousWindowData = playerData.data
+        .filter(item => {
+          const itemTime = DateTime.fromISO(item.snapshot_time);
+          return itemTime < currentWindowStartTime;
+        })
+        .sort((a, b) => 
+          DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis()
+        );
+
+      const previousWindowLatestDifferentRating = previousWindowData.find(
+        item => item.rating !== filtered[0]?.rating
+      );
+
+      // If we found a previous entry with a different rating, prepend it to filtered
+      if (previousWindowLatestDifferentRating && filtered.length > 0) {
+        filtered.unshift(previousWindowLatestDifferentRating);
+      }
     }
 
     return dedupData(filtered);
