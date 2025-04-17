@@ -7,12 +7,13 @@ interface PageParams {
   region: string;
 }
 
-const validRegions = ['na', 'eu', 'ap', 'cn'];
+const validRegions = ['na', 'eu', 'ap', 'cn', 'all'];
 const regionNames = {
   na: 'North America',
   eu: 'Europe',
   ap: 'Asia Pacific',
-  cn: 'China'
+  cn: 'China',
+  all: 'Global'
 };
 
 export async function generateMetadata({ params }: { params: Promise<PageParams> }): Promise<Metadata> {

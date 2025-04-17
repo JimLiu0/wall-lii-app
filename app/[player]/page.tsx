@@ -32,7 +32,7 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const decodedPlayer = decodeURIComponent(resolvedParams.player);
   const region = resolvedSearchParams.r || 'all';
   const regionName = regionNames[region as keyof typeof regionNames] || region.toUpperCase();
-  
+
   return {
     title: `${decodedPlayer} | ${regionName} Player Profile | Wall-lii`,
     description: `View ${decodedPlayer}'s player profile and statistics for the ${regionName} region in Wall-lii`,
@@ -56,6 +56,37 @@ interface PlayerData {
   availableModes: PlayerModes;
 }
 
+function determineDefaultView(data: { snapshot_time: string; rating: number }[]) {
+  const now = new Date();
+  const laMidnightToday = new Date(
+    now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
+  );
+  laMidnightToday.setHours(0, 0, 0, 0);
+
+  const startOfWeek = new Date(laMidnightToday);
+  startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)); // Monday
+
+  const ratingsToday = new Set(
+    data
+      .filter(item => new Date(item.snapshot_time) >= laMidnightToday)
+      .map(item => item.rating)
+  );
+
+  const ratingsThisWeek = new Set(
+    data
+      .filter(item => new Date(item.snapshot_time) >= startOfWeek)
+      .map(item => item.rating)
+  );
+
+  if (ratingsToday.size > 1) {
+    return 'd';
+  } else if (ratingsThisWeek.size > 1) {
+    return 'w';
+  } else {
+    return 's';
+  }
+}
+
 export default async function PlayerPage({
   params,
   searchParams,
@@ -64,10 +95,10 @@ export default async function PlayerPage({
     params,
     searchParams
   ]);
-  
+
   const player = decodeURIComponent(resolvedParams.player);
   const requestedRegion = resolvedSearchParams.r || 'all';
-  const requestedView = resolvedSearchParams.v || 's';
+  const requestedView = resolvedSearchParams.v;
   const requestedOffset = parseInt(resolvedSearchParams.o || '0', 10);
   const requestedGameMode = resolvedSearchParams.g || 's';
 
@@ -100,58 +131,73 @@ export default async function PlayerPage({
 
   // If the requested region/mode combination doesn't exist, find the most recent valid combination
   const hasRequestedCombination = data.some(
-    item => 
-      item.region.toLowerCase() === requestedRegion && 
+    item =>
+      item.region.toLowerCase() === requestedRegion &&
       item.game_mode === (requestedGameMode === 'd' ? '1' : '0')
   );
 
-  if (!hasRequestedCombination) {
-    // Group snapshots by rating and game_mode
-    const ratingGroups = data.reduce((acc, item) => {
-      const key = `${item.rating}-${item.game_mode}`;
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(item);
-      return acc;
-    }, {} as Record<string, typeof data>);
+  if (!hasRequestedCombination || !requestedView) {
+    let defaultRegion = requestedRegion;
+    let defaultGameMode = requestedGameMode === 'd' ? '1' : '0';
 
-    // For each rating group, find the oldest snapshot
-    const oldestSnapshots = Object.entries(ratingGroups).map(([key, items]) => {
-      // Sort by snapshot_time ascending to get the oldest
-      const sortedItems = items.sort((a, b) => 
-        new Date(a.snapshot_time).getTime() - new Date(b.snapshot_time).getTime()
-      );
-      return {
-        key,
-        item: sortedItems[0],
-        time: new Date(sortedItems[0].snapshot_time).getTime()
-      };
-    });
+    if (!hasRequestedCombination) {
+      // Group snapshots by rating and game_mode
+      const ratingGroups = data.reduce((acc, item) => {
+        const key = `${item.rating}-${item.game_mode}`;
+        if (!acc[key]) {
+          acc[key] = [];
+        }
+        acc[key].push(item);
+        return acc;
+      }, {} as Record<string, typeof data>);
 
-    // Sort by oldest snapshot time
-    const sortedByOldest = oldestSnapshots.sort((a, b) => a.time - b.time);
-
-    if (sortedByOldest.length > 0) {
-      const oldestSnapshot = sortedByOldest[0].item;
-      availableModes.defaultRegion = oldestSnapshot.region.toLowerCase();
-      availableModes.defaultGameMode = oldestSnapshot.game_mode;
-
-      // Redirect to the correct URL with the default region and game mode
-      const params = new URLSearchParams({
-        r: availableModes.defaultRegion,
-        g: availableModes.defaultGameMode === '1' ? 'd' : 's',
-        v: requestedView,
-        o: requestedOffset.toString()
+      // For each rating group, find the oldest snapshot
+      const oldestSnapshots = Object.entries(ratingGroups).map(([key, items]) => {
+        // Sort by snapshot_time ascending to get the oldest
+        const sortedItems = items.sort((a, b) =>
+          new Date(a.snapshot_time).getTime() - new Date(b.snapshot_time).getTime()
+        );
+        return {
+          key,
+          item: sortedItems[0],
+          time: new Date(sortedItems[0].snapshot_time).getTime()
+        };
       });
-      redirect(`/${player}?${params.toString()}`);
+
+      // Sort by oldest snapshot time
+      const sortedByOldest = oldestSnapshots.sort((a, b) => a.time - b.time);
+
+      if (sortedByOldest.length > 0) {
+        const oldestSnapshot = sortedByOldest[0].item;
+        defaultRegion = oldestSnapshot.region.toLowerCase();
+        defaultGameMode = oldestSnapshot.game_mode;
+      }
     }
+
+    // Filter data for the region/mode combination we'll use
+    const relevantData = data.filter(
+      item =>
+        item.region.toLowerCase() === defaultRegion &&
+        item.game_mode === defaultGameMode
+    );
+
+    // Determine default view based on the filtered data
+    const defaultView = determineDefaultView(relevantData);
+
+    // Redirect with all the determined defaults
+    const params = new URLSearchParams({
+      r: defaultRegion,
+      g: defaultGameMode === '1' ? 'd' : 's',
+      v: defaultView,
+      o: '0'
+    });
+    redirect(`/${player}?${params.toString()}`);
   }
 
   // Filter data for the current region and game mode
   const filteredData = data.filter(
-    item => 
-      item.region.toLowerCase() === availableModes.defaultRegion && 
+    item =>
+      item.region.toLowerCase() === availableModes.defaultRegion &&
       item.game_mode === availableModes.defaultGameMode
   );
 

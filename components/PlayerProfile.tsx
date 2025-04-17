@@ -100,54 +100,31 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   return (
     <div className="container mx-auto p-4">
       <div className="bg-gray-900 rounded-lg p-6">
-        <div className="flex items-center gap-6 mb-8">
-          <div className="relative w-24 h-24">
-            <div className="w-24 h-24 rounded-full bg-gray-700 overflow-hidden">
-              <div className="w-full h-full bg-gray-600 flex items-center justify-center text-2xl text-gray-400">
-                {playerData.name[0].toUpperCase()}
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="relative w-20 h-20">
+              <div className="w-20 h-20 rounded-full bg-gray-700 overflow-hidden">
+                <div className="w-full h-full bg-gray-600 flex items-center justify-center text-2xl text-gray-400">
+                  {playerData.name[0].toUpperCase()}
+                </div>
               </div>
             </div>
+
+            <h1 className="text-4xl font-bold text-white">{playerData.name}</h1>
           </div>
 
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-4xl font-bold text-white">{playerData.name}</h1>
-              <div className="flex gap-2">
-                {hasMultipleRegions ? (
-                  availableModes.regions.map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => updateRegion(r)}
-                      className={`px-3 py-1 rounded transition-colors ${
-                        region.toLowerCase() === r.toLowerCase()
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
-                    >
-                      {r.toUpperCase()}
-                    </button>
-                  ))
-                ) : (
-                  <span className="bg-gray-800 px-3 py-1 rounded text-gray-300">
-                    {region.toUpperCase()}
-                  </span>
-                )}
-              </div>
+          <div className="flex gap-8">
+            <div>
+              <div className="text-gray-400 text-sm">Rank</div>
+              <div className="text-2xl text-white">{playerData.rank}</div>
             </div>
-
-            <div className="flex gap-8 mt-4">
-              <div>
-                <div className="text-gray-400 text-sm">Rank</div>
-                <div className="text-2xl text-white">{playerData.rank}</div>
-              </div>
-              <div>
-                <div className="text-gray-400 text-sm">Rating</div>
-                <div className="text-2xl text-white">{playerData.rating}</div>
-              </div>
-              <div>
-                <div className="text-gray-400 text-sm">Peak</div>
-                <div className="text-2xl text-white">{playerData.peak}</div>
-              </div>
+            <div>
+              <div className="text-gray-400 text-sm">Rating</div>
+              <div className="text-2xl text-white">{playerData.rating}</div>
+            </div>
+            <div>
+              <div className="text-gray-400 text-sm">Peak</div>
+              <div className="text-2xl text-white">{playerData.peak}</div>
             </div>
           </div>
         </div>
@@ -155,64 +132,99 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-2/3">
             <div className="mb-6">
-              {(hasSolo && hasDuo) && (
-                <div className="flex gap-2 mb-4">
-                  <button
-                    onClick={() => updateGameMode('s')}
-                    className={`px-4 py-2 rounded ${
-                      gameMode === 's'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    Solo
-                  </button>
-                  <button
-                    onClick={() => updateGameMode('d')}
-                    className={`px-4 py-2 rounded ${
-                      gameMode === 'd'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    Duo
-                  </button>
+              <div className="flex flex-wrap gap-4 items-center mb-4">
+                <div className="flex gap-2">
+                  { hasSolo && (
+                    <button
+                      onClick={hasDuo ? () => updateGameMode('s') : undefined}
+                      className={`px-3 py-2 rounded transition-colors ${
+                        gameMode === 's'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      Solo
+                    </button>
+                  )}
+                  { hasDuo && (
+                    <button
+                      onClick={hasSolo ? () => updateGameMode('d') : undefined}
+                      className={`px-3 py-2 rounded transition-colors ${
+                        gameMode === 'd'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      Duo
+                    </button>
+                  )}
                 </div>
-              )}
+
+                <div className="flex gap-2">
+                  {availableModes.regions.map((r) => (
+                    <button
+                      key={r}
+                      onClick={hasMultipleRegions ? () => updateRegion(r) : undefined}
+                      className={`px-3 py-2 rounded transition-colors ${
+                        region.toLowerCase() === r.toLowerCase()
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      {r.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-4">
+                {['all', 'week', 'day'].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => updateView(value as TimeView)}
+                    className={`px-3 py-2 rounded transition-colors ${
+                      view === value
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    {value === 'all' ? 'Season' : value.charAt(0).toUpperCase() + value.slice(1)}
+                  </button>
+                ))}
+              </div>
 
               {view !== 'all' && (
-                <div className="mt-4 flex items-center gap-3 text-white">
-                  <button onClick={() => updateOffset(offsetNum + 1)} className="hover:text-blue-500">←</button>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => updateOffset(offsetNum + 1)}
+                    className="px-3 py-2 rounded transition-colors bg-gray-800 text-gray-300 hover:bg-gray-700"
+                  >
+                    Prev
+                  </button>
                   <button
                     disabled={offsetNum === 0}
-                    className={`hover:text-blue-500 ${offsetNum === 0 ? 'text-gray-500 cursor-not-allowed' : ''}`}
+                    className={`px-3 py-2 rounded transition-colors ${
+                      offsetNum === 0
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
                     onClick={() => updateOffset(0)}
                   >
                     Today
                   </button>
                   <button
                     disabled={offsetNum === 0}
-                    className={`hover:text-blue-500 ${offsetNum === 0 ? 'text-gray-500 cursor-not-allowed' : ''}`}
+                    className={`px-3 py-2 rounded transition-colors ${
+                      offsetNum === 0
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
                     onClick={() => updateOffset(offsetNum - 1)}
                   >
-                    →
+                    Next
                   </button>
                 </div>
               )}
-              <div className="flex gap-2 mt-4">
-                {['all', 'week', 'day'].map((value) => (
-                  <button
-                    key={value}
-                    onClick={() => updateView(value as TimeView)}
-                    className={`px-4 py-2 rounded ${view === value
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
-                  >
-                    {value === 'all' ? 'Season' : value.charAt(0).toUpperCase() + value.slice(1)}
-                  </button>
-                ))}
-              </div>
 
               <div className="text-xl font-bold text-white mt-4">
                 {view === 'all'

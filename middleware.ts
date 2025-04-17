@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const validRegions = ['na', 'eu', 'ap', 'cn'];
+const validRegions = ['na', 'eu', 'ap', 'cn', 'all'];
 
 export function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
@@ -99,11 +99,14 @@ export function middleware(request: NextRequest) {
 // Configure matcher to only run middleware on specific paths
 export const config = {
   matcher: [
+    // Match root path
+    '/',
     // Match root-level region paths
     '/na',
     '/eu',
     '/ap',
     '/cn',
+    '/all',
     // Match paths without region
     '/:player/d/:offset',
     '/:player/day/:offset',
