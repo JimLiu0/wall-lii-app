@@ -73,7 +73,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (inputValue.trim() && inputValue !== playerData.name) {
-      router.push(`/${inputValue.trim()}`);
+      router.push(`/${inputValue.toLowerCase().trim()}`);
     } else {
       setIsEditing(false);
       setInputValue('');

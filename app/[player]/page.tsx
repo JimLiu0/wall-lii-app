@@ -29,7 +29,7 @@ const regionNames = {
 
 export async function generateMetadata({ params, searchParams }: { params: Promise<PageParams>, searchParams: Promise<SearchParams> }): Promise<Metadata> {
   const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
-  const decodedPlayer = decodeURIComponent(resolvedParams.player);
+  const decodedPlayer = decodeURIComponent(resolvedParams.player.toLowerCase());
   const region = resolvedSearchParams.r || 'all';
   const regionName = regionNames[region as keyof typeof regionNames] || region.toUpperCase();
 
@@ -65,8 +65,9 @@ export default async function PlayerPage({
     params,
     searchParams
   ]);
-
+  console.log(resolvedParams.player);
   const player = decodeURIComponent(resolvedParams.player);
+  console.log(player);
   const requestedRegion = resolvedSearchParams.r || 'all';
   const requestedView = resolvedSearchParams.v;
   const requestedOffset = parseInt(resolvedSearchParams.o || '0', 10);
@@ -181,7 +182,7 @@ export default async function PlayerPage({
       v: defaultView,
       o: '0'
     });
-    redirect(`/${player}?${params.toString()}`);
+    redirect(`/${encodeURIComponent(player)}?${params.toString()}`);
   }
 
   // Filter data for the current region and game mode

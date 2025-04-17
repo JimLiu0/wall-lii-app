@@ -35,7 +35,7 @@ export function middleware(request: NextRequest) {
     
     // Create the new URL with query parameters
     const url = request.nextUrl.clone();
-    url.pathname = `/${player}`;
+    url.pathname = `/${encodeURIComponent(player)}`;
     
     // Preserve existing search params and add view and offset
     const params = new URLSearchParams(searchParams);
@@ -63,7 +63,7 @@ export function middleware(request: NextRequest) {
     
     // Create the new URL with query parameters
     const url = request.nextUrl.clone();
-    url.pathname = `/${player}`;
+    url.pathname = `/${encodeURIComponent(player)}`;
     url.search = `?r=${region}&v=${normalizedView}&o=${offset}`;
     
     return NextResponse.redirect(url);
@@ -83,7 +83,7 @@ export function middleware(request: NextRequest) {
     
     // Create the new URL with query parameters
     const url = request.nextUrl.clone();
-    url.pathname = `/${player}`;
+    url.pathname = `/${encodeURIComponent(player)}`;
 
     // Preserve existing search params and add region
     const params = new URLSearchParams(searchParams);
