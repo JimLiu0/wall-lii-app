@@ -3,6 +3,7 @@ import { supabase } from '@/utils/supabaseClient';
 import PlayerProfile from '@/components/PlayerProfile';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { dedupData } from '@/utils/getDedupData';
 
 interface PageParams {
   player: string;
@@ -57,37 +58,6 @@ interface PlayerData {
   availableModes: PlayerModes;
 }
 
-function determineDefaultView(data: { snapshot_time: string; rating: number }[]) {
-  const now = new Date();
-  const laMidnightToday = new Date(
-    now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
-  );
-  laMidnightToday.setHours(0, 0, 0, 0);
-
-  const startOfWeek = new Date(laMidnightToday);
-  startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)); // Monday
-
-  const ratingsToday = new Set(
-    data
-      .filter(item => new Date(item.snapshot_time) >= laMidnightToday)
-      .map(item => item.rating)
-  );
-
-  const ratingsThisWeek = new Set(
-    data
-      .filter(item => new Date(item.snapshot_time) >= startOfWeek)
-      .map(item => item.rating)
-  );
-
-  if (ratingsToday.size > 1) {
-    return 'd';
-  } else if (ratingsThisWeek.size > 1) {
-    return 'w';
-  } else {
-    return 's';
-  }
-}
-
 export default async function PlayerPage({
   params,
   searchParams,
@@ -135,22 +105,71 @@ export default async function PlayerPage({
     return acc;
   }, [] as string[]);
 
+  // Group data by region and game mode
+  const groupedData = data.reduce((acc, item) => {
+    const key = `${item.region.toLowerCase()}-${item.game_mode}`;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(item);
+    return acc;
+  }, {} as Record<string, typeof data>);
+
+  // For each combo, find the most recent rating change
+  let mostRecentChange: (typeof data)[0] | null = null;
+  Object.entries(groupedData).forEach(([combo, items]) => {
+    // Sort by time descending
+    const sorted = [...items].sort((a, b) => 
+      new Date(b.snapshot_time).getTime() - new Date(a.snapshot_time).getTime()
+    );
+
+    // Find the most recent different rating
+    const mostRecent = sorted[0];
+    const previousDifferentRating = sorted.find(item => item.rating !== mostRecent.rating);
+    
+    if (previousDifferentRating) {
+      const changeTime = new Date(mostRecent.snapshot_time).getTime();
+      if (!mostRecentChange || changeTime > new Date(mostRecentChange.snapshot_time).getTime()) {
+        mostRecentChange = mostRecent;
+      }
+    }
+  });
+
+  // If no rating changes found, just use the most recent entry
+  if (!mostRecentChange) {
+    mostRecentChange = data.reduce((latest, current) => {
+      return new Date(current.snapshot_time) > new Date(latest.snapshot_time) ? current : latest;
+    });
+  }
+
+  // Determine default view based on when the change happened
+  function determineDefaultView(timestamp: string) {
+    const changeTime = new Date(timestamp);
+    const now = new Date();
+    const laMidnightToday = new Date(
+      now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
+    );
+    laMidnightToday.setHours(0, 0, 0, 0);
+
+    const startOfWeek = new Date(laMidnightToday);
+    startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)); // Monday
+
+    if (changeTime >= laMidnightToday) {
+      return 'd';
+    } else if (changeTime >= startOfWeek) {
+      return 'w';
+    } else {
+      return 's';
+    }
+  }
+
+  const defaultRegion = mostRecentChange.region.toLowerCase();
+  const defaultGameMode = mostRecentChange.game_mode;
+  const defaultView = determineDefaultView(mostRecentChange.snapshot_time);
+
   // Find the most recent valid combination if requested one doesn't exist
   const requestedCombo = `${requestedRegion}-${requestedGameMode === 'd' ? '1' : '0'}`;
   if (!availableCombos.includes(requestedCombo) || !requestedView) {
-    // Find the most recent snapshot
-    const mostRecent = data.reduce((latest, current) => {
-      const currentTime = new Date(current.snapshot_time).getTime();
-      const latestTime = new Date(latest.snapshot_time).getTime();
-      return currentTime > latestTime ? current : latest;
-    });
-
-    const defaultRegion = mostRecent.region.toLowerCase();
-    const defaultGameMode = mostRecent.game_mode;
-    const defaultView = determineDefaultView(data.filter(
-      item => item.region.toLowerCase() === defaultRegion && item.game_mode === defaultGameMode
-    ));
-
     // Redirect with all the determined defaults
     const params = new URLSearchParams({
       r: defaultRegion,

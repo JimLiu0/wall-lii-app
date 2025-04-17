@@ -44,7 +44,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
 
   let filteredData = useMemo(() => {
     let filtered = playerData.data;
-    
+
     if (view !== 'all') {
       const now = DateTime.now();
       let startTime: DateTime;
@@ -64,27 +64,59 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
         return itemTime >= startTime && itemTime <= endTime;
       });
 
+      console.log(filtered);
+
       // Get all data before current window
       const previousWindowData = playerData.data
         .filter(item => DateTime.fromISO(item.snapshot_time) < startTime)
         .sort((a, b) => DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis());
 
+      console.log(previousWindowData);
+
       // If we have data in current window
       if (filtered.length > 0) {
-        // Find last different rating before window
-        const previousDifferentRating = previousWindowData.find(
-          item => item.rating !== filtered[0].rating
-        );
+        const currentRating = filtered[0].rating;
         
-        if (previousDifferentRating) {
-          filtered.unshift(previousDifferentRating);
-        } else {
-          // If no different rating found, get the earliest instance of the same rating
-          const earliestSameRating = previousWindowData.find(
-            item => item.rating === filtered[0].rating
+        // Find the first instance of the current consecutive sequence
+        let firstInstance = null;
+        let lastDifferentRating = null;
+        
+        for (let i = 0; i < previousWindowData.length; i++) {
+          if (previousWindowData[i].rating === currentRating) {
+            firstInstance = previousWindowData[i];
+          } else {
+            lastDifferentRating = previousWindowData[i];
+            break;
+          }
+        }
+
+        // For the graph/message, use the first instance of the sequence
+        if (firstInstance) {
+          filtered.unshift(firstInstance);
+        }
+        
+        // For stats calculation, if we found a different rating, add it to the beginning
+        if (lastDifferentRating) {
+          if (previousWindowData[previousWindowData.length - 1].rating != filtered[0].rating) {
+            filtered.unshift(lastDifferentRating);
+          }
+        }
+
+        // Keep only the most recent entry before the time window
+        if (filtered.length > 1) {
+          filtered = dedupData(filtered);
+          const beforeWindow = filtered.filter(item => 
+            DateTime.fromISO(item.snapshot_time) < startTime
+          ).sort((a, b) => 
+            DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis()
           );
-          if (earliestSameRating) {
-            filtered.unshift(earliestSameRating);
+          
+          if (beforeWindow.length > 1) {
+            // Remove all but the most recent entry before the window
+            filtered = [
+              beforeWindow[0],
+              ...filtered.filter(item => DateTime.fromISO(item.snapshot_time) >= startTime)
+            ];
           }
         }
       } else if (previousWindowData.length > 0) {
@@ -97,10 +129,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     return filtered;
   }, [playerData.data, view, offsetNum]);
 
-  console.log(filteredData);
   filteredData = dedupData(filteredData);
-
-  console.log(filteredData);
 
   const updateView = (newView: TimeView) => {
     const periodMap = { all: 's', week: 'w', day: 'd' };
@@ -132,13 +161,13 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   const { availableCombos } = availableModes;
 
   // Helper function to check if a combination exists
-  const hasCombo = (r: string, gm: string) => 
+  const hasCombo = (r: string, gm: string) =>
     availableCombos.includes(`${r.toLowerCase()}-${gm === 'd' ? '1' : '0'}`);
 
   // Determine which buttons to show
   const showSoloButton = hasCombo(region, 's');
   const showDuoButton = hasCombo(region, 'd');
-  const showRegionButtons = availableModes.regions.filter(r => 
+  const showRegionButtons = availableModes.regions.filter(r =>
     hasCombo(r, gameMode)  // Only show regions that have data for the current game mode
   );
 
@@ -182,11 +211,10 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   {showSoloButton && (
                     <button
                       onClick={() => updateGameMode('s')}
-                      className={`px-3 py-2 rounded transition-colors ${
-                        gameMode === 's'
+                      className={`px-3 py-2 rounded transition-colors ${gameMode === 's'
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
+                        }`}
                     >
                       Solo
                     </button>
@@ -194,11 +222,10 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   {showDuoButton && (
                     <button
                       onClick={() => updateGameMode('d')}
-                      className={`px-3 py-2 rounded transition-colors ${
-                        gameMode === 'd'
+                      className={`px-3 py-2 rounded transition-colors ${gameMode === 'd'
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
+                        }`}
                     >
                       Duo
                     </button>
@@ -210,11 +237,10 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     <button
                       key={r}
                       onClick={() => updateRegion(r)}
-                      className={`px-3 py-2 rounded transition-colors ${
-                        region.toLowerCase() === r.toLowerCase()
+                      className={`px-3 py-2 rounded transition-colors ${region.toLowerCase() === r.toLowerCase()
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
+                        }`}
                     >
                       {r.toUpperCase()}
                     </button>
@@ -227,11 +253,10 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   <button
                     key={value}
                     onClick={() => updateView(value as TimeView)}
-                    className={`px-3 py-2 rounded transition-colors ${
-                      view === value
+                    className={`px-3 py-2 rounded transition-colors ${view === value
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
+                      }`}
                   >
                     {value === 'all' ? 'Season' : value.charAt(0).toUpperCase() + value.slice(1)}
                   </button>
@@ -248,22 +273,20 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   </button>
                   <button
                     disabled={offsetNum === 0}
-                    className={`px-3 py-2 rounded transition-colors ${
-                      offsetNum === 0
+                    className={`px-3 py-2 rounded transition-colors ${offsetNum === 0
                         ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
+                      }`}
                     onClick={() => updateOffset(0)}
                   >
                     Today
                   </button>
                   <button
                     disabled={offsetNum === 0}
-                    className={`px-3 py-2 rounded transition-colors ${
-                      offsetNum === 0
+                    className={`px-3 py-2 rounded transition-colors ${offsetNum === 0
                         ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
+                      }`}
                     onClick={() => updateOffset(offsetNum - 1)}
                   >
                     ➡️
