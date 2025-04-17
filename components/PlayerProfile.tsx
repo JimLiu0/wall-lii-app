@@ -23,6 +23,7 @@ interface PlayerData {
     gameModes: string[];
     defaultRegion: string;
     defaultGameMode: string;
+    availableCombos: string[];
   };
 }
 
@@ -93,9 +94,18 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   };
 
   const { availableModes } = playerData;
-  const hasSolo = availableModes.gameModes.includes('0');
-  const hasDuo = availableModes.gameModes.includes('1');
-  const hasMultipleRegions = availableModes.regions.length > 1;
+  const { availableCombos } = availableModes;
+
+  // Helper function to check if a combination exists
+  const hasCombo = (r: string, gm: string) => 
+    availableCombos.includes(`${r.toLowerCase()}-${gm === 'd' ? '1' : '0'}`);
+
+  // Determine which buttons to show
+  const showSoloButton = hasCombo(region, 's');
+  const showDuoButton = hasCombo(region, 'd');
+  const showRegionButtons = availableModes.regions.filter(r => 
+    hasCombo(r, gameMode)  // Only show regions that have data for the current game mode
+  );
 
   return (
     <div className="container mx-auto p-4">
@@ -134,9 +144,9 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
             <div className="mb-6">
               <div className="flex flex-wrap gap-4 items-center mb-4">
                 <div className="flex gap-2">
-                  { hasSolo && (
+                  {showSoloButton && (
                     <button
-                      onClick={hasDuo ? () => updateGameMode('s') : undefined}
+                      onClick={() => updateGameMode('s')}
                       className={`px-3 py-2 rounded transition-colors ${
                         gameMode === 's'
                           ? 'bg-blue-600 text-white'
@@ -146,9 +156,9 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                       Solo
                     </button>
                   )}
-                  { hasDuo && (
+                  {showDuoButton && (
                     <button
-                      onClick={hasSolo ? () => updateGameMode('d') : undefined}
+                      onClick={() => updateGameMode('d')}
                       className={`px-3 py-2 rounded transition-colors ${
                         gameMode === 'd'
                           ? 'bg-blue-600 text-white'
@@ -161,10 +171,10 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                 </div>
 
                 <div className="flex gap-2">
-                  {availableModes.regions.map((r) => (
+                  {showRegionButtons.map((r) => (
                     <button
                       key={r}
-                      onClick={hasMultipleRegions ? () => updateRegion(r) : undefined}
+                      onClick={() => updateRegion(r)}
                       className={`px-3 py-2 rounded transition-colors ${
                         region.toLowerCase() === r.toLowerCase()
                           ? 'bg-blue-600 text-white'
@@ -199,7 +209,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     onClick={() => updateOffset(offsetNum + 1)}
                     className="px-3 py-2 rounded transition-colors bg-gray-800 text-gray-300 hover:bg-gray-700"
                   >
-                    Prev
+                    ⬅️
                   </button>
                   <button
                     disabled={offsetNum === 0}
@@ -221,7 +231,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     }`}
                     onClick={() => updateOffset(offsetNum - 1)}
                   >
-                    Next
+                    ➡️
                   </button>
                 </div>
               )}

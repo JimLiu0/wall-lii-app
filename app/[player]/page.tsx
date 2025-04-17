@@ -44,6 +44,7 @@ interface PlayerModes {
   gameModes: string[];
   defaultRegion: string;
   defaultGameMode: string;
+  availableCombos: string[]; // e.g. ['na-0', 'na-1', 'cn-0']
 }
 
 interface PlayerData {
@@ -122,67 +123,33 @@ export default async function PlayerPage({
   }
 
   // Get unique regions and game modes for this player
-  const availableModes: PlayerModes = {
-    regions: [...new Set(data.map(item => item.region.toLowerCase()))],
-    gameModes: [...new Set(data.map(item => item.game_mode))],
-    defaultRegion: requestedRegion,
-    defaultGameMode: requestedGameMode === 'd' ? '1' : '0'
-  };
-
-  // If the requested region/mode combination doesn't exist, find the most recent valid combination
-  const hasRequestedCombination = data.some(
-    item =>
-      item.region.toLowerCase() === requestedRegion &&
-      item.game_mode === (requestedGameMode === 'd' ? '1' : '0')
-  );
-
-  if (!hasRequestedCombination || !requestedView) {
-    let defaultRegion = requestedRegion;
-    let defaultGameMode = requestedGameMode === 'd' ? '1' : '0';
-
-    if (!hasRequestedCombination) {
-      // Group snapshots by rating and game_mode
-      const ratingGroups = data.reduce((acc, item) => {
-        const key = `${item.rating}-${item.game_mode}`;
-        if (!acc[key]) {
-          acc[key] = [];
-        }
-        acc[key].push(item);
-        return acc;
-      }, {} as Record<string, typeof data>);
-
-      // For each rating group, find the oldest snapshot
-      const oldestSnapshots = Object.entries(ratingGroups).map(([key, items]) => {
-        // Sort by snapshot_time ascending to get the oldest
-        const sortedItems = items.sort((a, b) =>
-          new Date(a.snapshot_time).getTime() - new Date(b.snapshot_time).getTime()
-        );
-        return {
-          key,
-          item: sortedItems[0],
-          time: new Date(sortedItems[0].snapshot_time).getTime()
-        };
-      });
-
-      // Sort by oldest snapshot time
-      const sortedByOldest = oldestSnapshots.sort((a, b) => a.time - b.time);
-
-      if (sortedByOldest.length > 0) {
-        const oldestSnapshot = sortedByOldest[0].item;
-        defaultRegion = oldestSnapshot.region.toLowerCase();
-        defaultGameMode = oldestSnapshot.game_mode;
-      }
+  const regions = [...new Set(data.map(item => item.region.toLowerCase()))];
+  const gameModes = [...new Set(data.map(item => item.game_mode))];
+  
+  // Create all possible combinations that exist in the data
+  const availableCombos = data.reduce((acc, item) => {
+    const combo = `${item.region.toLowerCase()}-${item.game_mode}`;
+    if (!acc.includes(combo)) {
+      acc.push(combo);
     }
+    return acc;
+  }, [] as string[]);
 
-    // Filter data for the region/mode combination we'll use
-    const relevantData = data.filter(
-      item =>
-        item.region.toLowerCase() === defaultRegion &&
-        item.game_mode === defaultGameMode
-    );
+  // Find the most recent valid combination if requested one doesn't exist
+  const requestedCombo = `${requestedRegion}-${requestedGameMode === 'd' ? '1' : '0'}`;
+  if (!availableCombos.includes(requestedCombo) || !requestedView) {
+    // Find the most recent snapshot
+    const mostRecent = data.reduce((latest, current) => {
+      const currentTime = new Date(current.snapshot_time).getTime();
+      const latestTime = new Date(latest.snapshot_time).getTime();
+      return currentTime > latestTime ? current : latest;
+    });
 
-    // Determine default view based on the filtered data
-    const defaultView = determineDefaultView(relevantData);
+    const defaultRegion = mostRecent.region.toLowerCase();
+    const defaultGameMode = mostRecent.game_mode;
+    const defaultView = determineDefaultView(data.filter(
+      item => item.region.toLowerCase() === defaultRegion && item.game_mode === defaultGameMode
+    ));
 
     // Redirect with all the determined defaults
     const params = new URLSearchParams({
@@ -197,8 +164,8 @@ export default async function PlayerPage({
   // Filter data for the current region and game mode
   const filteredData = data.filter(
     item =>
-      item.region.toLowerCase() === availableModes.defaultRegion &&
-      item.game_mode === availableModes.defaultGameMode
+      item.region.toLowerCase() === requestedRegion &&
+      item.game_mode === (requestedGameMode === 'd' ? '1' : '0')
   );
 
   const playerData: PlayerData = {
@@ -206,12 +173,18 @@ export default async function PlayerPage({
     rank: filteredData[filteredData.length - 1]?.rank,
     rating: filteredData[filteredData.length - 1]?.rating,
     peak: filteredData.reduce((max, item) => Math.max(max, item.rating), 0),
-    region: availableModes.defaultRegion,
+    region: requestedRegion,
     data: filteredData.map((item) => ({
       snapshot_time: item.snapshot_time,
       rating: item.rating,
     })),
-    availableModes
+    availableModes: {
+      regions,
+      gameModes,
+      defaultRegion: requestedRegion,
+      defaultGameMode: requestedGameMode === 'd' ? '1' : '0',
+      availableCombos
+    }
   };
 
   return (
@@ -224,7 +197,7 @@ export default async function PlayerPage({
     }>
       <PlayerProfile
         player={player}
-        region={availableModes.defaultRegion}
+        region={requestedRegion}
         view={requestedView}
         offset={requestedOffset}
         playerData={playerData}
