@@ -154,15 +154,13 @@ export default async function PlayerPage({
   function determineDefaultView(timestamp: string) {
     const changeTime = new Date(timestamp);
     const now = new Date();
-    const laMidnightToday = new Date(
-      now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
-    );
-    laMidnightToday.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const startOfWeek = new Date(laMidnightToday);
+    const startOfWeek = new Date(today);
     startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)); // Monday
 
-    if (changeTime >= laMidnightToday) {
+    if (changeTime >= today) {
       return 'd';
     } else if (changeTime >= startOfWeek) {
       return 'w';

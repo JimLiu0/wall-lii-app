@@ -10,9 +10,7 @@ interface Props {
 }
 
 export default function PlayerGraph({ data, playerName }: Props) {
-  console.log(data);
   data = dedupData(data);
-  console.log(data);
   // Check if all ratings are the same
   const allSameRating = data.every(d => d.rating === data[0].rating);
   

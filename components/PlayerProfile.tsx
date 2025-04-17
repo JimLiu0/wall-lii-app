@@ -64,14 +64,10 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
         return itemTime >= startTime && itemTime <= endTime;
       });
 
-      console.log(filtered);
-
       // Get all data before current window
       const previousWindowData = playerData.data
         .filter(item => DateTime.fromISO(item.snapshot_time) < startTime)
         .sort((a, b) => DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis());
-
-      console.log(previousWindowData);
 
       // If we have data in current window
       if (filtered.length > 0) {
