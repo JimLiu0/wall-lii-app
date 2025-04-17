@@ -75,50 +75,21 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
 
       // If we have data in current window
       if (filtered.length > 0) {
-        const currentRating = filtered[0].rating;
-        
-        // Find the first instance of the current consecutive sequence
-        let firstInstance = null;
-        let lastDifferentRating = null;
-        
-        for (let i = 0; i < previousWindowData.length; i++) {
-          if (previousWindowData[i].rating === currentRating) {
-            firstInstance = previousWindowData[i];
-          } else {
-            lastDifferentRating = previousWindowData[i];
-            break;
-          }
+
+        // Get all entries before the window
+        const beforeWindow = previousWindowData.filter(item => 
+          DateTime.fromISO(item.snapshot_time) < startTime
+        ).sort((a, b) => 
+          DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis()
+        );
+
+        // If we have entries before the window, add the most recent one
+        if (beforeWindow.length > 0) {
+          filtered.unshift(beforeWindow[0]);
         }
 
-        // For the graph/message, use the first instance of the sequence
-        if (firstInstance) {
-          filtered.unshift(firstInstance);
-        }
-        
-        // For stats calculation, if we found a different rating, add it to the beginning
-        if (lastDifferentRating) {
-          if (previousWindowData[previousWindowData.length - 1].rating != filtered[0].rating) {
-            filtered.unshift(lastDifferentRating);
-          }
-        }
-
-        // Keep only the most recent entry before the time window
-        if (filtered.length > 1) {
-          filtered = dedupData(filtered);
-          const beforeWindow = filtered.filter(item => 
-            DateTime.fromISO(item.snapshot_time) < startTime
-          ).sort((a, b) => 
-            DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis()
-          );
-          
-          if (beforeWindow.length > 1) {
-            // Remove all but the most recent entry before the window
-            filtered = [
-              beforeWindow[0],
-              ...filtered.filter(item => DateTime.fromISO(item.snapshot_time) >= startTime)
-            ];
-          }
-        }
+        // Remove any duplicates
+        filtered = dedupData(filtered);
       } else if (previousWindowData.length > 0) {
         // No data in current window but we have previous data
         // Use the most recent previous rating
