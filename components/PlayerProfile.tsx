@@ -189,7 +189,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                 <div className="flex gap-2">
                   {showSoloButton && (
                     <button
-                      onClick={() => updateGameMode('s')}
+                      onClick={() => gameMode !== 's' && updateGameMode('s')}
                       className={`px-3 py-2 rounded transition-colors ${gameMode === 's'
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -200,7 +200,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   )}
                   {showDuoButton && (
                     <button
-                      onClick={() => updateGameMode('d')}
+                      onClick={() => gameMode !== 'd' && updateGameMode('d')}
                       className={`px-3 py-2 rounded transition-colors ${gameMode === 'd'
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -215,7 +215,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   {showRegionButtons.map((r) => (
                     <button
                       key={r}
-                      onClick={() => updateRegion(r)}
+                      onClick={() => region !== r && updateRegion(r)}
                       className={`px-3 py-2 rounded transition-colors ${region.toLowerCase() === r.toLowerCase()
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -231,7 +231,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                 {['all', 'week', 'day'].map((value) => (
                   <button
                     key={value}
-                    onClick={() => updateView(value as TimeView)}
+                    onClick={() => view !== value && updateView(value as TimeView)}
                     className={`px-3 py-2 rounded transition-colors ${view === value
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
