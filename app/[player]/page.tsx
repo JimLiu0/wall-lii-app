@@ -115,27 +115,35 @@ export default async function PlayerPage({
     return acc;
   }, {} as Record<string, typeof data>);
 
-  // For each combo, find the most recent rating change
-  let mostRecentChange: (typeof data)[0] | null = null;
+  // Find the most recent rating change across all combinations
+  let mostRecentChange = null;
+  let mostRecentChangeTime = 0;
+
   Object.entries(groupedData).forEach(([combo, items]) => {
     // Sort by time descending
     const sorted = [...items].sort((a, b) => 
       new Date(b.snapshot_time).getTime() - new Date(a.snapshot_time).getTime()
     );
 
-    // Find the most recent different rating
-    const mostRecent = sorted[0];
-    const previousDifferentRating = sorted.find(item => item.rating !== mostRecent.rating);
-    
-    if (previousDifferentRating) {
-      const changeTime = new Date(mostRecent.snapshot_time).getTime();
-      if (!mostRecentChange || changeTime > new Date(mostRecentChange.snapshot_time).getTime()) {
-        mostRecentChange = mostRecent;
+    // Find the most recent rating change in this combo
+    let currentRating = sorted[0].rating;
+    let lastChangeEntry = sorted[0];
+
+    for (let i = 1; i < sorted.length; i++) {
+      if (sorted[i].rating !== currentRating) {
+        // Found a rating change
+        const changeTime = new Date(lastChangeEntry.snapshot_time).getTime();
+        if (changeTime > mostRecentChangeTime) {
+          mostRecentChange = lastChangeEntry;
+          mostRecentChangeTime = changeTime;
+        }
+        break;
       }
+      lastChangeEntry = sorted[i];
     }
   });
 
-  // If no rating changes found, just use the most recent entry
+  // If no rating changes found, just use the most recent entry overall
   if (!mostRecentChange) {
     mostRecentChange = data.reduce((latest, current) => {
       return new Date(current.snapshot_time) > new Date(latest.snapshot_time) ? current : latest;

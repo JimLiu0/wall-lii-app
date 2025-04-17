@@ -85,7 +85,19 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
 
         // If we have entries before the window, add the most recent one
         if (beforeWindow.length > 0) {
-          filtered.unshift(beforeWindow[0]);
+          // Find the last consecutive duplicate rating from before the window
+          let lastDuplicateIndex = 0;
+          const firstRating = beforeWindow[0].rating;
+          
+          for (let i = 1; i < beforeWindow.length; i++) {
+            if (beforeWindow[i].rating === firstRating) {
+              lastDuplicateIndex = i;
+            } else {
+              break;
+            }
+          }
+          
+          filtered.unshift(beforeWindow[lastDuplicateIndex]);
         }
 
         // Remove any duplicates
