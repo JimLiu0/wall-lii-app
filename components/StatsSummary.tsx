@@ -1,11 +1,9 @@
-import { dedupData } from "@/utils/getDedupData";
-
 interface Props {
   data: { rating: number }[];
 }
 
 export default function StatsSummary({ data }: Props) {
-  const ratings = data.map((d) => d.rating);
+  const ratings = data.map((d: { rating: number }) => d.rating);
   const games_played = ratings.length - 1;
   const net = ratings[ratings.length - 1] - ratings[0];
   const max = Math.max(...ratings);

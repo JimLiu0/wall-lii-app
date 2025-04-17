@@ -212,7 +212,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                   <td className="px-4 py-3 text-gray-300">{entry.rank}</td>
                   <td className="px-4 py-3">
                     <Link
-                      href={`/${entry.player_name}?r=${entry.region.toLowerCase()}&v=s&o=0`}
+                      href={`/${entry.player_name}?r=${entry.region.toLowerCase()}`}
                       className="text-blue-400 hover:text-blue-300 transition-colors"
                     >
                       {entry.player_name}

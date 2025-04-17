@@ -3,7 +3,6 @@ import { supabase } from '@/utils/supabaseClient';
 import PlayerProfile from '@/components/PlayerProfile';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { dedupData } from '@/utils/getDedupData';
 
 interface PageParams {
   player: string;
@@ -119,14 +118,14 @@ export default async function PlayerPage({
   let mostRecentChange = null;
   let mostRecentChangeTime = 0;
 
-  Object.entries(groupedData).forEach(([combo, items]) => {
+  Object.entries(groupedData).forEach(([, items]) => {
     // Sort by time descending
     const sorted = [...items].sort((a, b) => 
       new Date(b.snapshot_time).getTime() - new Date(a.snapshot_time).getTime()
     );
 
     // Find the most recent rating change in this combo
-    let currentRating = sorted[0].rating;
+    const currentRating = sorted[0].rating;
     let lastChangeEntry = sorted[0];
 
     for (let i = 1; i < sorted.length; i++) {
@@ -153,7 +152,6 @@ export default async function PlayerPage({
   // Determine default view based on when the change happened
   function determineDefaultView(timestamp: string) {
     const changeTime = new Date(timestamp);
-    const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 

@@ -33,7 +33,7 @@ export default function PlayerGraph({ data, playerName }: Props) {
 
     return (
       <div className="flex items-center justify-center h-full text-gray-300 text-center px-4">
-        {playerName} didn't play any games during this period but they achieved rating {earliestEntry.rating} on {formattedDate}
+        {playerName} didn&apos;t play any games during this period but they achieved rating {earliestEntry.rating} on {formattedDate}
       </div>
     );
   }
