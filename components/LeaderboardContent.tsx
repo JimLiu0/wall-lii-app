@@ -137,7 +137,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
               {regions.map((r) => (
                 <button
                   key={r}
-                  onClick={() => router.push(`/lb/${r}`)}
+                  onClick={() => region !== r && router.push(`/lb/${r}`)}
                   className={`px-4 py-1.5 rounded-full transition ${
                     region === r
                       ? 'bg-blue-600 text-white'
