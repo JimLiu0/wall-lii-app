@@ -42,7 +42,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   const offsetNum = offset || 0;
   const gameMode = searchParams.get('g') as GameMode || 's';
 
-  const filteredData = useMemo(() => {
+  let filteredData = useMemo(() => {
     let filtered = playerData.data;
     
     if (view !== 'all') {
@@ -58,34 +58,49 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
         endTime = startTime.plus({ days: 1 });
       }
 
+      // Get data in current window
       filtered = playerData.data.filter((item) => {
         const itemTime = DateTime.fromISO(item.snapshot_time);
         return itemTime >= startTime && itemTime <= endTime;
       });
 
-      // Find the previous window's latest different rating entry
-      const currentWindowStartTime = startTime;
+      // Get all data before current window
       const previousWindowData = playerData.data
-        .filter(item => {
-          const itemTime = DateTime.fromISO(item.snapshot_time);
-          return itemTime < currentWindowStartTime;
-        })
-        .sort((a, b) => 
-          DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis()
+        .filter(item => DateTime.fromISO(item.snapshot_time) < startTime)
+        .sort((a, b) => DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis());
+
+      // If we have data in current window
+      if (filtered.length > 0) {
+        // Find last different rating before window
+        const previousDifferentRating = previousWindowData.find(
+          item => item.rating !== filtered[0].rating
         );
-
-      const previousWindowLatestDifferentRating = previousWindowData.find(
-        item => item.rating !== filtered[0]?.rating
-      );
-
-      // If we found a previous entry with a different rating, prepend it to filtered
-      if (previousWindowLatestDifferentRating && filtered.length > 0) {
-        filtered.unshift(previousWindowLatestDifferentRating);
+        
+        if (previousDifferentRating) {
+          filtered.unshift(previousDifferentRating);
+        } else {
+          // If no different rating found, get the earliest instance of the same rating
+          const earliestSameRating = previousWindowData.find(
+            item => item.rating === filtered[0].rating
+          );
+          if (earliestSameRating) {
+            filtered.unshift(earliestSameRating);
+          }
+        }
+      } else if (previousWindowData.length > 0) {
+        // No data in current window but we have previous data
+        // Use the most recent previous rating
+        filtered = [previousWindowData[0]];
       }
     }
 
-    return dedupData(filtered);
+    return filtered;
   }, [playerData.data, view, offsetNum]);
+
+  console.log(filteredData);
+  filteredData = dedupData(filteredData);
+
+  console.log(filteredData);
 
   const updateView = (newView: TimeView) => {
     const periodMap = { all: 's', week: 'w', day: 'd' };
@@ -264,13 +279,21 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
             </div>
 
             <div className="h-[300px] w-full">
-              <PlayerGraph data={filteredData} />
+              {filteredData.length > 0 ? (
+                <PlayerGraph data={filteredData} playerName={playerData.name} />
+              ) : (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  No data found during this period
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="w-full md:w-1/3 flex justify-center items-center">
-            <StatsSummary data={filteredData} />
-          </div>
+          {filteredData.length > 0 && (
+            <div className="w-full md:w-1/3 flex justify-center items-center">
+              <StatsSummary data={filteredData} />
+            </div>
+          )}
         </div>
       </div>
     </div>

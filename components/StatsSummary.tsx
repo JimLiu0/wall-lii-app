@@ -1,3 +1,5 @@
+import { dedupData } from "@/utils/getDedupData";
+
 interface Props {
   data: { rating: number }[];
 }
