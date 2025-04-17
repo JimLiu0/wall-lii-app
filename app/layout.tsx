@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from 'next/script'
 import NavBar from '@/components/NavBar';
+import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -24,17 +25,19 @@ export default function RootLayout({
           {children}
         </main>
         <Script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-XCBFMRMS2K"
         />
-        <Script id="google-analytics">
+
+        <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'G-XXXXXXXXXX');
+            gtag('config', 'G-XCBFMRMS2K');
           `}
         </Script>
+        <Analytics />
       </body>
     </html>
   );
