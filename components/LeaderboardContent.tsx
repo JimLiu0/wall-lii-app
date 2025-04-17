@@ -21,7 +21,7 @@ const regions = ['na', 'eu', 'ap', 'cn'] as const;
 const emojiMap = {
   'na': '🇺🇸',
   'eu': '🇪🇺',
-  'ap': '🐉',
+  'ap': '🍚',
   'cn': '🇨🇳'
 };
 
@@ -125,7 +125,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
             <div className="flex bg-gray-800 rounded-full p-1">
               <button
                 key="all"
-                onClick={() => router.push('/')}
+                onClick={() => router.push('/all')}
                 className={`px-4 py-1.5 rounded-full transition ${
                   !region || region === 'all'
                     ? 'bg-blue-600 text-white'
