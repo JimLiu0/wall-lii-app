@@ -32,10 +32,34 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const decodedPlayer = decodeURIComponent(resolvedParams.player.toLowerCase());
   const region = resolvedSearchParams.r || 'all';
   const regionName = regionNames[region as keyof typeof regionNames] || region.toUpperCase();
+  const gameMode = resolvedSearchParams.g === 'd' ? 'Duo' : 'Solo';
 
   return {
-    title: `${decodedPlayer} | ${regionName} Player Profile | Wall-lii`,
-    description: `View ${decodedPlayer}'s player profile and statistics for the ${regionName} region in Wall-lii`,
+    title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | Wall_Lii`,
+    description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode. Track rating changes, peak ratings, and performance over time.`,
+    openGraph: {
+      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | Wall_Lii`,
+      description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
+      url: `https://wall-lii.app/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`,
+      type: 'profile',
+      images: [
+        {
+          url: '/og-image.jpg',
+          width: 1200,
+          height: 630,
+          alt: `${decodedPlayer}'s Hearthstone Battlegrounds Profile`
+        }
+      ]
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | Wall_Lii`,
+      description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
+      images: ['/og-image.jpg']
+    },
+    alternates: {
+      canonical: `https://wall-lii.app/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`
+    }
   };
 }
 
