@@ -35,10 +35,10 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const gameMode = resolvedSearchParams.g === 'd' ? 'Duo' : 'Solo';
 
   return {
-    title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | wallii`,
+    title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
     description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode. Track rating changes, peak ratings, and performance over time.`,
     openGraph: {
-      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | wallii`,
+      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
       description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
       url: `https://wallii.gg/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`,
       type: 'profile',
@@ -53,7 +53,7 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | wallii`,
+      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
       description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
       images: ['/og-image.jpg']
     },

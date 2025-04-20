@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -37,16 +37,9 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
   const [showingAll, setShowingAll] = useState(false);
   const [solo, setSolo] = useState(defaultSolo);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  // Save preferences to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('preferredRegion', region);
-    localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
-  }, [region, solo]);
-
-  const fetchLeaderboard = async (limit: number = 100) => {
+  const fetchLeaderboard = useCallback(async (limit: number = 100) => {
     try {
       setLoadingMore(true);
       let data;
@@ -80,13 +73,19 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [region, solo]);
+
+  // Save preferences to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('preferredRegion', region);
+    localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
+  }, [region, solo]);
 
   useEffect(() => {
     setLoading(true);
     setShowingAll(false);
     void fetchLeaderboard();
-  }, [region, solo]);
+  }, [region, solo, fetchLeaderboard]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -106,13 +105,12 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     }
 
     return () => observer.disconnect();
-  }, [loading, loadingMore, showingAll, searchQuery]);
+  }, [loading, loadingMore, showingAll, searchQuery, fetchLeaderboard]);
 
   const handleSearchClick = () => {
     if (!showingAll) {
       void fetchLeaderboard(1000);
     }
-    setIsSearchOpen(true);
   };
 
   const filteredData = useMemo(() => {
