@@ -231,13 +231,13 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
               </div>
             ) : (
               <div
-                className="group flex items-center gap-2 cursor-pointer w-full border border-gray-600"
+                className="group flex items-center gap-2 cursor-pointer w-full"
                 onClick={() => {
                   setIsEditing(true);
                   setTimeout(() => inputRef.current?.focus(), 0);
                 }}
               >
-                <h1 className="text-2xl sm:text-4xl font-bold text-white group-hover:text-gray-300 transition-colors break-all">
+                <h1 className="text-2xl sm:text-4xl font-bold text-white group-hover:text-gray-300 transition-colors break-all border border-gray-600">
                   {playerData.name}
                 </h1>
                 <div className="text-gray-400 flex items-center gap-1 shrink-0">

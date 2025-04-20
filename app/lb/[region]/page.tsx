@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import LeaderboardContent from '@/components/LeaderboardContent';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
