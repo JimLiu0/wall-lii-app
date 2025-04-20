@@ -9,14 +9,21 @@ export default function HomeContent() {
   useEffect(() => {
     // Get stored region preference or default to 'all'
     const storedRegion = localStorage.getItem('preferredRegion') || 'all';
+    const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
     
-    // Store the default if none exists
+    // Store the defaults if none exist
     if (!localStorage.getItem('preferredRegion')) {
       localStorage.setItem('preferredRegion', 'all');
     }
+    if (!localStorage.getItem('preferredGameMode')) {
+      localStorage.setItem('preferredGameMode', 'solo');
+    }
 
-    // Redirect to the appropriate leaderboard page
-    router.push(storedRegion === 'all' ? '/all' : `/lb/${storedRegion}`);
+    // Redirect to the appropriate leaderboard page with game mode
+    const url = storedRegion === 'all' 
+      ? `/all?mode=${storedGameMode}` 
+      : `/lb/${storedRegion}?mode=${storedGameMode}`;
+    router.push(url);
   }, [router]);
 
   // Show loading state while redirecting

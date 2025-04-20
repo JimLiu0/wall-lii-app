@@ -7,6 +7,11 @@ interface PageParams {
   region: string;
 }
 
+interface PageProps {
+  params: Promise<PageParams>;
+  searchParams: Promise<{ mode?: string }>;
+}
+
 const validRegions = ['na', 'eu', 'ap', 'cn', 'all'];
 const regionNames = {
   na: 'North America',
@@ -33,23 +38,21 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   };
 }
 
-export default async function RegionPage({ params }: { params: Promise<PageParams> }) {
+export default async function Page({ params, searchParams }: PageProps) {
   const resolvedParams = await params;
-  const region = resolvedParams.region.toLowerCase();
+  const resolvedSearchParams = await searchParams;
+  const { region } = resolvedParams;
+  const validRegions = ['all', 'na', 'eu', 'ap', 'cn'];
   
   if (!validRegions.includes(region)) {
     notFound();
   }
 
   return (
-    <Suspense fallback={
-      <div className="container mx-auto p-4">
-        <div className="bg-gray-900 rounded-lg p-6">
-          <div className="text-2xl font-bold text-white mb-4 text-center">Loading...</div>
-        </div>
-      </div>
-    }>
-      <LeaderboardContent region={region} />
-    </Suspense>
+    <div className="min-h-screen bg-gray-950">
+      <main className="container mx-auto px-4 py-8">
+        <LeaderboardContent region={region} searchParams={resolvedSearchParams} />
+      </main>
+    </div>
   );
 } 

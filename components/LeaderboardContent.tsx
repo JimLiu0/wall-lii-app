@@ -15,6 +15,7 @@ interface LeaderboardEntry {
 interface Props {
   region: string;
   defaultSolo?: boolean;
+  searchParams?: { mode?: string };
 }
 
 const regions = ['na', 'eu', 'ap', 'cn'] as const;
@@ -29,19 +30,51 @@ function processRanks(data: LeaderboardEntry[]): LeaderboardEntry[] {
     }));
 }
 
-export default function LeaderboardContent({ region, defaultSolo = true }: Props) {
+export default function LeaderboardContent({ region, defaultSolo = true, searchParams }: Props) {
   const router = useRouter();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showingAll, setShowingAll] = useState(false);
-  const [solo, setSolo] = useState(() => {
-    // Initialize from localStorage or use default
-    const storedGameMode = localStorage.getItem('preferredGameMode');
-    return storedGameMode ? storedGameMode === 'solo' : defaultSolo;
-  });
+  const [solo, setSolo] = useState(defaultSolo);
   const [searchQuery, setSearchQuery] = useState('');
   const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Initialize preferences from localStorage and URL
+  useEffect(() => {
+    const initializeGameMode = async () => {
+      try {
+        // First check URL for game mode
+        const urlGameMode = searchParams?.mode;
+
+        if (urlGameMode === 'solo' || urlGameMode === 'duo') {
+          setSolo(urlGameMode === 'solo');
+          localStorage.setItem('preferredGameMode', urlGameMode);
+        } else {
+          // Fall back to localStorage if no URL param
+          const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
+          setSolo(storedGameMode === 'solo');
+          localStorage.setItem('preferredGameMode', storedGameMode);
+          // Update URL to include the game mode
+          const gameMode = storedGameMode;
+          const url = region === 'all' ? `/all?mode=${gameMode}` : `/lb/${region}?mode=${gameMode}`;
+          router.replace(url);
+        }
+      } catch (e) {
+        console.error('Error handling searchParams:', e);
+        // Fall back to localStorage if there's an error
+        const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
+        setSolo(storedGameMode === 'solo');
+        localStorage.setItem('preferredGameMode', storedGameMode);
+        // Update URL to include the game mode
+        const gameMode = storedGameMode;
+        const url = region === 'all' ? `/all?mode=${gameMode}` : `/lb/${region}?mode=${gameMode}`;
+        router.replace(url);
+      }
+    };
+
+    void initializeGameMode();
+  }, [searchParams, region, router]);
 
   const fetchLeaderboard = useCallback(async (limit: number = 100) => {
     try {
@@ -79,7 +112,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     }
   }, [region, solo]);
 
-  // Save preferences to localStorage and update URL when they change
+  // Save preferences to localStorage when they change
   useEffect(() => {
     localStorage.setItem('preferredRegion', region);
     localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
@@ -95,7 +128,10 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
   const handleRegionChange = (newRegion: string) => {
     if (region !== newRegion) {
       localStorage.setItem('preferredRegion', newRegion);
-      router.push(newRegion === 'all' ? '/all' : `/lb/${newRegion}`);
+      // Preserve the current game mode in the URL
+      const gameMode = solo ? 'solo' : 'duo';
+      const url = newRegion === 'all' ? `/all?mode=${gameMode}` : `/lb/${newRegion}?mode=${gameMode}`;
+      router.push(url);
     }
   };
 
@@ -103,6 +139,10 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
   const handleGameModeChange = (isSolo: boolean) => {
     setSolo(isSolo);
     localStorage.setItem('preferredGameMode', isSolo ? 'solo' : 'duo');
+    // Update URL with current game mode
+    const gameMode = isSolo ? 'solo' : 'duo';
+    const url = region === 'all' ? `/all?mode=${gameMode}` : `/lb/${region}?mode=${gameMode}`;
+    router.push(url);
   };
 
   // Infinite scroll observer
