@@ -197,14 +197,6 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="flex flex-col gap-4 mb-8">
           <div className="flex items-center gap-4">
-            {/* <div className="relative w-16 sm:w-20 h-16 sm:h-20 shrink-0">
-              <div className="w-full h-full rounded-full bg-gray-700 overflow-hidden">
-                <div className="w-full h-full bg-gray-600 flex items-center justify-center text-xl sm:text-2xl text-gray-400">
-                  {playerData.name[0].toUpperCase()}
-                </div>
-              </div>
-            </div> */}
-
             {isEditing ? (
               <div className="flex flex-col gap-2 w-full">
                 <form ref={formRef} onSubmit={handleSubmit} className="flex items-center gap-2">
@@ -239,7 +231,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
               </div>
             ) : (
               <div
-                className="group flex items-center gap-2 cursor-pointer w-full"
+                className="group flex items-center gap-2 cursor-pointer w-full border border-gray-600"
                 onClick={() => {
                   setIsEditing(true);
                   setTimeout(() => inputRef.current?.focus(), 0);
