@@ -35,7 +35,11 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showingAll, setShowingAll] = useState(false);
-  const [solo, setSolo] = useState(defaultSolo);
+  const [solo, setSolo] = useState(() => {
+    // Initialize from localStorage or use default
+    const storedGameMode = localStorage.getItem('preferredGameMode');
+    return storedGameMode ? storedGameMode === 'solo' : defaultSolo;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -75,7 +79,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     }
   }, [region, solo]);
 
-  // Save preferences to localStorage when they change
+  // Save preferences to localStorage and update URL when they change
   useEffect(() => {
     localStorage.setItem('preferredRegion', region);
     localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
@@ -86,6 +90,20 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     setShowingAll(false);
     void fetchLeaderboard();
   }, [region, solo, fetchLeaderboard]);
+
+  // Handle region button clicks
+  const handleRegionChange = (newRegion: string) => {
+    if (region !== newRegion) {
+      localStorage.setItem('preferredRegion', newRegion);
+      router.push(newRegion === 'all' ? '/all' : `/lb/${newRegion}`);
+    }
+  };
+
+  // Handle game mode changes
+  const handleGameModeChange = (isSolo: boolean) => {
+    setSolo(isSolo);
+    localStorage.setItem('preferredGameMode', isSolo ? 'solo' : 'duo');
+  };
 
   // Infinite scroll observer
   useEffect(() => {
@@ -153,7 +171,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
             <div className="flex bg-gray-800 rounded-full p-1">
               <button
                 key="all"
-                onClick={() => router.push('/all')}
+                onClick={() => handleRegionChange('all')}
                 className={`px-4 py-1.5 rounded-full transition ${
                   !region || region === 'all'
                     ? 'bg-blue-600 text-white'
@@ -165,7 +183,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
               {regions.map((r) => (
                 <button
                   key={r}
-                  onClick={() => region !== r && router.push(`/lb/${r}`)}
+                  onClick={() => handleRegionChange(r)}
                   className={`px-4 py-1.5 rounded-full transition ${
                     region === r
                       ? 'bg-blue-600 text-white'
@@ -179,7 +197,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
 
             <div className="flex bg-gray-800 rounded-full p-1">
               <button
-                onClick={() => setSolo(true)}
+                onClick={() => handleGameModeChange(true)}
                 className={`px-4 py-1.5 rounded-full transition ${
                   solo
                     ? 'bg-blue-600 text-white'
@@ -189,7 +207,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                 Solo
               </button>
               <button
-                onClick={() => setSolo(false)}
+                onClick={() => handleGameModeChange(false)}
                 className={`px-4 py-1.5 rounded-full transition ${
                   !solo
                     ? 'bg-blue-600 text-white'
