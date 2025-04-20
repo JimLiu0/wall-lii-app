@@ -35,12 +35,12 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const gameMode = resolvedSearchParams.g === 'd' ? 'Duo' : 'Solo';
 
   return {
-    title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | Wall_Lii`,
+    title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | wallii`,
     description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode. Track rating changes, peak ratings, and performance over time.`,
     openGraph: {
-      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | Wall_Lii`,
+      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | wallii`,
       description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
-      url: `https://wall-lii.app/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`,
+      url: `https://wallii.gg/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`,
       type: 'profile',
       images: [
         {
@@ -53,12 +53,12 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | Wall_Lii`,
+      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile | wallii`,
       description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
       images: ['/og-image.jpg']
     },
     alternates: {
-      canonical: `https://wall-lii.app/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`
+      canonical: `https://wallii.gg/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`
     }
   };
 }

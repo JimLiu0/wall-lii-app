@@ -121,6 +121,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="text-2xl font-bold text-white mb-6 text-center">
+          <div className="text-2xl text-gray-400">Top 1000 leaderboards</div>
           <div className="mt-4 flex justify-center items-center gap-4 flex-wrap">
             <div className="flex bg-gray-800 rounded-full p-1">
               <button
@@ -171,8 +172,6 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                 Duo
               </button>
             </div>
-
-            <span>Top 1000</span>
           </div>
         </div>
 

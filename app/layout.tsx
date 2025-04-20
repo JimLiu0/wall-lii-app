@@ -9,32 +9,32 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
-    default: 'Wall_Lii - Hearthstone Battlegrounds Leaderboard & Stats Tracker',
-    template: '%s | Wall_Lii'
+    default: 'wallii - Hearthstone Battlegrounds Leaderboard & Stats Tracker',
+    template: '%s | wallii'
   },
-  description: 'Wall_Lii is a Twitch bot and companion app for tracking Hearthstone Battlegrounds leaderboards, player stats, and MMR history. Track your favorite players, view detailed statistics, and monitor rating changes over time.',
-  keywords: ['Hearthstone Battlegrounds', 'leaderboard', 'HSBG stats', 'Wall_Lii', 'Twitch bot', 'MMR tracking', 'player stats', 'rating history', 'Battlegrounds tracker'],
-  authors: [{ name: 'Wall_Lii Team' }],
+  description: 'wallii is a Twitch bot and companion app for tracking Hearthstone Battlegrounds leaderboards, player stats, and MMR history. Track your favorite players, view detailed statistics, and monitor rating changes over time.',
+  keywords: ['Hearthstone Battlegrounds', 'leaderboard', 'HSBG stats', 'wallii', 'Twitch bot', 'MMR tracking', 'player stats', 'rating history', 'Battlegrounds tracker'],
+  authors: [{ name: 'wallii Team' }],
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://wall-lii.app',
-    siteName: 'Wall_Lii',
-    title: 'Wall_Lii - Hearthstone Battlegrounds Leaderboard & Stats Tracker',
-    description: 'Track Hearthstone Battlegrounds leaderboards, player stats, and MMR history with Wall_Lii.',
+    url: 'https://wallii.gg',
+    siteName: 'wallii',
+    title: 'wallii - Hearthstone Battlegrounds Leaderboard & Stats Tracker',
+    description: 'Track Hearthstone Battlegrounds leaderboards, player stats, and MMR history with wallii.',
     images: [
       {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'Wall_Lii - Hearthstone Battlegrounds Tracker'
+        alt: 'wallii - Hearthstone Battlegrounds Tracker'
       }
     ]
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Wall_Lii - Hearthstone Battlegrounds Leaderboard & Stats Tracker',
-    description: 'Track Hearthstone Battlegrounds leaderboards, player stats, and MMR history with Wall_Lii.',
+    title: 'wallii - Hearthstone Battlegrounds Leaderboard & Stats Tracker',
+    description: 'Track Hearthstone Battlegrounds leaderboards, player stats, and MMR history with wallii.',
     images: ['/og-image.jpg']
   },
   robots: {
