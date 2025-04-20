@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -18,12 +18,6 @@ interface Props {
 }
 
 const regions = ['na', 'eu', 'ap', 'cn'] as const;
-const emojiMap = {
-  'na': '🇺🇸',
-  'eu': '🇪🇺',
-  'ap': '🍚',
-  'cn': '🇨🇳'
-};
 
 function processRanks(data: LeaderboardEntry[]): LeaderboardEntry[] {
   // Sort by rating in descending order
@@ -39,8 +33,12 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
   const router = useRouter();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [showingAll, setShowingAll] = useState(false);
   const [solo, setSolo] = useState(defaultSolo);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   // Save preferences to localStorage when they change
   useEffect(() => {
@@ -48,43 +46,74 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
   }, [region, solo]);
 
-  useEffect(() => {
-    async function fetchLeaderboard() {
-      try {
-        setLoading(true);
-        let data;
-        let error;
+  const fetchLeaderboard = async (limit: number = 100) => {
+    try {
+      setLoadingMore(true);
+      let data;
+      let error;
 
-        if (region === 'all') {
-          const result = await supabase.rpc('get_global_leaderboard_with_duplicates', {
-            game_mode_input: solo ? '0' : '1',
-            limit_input: 1000
-          });
-          data = result.data;
-          error = result.error;
-        } else {
-          const result = await supabase.rpc('get_latest_snapshots_per_rank', {
-            region_input: region.toUpperCase(),
-            game_mode_input: solo ? '0' : '1',
-          });
-          data = result.data;
-          error = result.error;
-        }
-
-        if (error) throw error;
-        // Process ranks for both global and regional data
-        const processedData = processRanks(data || []);
-        setLeaderboardData(processedData);
-      } catch (error) {
-        console.error('Error fetching leaderboard:', error);
-        setLeaderboardData([]);
-      } finally {
-        setLoading(false);
+      if (region === 'all') {
+        const result = await supabase.rpc('get_global_leaderboard_with_duplicates_v2', {
+          game_mode_input: solo ? '0' : '1',
+          limit_input: limit
+        });
+        data = result.data;
+        error = result.error;
+      } else {
+        const result = await supabase.rpc('get_latest_snapshots_per_rank_v2', {
+          region_input: region.toUpperCase(),
+          game_mode_input: solo ? '0' : '1',
+          limit_input: limit
+        });
+        data = result.data;
+        error = result.error;
       }
-    }
 
+      if (error) throw error;
+      const processedData = processRanks(data || []);
+      setLeaderboardData(processedData);
+      setShowingAll(limit > 100);
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+      setLeaderboardData([]);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    setShowingAll(false);
     void fetchLeaderboard();
   }, [region, solo]);
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (loading || showingAll) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore && !showingAll && !searchQuery) {
+          void fetchLeaderboard(1000);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [loading, loadingMore, showingAll, searchQuery]);
+
+  const handleSearchClick = () => {
+    if (!showingAll) {
+      void fetchLeaderboard(1000);
+    }
+    setIsSearchOpen(true);
+  };
 
   const filteredData = useMemo(() => {
     if (!searchQuery) return leaderboardData;
@@ -120,8 +149,8 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="bg-gray-900 rounded-lg p-6">
-        <div className="text-2xl font-bold text-white mb-6 text-center">
-          <div className="text-2xl text-white font-bold">Top 1000 leaderboards</div>
+        <div className="text-xl sm:text-2xl font-semibold mb-6 text-center">
+          <div>Top 1000 leaderboards</div>
           <div className="mt-4 flex justify-center items-center gap-4 flex-wrap">
             <div className="flex bg-gray-800 rounded-full p-1">
               <button
@@ -180,6 +209,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
             type="text"
             placeholder="Search by player name or rank..."
             value={searchQuery}
+            onClick={() => handleSearchClick()}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:border-blue-500 transition-colors"
           />
@@ -193,7 +223,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="text-gray-400 border-b border-gray-800">
+              <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
                 <th className="px-4 py-2 text-left">Rank</th>
                 <th className="px-4 py-2 text-left">Player</th>
                 {region === 'all' && (
@@ -208,11 +238,11 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                   key={entry.rank}
                   className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                 >
-                  <td className="px-4 py-3 text-gray-300">{entry.rank}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">#{entry.rank}</td>
                   <td className="px-4 py-3">
                     <Link
                       href={`/${entry.player_name}?r=${entry.region.toLowerCase()}`}
-                      className="text-blue-400 hover:text-blue-300 transition-colors"
+                      className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
                     >
                       {entry.player_name}
                     </Link>
@@ -223,15 +253,27 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                         href={`/lb/${entry.region.toLowerCase()}`}
                         className="inline-block text-2xl hover:scale-110 transition-transform"
                       >
-                        {emojiMap[entry.region.toLowerCase() as keyof typeof emojiMap] || entry.region}
+                        {entry.region}
                       </Link>
                     </td>
                   )}
-                  <td className="px-4 py-3 text-right text-gray-300">{entry.rating}</td>
+                  <td className="px-4 py-3 text-right text-lg font-semibold text-white">{entry.rating}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {!showingAll && !searchQuery && (
+            <div
+              ref={observerTarget}
+              className="py-8 text-center text-sm font-medium text-zinc-400"
+            >
+              {loadingMore ? (
+                'Loading more players...'
+              ) : (
+                'Scroll down or click search to view all players'
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
