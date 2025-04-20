@@ -206,7 +206,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="text-xl sm:text-2xl font-semibold mb-6 text-center">
-          <div>Top 1000 leaderboards</div>
           <div className="mt-4 flex justify-center items-center gap-4 flex-wrap">
             <div className="flex bg-gray-800 rounded-full p-1">
               <button
