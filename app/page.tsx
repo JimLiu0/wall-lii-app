@@ -3,8 +3,8 @@ import { Metadata } from 'next';
 import HomeContent from '@/components/HomeContent';
 
 export const metadata: Metadata = {
-  title: 'Hearthstone Battlegrounds Leaderboard | Wall-lii',
-  description: 'View hearthstone battlegrounds leaderboard rankings for all regions in Wall-lii',
+  title: 'Hearthstone Battlegrounds Leaderboard | Wallii',
+  description: 'View hearthstone battlegrounds leaderboard rankings for all regions in Wallii',
 };
 
 export default async function HomePage() {

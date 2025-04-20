@@ -196,6 +196,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     <div className="container mx-auto p-4">
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="flex flex-col gap-4 mb-8">
+          <h1 className="text-2xl font-semibold text-white mb-2 text-center">Player Profile</h1>
           <div className="flex items-center gap-4">
             {isEditing ? (
               <div className="flex flex-col gap-2 w-full">
@@ -231,13 +232,13 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
               </div>
             ) : (
               <div
-                className="group flex items-center gap-2 cursor-pointer w-full"
+                className="group flex items-center gap-2 cursor-pointer border border-gray-600 px-1 py-1"
                 onClick={() => {
                   setIsEditing(true);
                   setTimeout(() => inputRef.current?.focus(), 0);
                 }}
               >
-                <h1 className="text-2xl sm:text-4xl font-bold text-white group-hover:text-gray-300 transition-colors break-all border border-gray-600">
+                <h1 className="text-2xl sm:text-4xl font-bold text-white group-hover:text-gray-300 transition-colors break-all">
                   {playerData.name}
                 </h1>
                 <div className="text-gray-400 flex items-center gap-1 shrink-0">

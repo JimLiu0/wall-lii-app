@@ -26,14 +26,14 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   const region = resolvedParams.region.toLowerCase();
   if (!validRegions.includes(region)) {
     return {
-      title: 'Region Not Found | Wall-lii',
-      description: 'This region does not exist in Wall-lii'
+      title: 'Region Not Found | Wallii',
+      description: 'This region does not exist in Wallii'
     };
   }
 
   const regionName = regionNames[region as keyof typeof regionNames];
   return {
-    title: `${regionName} Leaderboard | Wall-lii`,
+    title: `${regionName} Leaderboard | Wallii`,
     description: `View detailed ${regionName} Hearthstone Battlegrounds leaderboard rankings. Track player ratings, compare performance, and analyze trends in real-time.`,
     keywords: `hearthstone, battlegrounds, leaderboard, ${regionName.toLowerCase()}, rankings, stats, hearthstone tracker, battlegrounds stats`
   };

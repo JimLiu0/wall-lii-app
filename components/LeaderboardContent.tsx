@@ -36,45 +36,34 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showingAll, setShowingAll] = useState(false);
-  const [solo, setSolo] = useState(defaultSolo);
+  const [solo, setSolo] = useState(() => {
+    // Initialize from URL params if available
+    const urlGameMode = searchParams?.mode;
+    if (urlGameMode === 'solo' || urlGameMode === 'duo') {
+      return urlGameMode === 'solo';
+    }
+    // Fall back to localStorage or default
+    const storedGameMode = localStorage.getItem('preferredGameMode');
+    return storedGameMode ? storedGameMode === 'solo' : defaultSolo;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const observerTarget = useRef<HTMLDivElement>(null);
 
-  // Initialize preferences from localStorage and URL
+  // Save preferences to localStorage when they change
   useEffect(() => {
-    const initializeGameMode = async () => {
-      try {
-        // First check URL for game mode
-        const urlGameMode = searchParams?.mode;
+    localStorage.setItem('preferredRegion', region);
+    localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
+  }, [region, solo]);
 
-        if (urlGameMode === 'solo' || urlGameMode === 'duo') {
-          setSolo(urlGameMode === 'solo');
-          localStorage.setItem('preferredGameMode', urlGameMode);
-        } else {
-          // Fall back to localStorage if no URL param
-          const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
-          setSolo(storedGameMode === 'solo');
-          localStorage.setItem('preferredGameMode', storedGameMode);
-          // Update URL to include the game mode
-          const gameMode = storedGameMode;
-          const url = region === 'all' ? `/all?mode=${gameMode}` : `/lb/${region}?mode=${gameMode}`;
-          router.replace(url);
-        }
-      } catch (e) {
-        console.error('Error handling searchParams:', e);
-        // Fall back to localStorage if there's an error
-        const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
-        setSolo(storedGameMode === 'solo');
-        localStorage.setItem('preferredGameMode', storedGameMode);
-        // Update URL to include the game mode
-        const gameMode = storedGameMode;
-        const url = region === 'all' ? `/all?mode=${gameMode}` : `/lb/${region}?mode=${gameMode}`;
-        router.replace(url);
-      }
-    };
-
-    void initializeGameMode();
-  }, [searchParams, region, router]);
+  useEffect(() => {
+    const currentMode = searchParams?.mode;
+    const expectedMode = solo ? 'solo' : 'duo';
+    const correctUrl = region === 'all' ? `/all?mode=${expectedMode}` : `/lb/${region}?mode=${expectedMode}`;
+  
+    if (currentMode !== expectedMode) {
+      router.replace(correctUrl);
+    }
+  }, [region, solo, searchParams, router]);
 
   const fetchLeaderboard = useCallback(async (limit: number = 100) => {
     try {
@@ -112,12 +101,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     }
   }, [region, solo]);
 
-  // Save preferences to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem('preferredRegion', region);
-    localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
-  }, [region, solo]);
-
+  // Initial fetch
   useEffect(() => {
     setLoading(true);
     setShowingAll(false);
