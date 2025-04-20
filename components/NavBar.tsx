@@ -17,12 +17,8 @@ export default function NavBar() {
               />
             </Link>
           </div>
-
-          {/* <div className="max-w-4xl mx-auto text-center text-2xl text-zinc-300 mt-2">
-            Your Hearthstone Battlegrounds Hub
-          </div> */}
           
-          <div className="hidden md:block max-w-4xl mx-auto text-center text-2xl text-zinc-300 mt-2">
+          <div className="hidden font-bold md:block max-w-4xl mx-auto text-center text-2xl text-zinc-300 mt-2">
             Your Hearthstone Battlegrounds Hub
           </div>
 
