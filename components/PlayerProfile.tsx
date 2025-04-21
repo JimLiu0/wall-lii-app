@@ -73,7 +73,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (inputValue.trim() && inputValue !== playerData.name) {
-      router.push(`/${inputValue.toLowerCase().trim()}`);
+      router.push(`/stats/${inputValue.toLowerCase().trim()}`);
     } else {
       setIsEditing(false);
       setInputValue('');
@@ -157,25 +157,25 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     const params = new URLSearchParams(searchParams);
     params.set('v', periodMap[newView]);
     params.set('o', '0');
-    router.push(`/${player}?${params.toString()}`);
+    router.push(`/stats/${player}?${params.toString()}`);
   };
 
   const updateOffset = (newOffset: number) => {
     const params = new URLSearchParams(searchParams);
     params.set('o', newOffset.toString());
-    router.push(`/${player}?${params.toString()}`);
+    router.push(`/stats/${player}?${params.toString()}`);
   };
 
   const updateGameMode = (newGameMode: GameMode) => {
     const params = new URLSearchParams(searchParams);
     params.set('g', newGameMode);
-    router.push(`/${player}?${params.toString()}`);
+    router.push(`/stats/${player}?${params.toString()}`);
   };
 
   const updateRegion = (newRegion: string) => {
     const params = new URLSearchParams(searchParams);
     params.set('r', newRegion.toLowerCase());
-    router.push(`/${player}?${params.toString()}`);
+    router.push(`/stats/${player}?${params.toString()}`);
   };
 
   const { availableModes } = playerData;

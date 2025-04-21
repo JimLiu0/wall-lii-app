@@ -206,7 +206,7 @@ export default async function PlayerPage({
       v: defaultView,
       o: '0'
     });
-    redirect(`/${encodeURIComponent(player)}?${params.toString()}`);
+    redirect(`/stats/${encodeURIComponent(player)}?${params.toString()}`);
   }
 
   // Filter data for the current region and game mode

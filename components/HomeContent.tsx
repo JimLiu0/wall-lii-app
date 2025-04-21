@@ -21,7 +21,7 @@ export default function HomeContent() {
 
     // Redirect to the appropriate leaderboard page with game mode
     const url = storedRegion === 'all' 
-      ? `/all?mode=${storedGameMode}` 
+      ? `/lb/all?mode=${storedGameMode}` 
       : `/lb/${storedRegion}?mode=${storedGameMode}`;
     router.push(url);
   }, [router]);
