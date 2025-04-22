@@ -198,13 +198,20 @@ export default async function PlayerPage({
 
   // Find the most recent valid combination if requested one doesn't exist
   const requestedCombo = `${requestedRegion}-${requestedGameMode === 'd' ? '1' : '0'}`;
-  if (!availableCombos.includes(requestedCombo) || !requestedView) {
-    // Redirect with all the determined defaults
+  
+  // Only redirect if absolutely necessary
+  if (
+    // If region is 'all' or invalid, we need to redirect
+    (requestedRegion === 'all' || !availableCombos.includes(requestedCombo)) ||
+    // If no view is specified, we need to redirect
+    !requestedView
+  ) {
+    // Keep existing params if they're valid
     const params = new URLSearchParams({
-      r: defaultRegion,
-      g: defaultGameMode === '1' ? 'd' : 's',
-      v: defaultView,
-      o: '0'
+      r: requestedRegion === 'all' ? defaultRegion : requestedRegion,
+      g: requestedGameMode || (defaultGameMode === '1' ? 'd' : 's'),
+      v: requestedView || defaultView,
+      o: requestedOffset.toString()
     });
     redirect(`/stats/${encodeURIComponent(player)}?${params.toString()}`);
   }
