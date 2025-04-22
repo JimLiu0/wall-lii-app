@@ -20,6 +20,7 @@
     "next": "15.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-markdown": "^8.0.6",
     "recharts": "^2.15.2"
   },
   "devDependencies": {

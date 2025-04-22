@@ -24,3 +24,41 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer components {
+  .prose h2 {
+    @apply text-3xl font-extrabold mt-12 mb-4 border-b pb-2;
+  }
+
+  .prose ul {
+    @apply list-disc pl-5;
+  }
+
+  .prose li {
+    @apply my-2;
+  }
+
+  .prose a {
+    @apply text-blue-400 hover:text-blue-300;
+  }
+
+  .prose table {
+    @apply w-full text-sm text-left border border-gray-700 rounded-lg overflow-hidden;
+  }
+
+  .prose thead {
+    @apply bg-gray-800 text-white;
+  }
+
+  .prose th {
+    @apply px-4 py-3 border border-gray-600 font-semibold;
+  }
+
+  .prose tbody tr {
+    @apply even:bg-gray-900 odd:bg-gray-800 transition-colors hover:bg-gray-700;
+  }
+
+  .prose td {
+    @apply px-4 py-2 border border-gray-700 text-white;
+  }
+}
