@@ -14,7 +14,7 @@ export default function NavBar() {
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center space-x-3">
               <Image
-                src="/android-chrome-512x512.png"
+                src="/android-chrome-192x192.png"
                 width={64}
                 height={64}
                 alt="wallii Logo"
@@ -28,6 +28,15 @@ export default function NavBar() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Link
+              href="/news"
+              className="p-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+              aria-label="Latest News"
+            >
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 14H5c-.55 0-1-.45-1-1V7h16v10c0 .55-.45 1-1 1zm-3-6H8v-2h8v2zm0-3H8V7h8v2zm-8 6h4v-2H8v2z"/>
+              </svg>
+            </Link>
             <div className="relative">
               <Link
                 href="/about"

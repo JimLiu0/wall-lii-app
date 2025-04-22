@@ -114,7 +114,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       localStorage.setItem('preferredRegion', newRegion);
       // Preserve the current game mode in the URL
       const gameMode = solo ? 'solo' : 'duo';
-      const url = newRegion === 'all' ? `/all?mode=${gameMode}` : `/lb/${newRegion}?mode=${gameMode}`;
+      const url = newRegion === 'all' ? `/lb/all?mode=${gameMode}` : `/lb/${newRegion}?mode=${gameMode}`;
       router.push(url);
     }
   };
@@ -125,7 +125,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     localStorage.setItem('preferredGameMode', isSolo ? 'solo' : 'duo');
     // Update URL with current game mode
     const gameMode = isSolo ? 'solo' : 'duo';
-    const url = region === 'all' ? `/all?mode=${gameMode}` : `/lb/${region}?mode=${gameMode}`;
+    const url = region === 'all' ? `lb/all?mode=${gameMode}` : `/lb/${region}?mode=${gameMode}`;
     router.push(url);
   };
 
@@ -280,7 +280,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                   <td className="px-4 py-3 text-sm font-medium text-zinc-400">#{entry.rank}</td>
                   <td className="px-4 py-3">
                     <Link
-                      href={`/${entry.player_name}?r=${entry.region.toLowerCase()}`}
+                      href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
                       className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
                     >
                       {entry.player_name}
