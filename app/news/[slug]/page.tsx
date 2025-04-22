@@ -2,11 +2,25 @@ import { supabase } from '@/utils/supabaseClient';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 
 export const revalidate = 3600; // Revalidate every hour
 
-async function getNewsPost(slug: string) {
+interface NewsPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  summary?: string;
+  image_url?: string;
+  author: string;
+  created_at: string;
+  updated_at?: string;
+  type?: string;
+  source?: string;
+}
+
+async function getNewsPost(slug: string): Promise<NewsPost | null> {
   const { data, error } = await supabase
     .from('news_posts')
     .select('*')
@@ -22,28 +36,31 @@ async function getNewsPost(slug: string) {
   return data;
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const post = await getNewsPost(params.slug);
-  
+export async function generateMetadata(
+  { params }: { params: Promise<{ slug: string }> }
+): Promise<Metadata> {
+  const resolvedParams = await params;
+  const post = await getNewsPost(resolvedParams.slug);
+
   if (!post) {
     return {
-      title: 'Post Not Found'
+      title: 'Post Not Found',
     };
   }
 
   return {
     title: post.title,
     description: post.summary,
-    openGraph: {
-      title: post.title,
-      description: post.summary,
-      images: post.image_url ? [post.image_url] : [],
-    },
   };
 }
 
-export default async function NewsPostPage({ params }: { params: { slug: string } }) {
-  const post = await getNewsPost(params.slug);
+export default async function NewsPostPage({ 
+  params 
+}: { 
+  params: Promise<{ slug: string }> 
+}) {
+  const resolvedParams = await params;
+  const post = await getNewsPost(resolvedParams.slug);
 
   if (!post) {
     notFound();

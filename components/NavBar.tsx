@@ -14,7 +14,7 @@ export default function NavBar() {
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center space-x-3">
               <Image
-                src="/android-chrome-512x512.png"
+                src="/android-chrome-192x192.png"
                 width={64}
                 height={64}
                 alt="wallii Logo"
