@@ -1,12 +1,12 @@
 import { supabase } from '@/utils/supabaseClient';
 import NewsCard from '@/components/NewsCard';
 
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 300; // Revalidate every 5 minutes
 
 async function getNewsPosts() {
   const { data, error } = await supabase
     .from('news_posts')
-    .select('*')
+    .select('id, title, slug, summary, image_url, author, created_at')
     .eq('is_published', true)
     .eq('battlegrounds_relevant', true)
     .order('created_at', { ascending: false });
