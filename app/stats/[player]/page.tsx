@@ -89,9 +89,7 @@ export default async function PlayerPage({
     params,
     searchParams
   ]);
-  console.log(resolvedParams.player);
   const player = decodeURIComponent(resolvedParams.player);
-  console.log(player);
   const requestedRegion = resolvedSearchParams.r || 'all';
   const requestedView = resolvedSearchParams.v;
   const requestedOffset = parseInt(resolvedSearchParams.o || '0', 10);
@@ -199,17 +197,34 @@ export default async function PlayerPage({
   // Find the most recent valid combination if requested one doesn't exist
   const requestedCombo = `${requestedRegion}-${requestedGameMode === 'd' ? '1' : '0'}`;
   
+  // Determine valid game mode based on available combos
+  const validGameMode = (() => {
+    if (requestedGameMode && availableCombos.includes(requestedCombo)) {
+      return requestedGameMode;
+    }
+    // Check if player has duo games in the requested/default region
+    const hasDuo = availableCombos.includes(`${requestedRegion === 'all' ? defaultRegion : requestedRegion}-1`);
+    // Check if player has solo games in the requested/default region
+    const hasSolo = availableCombos.includes(`${requestedRegion === 'all' ? defaultRegion : requestedRegion}-0`);
+    
+    if (hasDuo && !hasSolo) return 'd';
+    if (hasSolo && !hasDuo) return 's';
+    return defaultGameMode === '1' ? 'd' : 's';
+  })();
+
   // Only redirect if absolutely necessary
   if (
     // If region is 'all' or invalid, we need to redirect
     (requestedRegion === 'all' || !availableCombos.includes(requestedCombo)) ||
     // If no view is specified, we need to redirect
-    !requestedView
+    !requestedView ||
+    // If game mode doesn't match available modes
+    requestedGameMode !== validGameMode
   ) {
     // Keep existing params if they're valid
     const params = new URLSearchParams({
       r: requestedRegion === 'all' ? defaultRegion : requestedRegion,
-      g: requestedGameMode || (defaultGameMode === '1' ? 'd' : 's'),
+      g: validGameMode,
       v: requestedView || defaultView,
       o: requestedOffset.toString()
     });
