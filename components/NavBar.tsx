@@ -2,17 +2,25 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function NavBar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [leaderboardUrl, setLeaderboardUrl] = useState('/lb/all?mode=solo');
+
+  useEffect(() => {
+    // Get the stored region from localStorage, default to 'all' if not found
+    const storedRegion = localStorage.getItem('preferredRegion') || 'all';
+    const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
+    setLeaderboardUrl(`/lb/${storedRegion}?mode=${storedGameMode}`);
+  }, []);
 
   return (
     <nav className="bg-gray-900 border-b border-gray-800">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0">
-            <Link href="/" className="flex items-center space-x-3">
+            <Link href={leaderboardUrl} className="flex items-center space-x-3">
               <Image
                 src="/android-chrome-192x192.png"
                 width={64}
@@ -34,7 +42,7 @@ export default function NavBar() {
               aria-label="Latest News"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-1 14H5c-.55 0-1-.45-1-1V7h16v10c0 .55-.45 1-1 1zm-3-6H8v-2h8v2zm0-3H8V7h8v2zm-8 6h4v-2H8v2z"/>
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 7h5v4H7V7zm0 6h10v2H7v-2zm0 4h10v2H7v-2z"/>
               </svg>
             </Link>
             <div className="relative">
@@ -48,7 +56,7 @@ export default function NavBar() {
                 aria-label="Help menu"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11.07 12.85c.77-1.39 2.25-2.21 3.11-3.44.91-1.29.4-3.7-2.18-3.7-1.69 0-2.52 1.28-2.87 2.34L6.54 6.96C7.25 4.83 9.18 3 11.99 3c2.35 0 3.96 1.07 4.78 2.41.7 1.15 1.11 3.3.03 4.9-1.2 1.77-2.35 2.31-2.97 3.45-.25.46-.35.76-.35 2.24h-2.89c-.01-.78-.13-2.05.48-3.15zM12 18c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
                 </svg>
               </Link>
               {isDropdownOpen && (

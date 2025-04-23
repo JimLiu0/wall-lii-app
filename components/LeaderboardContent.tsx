@@ -265,9 +265,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
               <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
                 <th className="px-4 py-2 text-left">Rank</th>
                 <th className="px-4 py-2 text-left">Player</th>
-                {region === 'all' && (
-                  <th className="px-4 py-2 text-left">Region</th>
-                )}
                 <th className="px-4 py-2 text-right">Rating</th>
               </tr>
             </thead>
@@ -279,23 +276,19 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                 >
                   <td className="px-4 py-3 text-sm font-medium text-zinc-400">#{entry.rank}</td>
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
-                      className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
-                    >
-                      {entry.player_name}
-                    </Link>
-                  </td>
-                  {region === 'all' && (
-                    <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
                       <Link
-                        href={`/lb/${entry.region.toLowerCase()}`}
-                        className="inline-block text-2xl hover:scale-110 transition-transform"
+                        href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
+                        className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
                       >
-                        {entry.region}
+                        {entry.player_name} {region === 'all' && (
+                          <span className="text-sm text-gray-400 hover:text-white transition-colors">
+                            ({entry.region})
+                          </span>
+                        )}
                       </Link>
-                    </td>
-                  )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-right text-lg font-semibold text-white">{entry.rating}</td>
                 </tr>
               ))}

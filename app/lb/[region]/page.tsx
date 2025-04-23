@@ -55,6 +55,17 @@ export default async function Page({ params, searchParams }: PageProps) {
     <div className="min-h-screen bg-gray-950">
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          <div className="flex justify-center mb-4">
+            <Link
+              href="/news"
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-full hover:bg-blue-700 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0l-3-3m3 3l-3 3" />
+              </svg>
+              Latest Battlegrounds News
+            </Link>
+          </div>
           <div className="bg-gray-900 rounded-lg p-4 mb-6">
             <h1 className="text-2xl font-semibold text-white mb-2 text-center">{regionName} Top 1000 Leaderboard</h1>
             <p className="text-gray-400 text-sm mb-4">
