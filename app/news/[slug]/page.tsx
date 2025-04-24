@@ -134,6 +134,7 @@ export default async function NewsPostPage({
             {/* Content */}
             <div className="prose prose-lg prose-invert max-w-none">
               <div dangerouslySetInnerHTML={{ __html: post.content }} />
+              
             </div>
 
             {/* Footer metadata */}

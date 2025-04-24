@@ -61,4 +61,19 @@ body {
   .prose td {
     @apply px-4 py-2 border border-gray-700 text-white;
   }
+
+  .prose span:has(img) {
+    display: inline-block;
+    margin: 0.5rem;
+  }
+
+  .prose span:has(img) img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+  
+  .prose span img {
+    width: 350px;
+  }
 }
