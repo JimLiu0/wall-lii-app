@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'About Wallii | Hearthstone Battlegrounds Leaderboards',
@@ -17,23 +18,12 @@ export default function AboutPage() {
               <section>
                 <h2 className="text-2xl font-semibold text-white mb-3">What is Wallii?</h2>
                 <p>
-                  Wallii is a comprehensive platform for tracking Hearthstone Battlegrounds leaderboards and player statistics. 
-                  We provide real-time data from official Blizzard leaderboards, updated every 5 minutes, to give you the most 
-                  accurate and up-to-date rankings across all regions.
+                  Wallii is the platform for everything Hearthstone Battlegrounds related. We collect data from various sources, format it and analyze it to make your life easier!
                 </p>
               </section>
 
               <section>
-                <h2 className="text-2xl font-semibold text-white mb-3">Our Mission</h2>
-                <p>
-                  Our goal is to provide the Hearthstone Battlegrounds community with easy access to leaderboard data and 
-                  player statistics. We believe in making competitive gaming data accessible and useful for everyone, from 
-                  casual players to professional competitors.
-                </p>
-              </section>
-
-              <section>
-                <h2 className="text-2xl font-semibold text-white mb-3">Features</h2>
+                <h2 className="text-2xl font-semibold text-white mb-3">Leaderboards</h2>
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Real-time leaderboard updates from all regions</li>
                   <li>Global and regional rankings for both Solo and Duo modes</li>
@@ -44,18 +34,43 @@ export default function AboutPage() {
               </section>
 
               <section>
-                <h2 className="text-2xl font-semibold text-white mb-3">Data Source</h2>
-                <p>
-                  Our data is sourced directly from the official Hearthstone Battlegrounds leaderboards. We update our 
-                  database every 5 minutes to ensure you have access to the most current rankings and statistics.
-                </p>
+                <h2 className="text-2xl font-semibold text-white mb-3">News</h2>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Real-time news updates from all sources (forums, blogs, reddit, content creators)</li>
+                  <li>Links to original sources</li>
+                  <li>Filtered for only news related to Hearthstone Battlegrounds</li>
+                </ul>
+              </section>
+
+              <section>
+                <h2 className="text-2xl font-semibold text-white mb-3">Twitch/Discord Integration</h2>
+                <ul className="list-disc pl-6 space-y-2">
+                  <li>Many of the <a
+                    className="text-blue-400 hover:text-blue-300"
+                    href="/help"
+                    aria-label="Help"
+                  > core features </a> of Wallii are available by using commands in the channels wallii is in</li>
+                  <li><a
+                    className="text-blue-400 hover:text-blue-300"
+                    href="/help"
+                    aria-label="Help"
+                  > Add Wallii to your twitch channel </a></li>
+                  <li><a
+                    className="text-blue-400 hover:text-blue-300"
+                    href="https://discord.com/invite/XGZg7PEn9B"
+                    aria-label="Lii's Discord">
+                  Contact Lii</a> to request discord integration</li>
+                </ul>
               </section>
 
               <section>
                 <h2 className="text-2xl font-semibold text-white mb-3">Contact</h2>
                 <p>
-                  Have questions or suggestions? We&apos;d love to hear from you! You can reach us through our social media 
-                  channels.
+                  Have questions or suggestions? We&apos;d love to hear from you! <a
+                    className="text-blue-400 hover:text-blue-300"
+                    href="https://discord.com/invite/XGZg7PEn9B"
+                    aria-label="Lii's Discord">
+                  Contact Lii</a>
                 </p>
               </section>
             </div>
