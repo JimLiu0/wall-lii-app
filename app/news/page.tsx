@@ -39,7 +39,7 @@ export default async function NewsPage() {
   const newsPosts = await getNewsPosts();
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen">
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-white mb-8">Latest News</h1>
         
