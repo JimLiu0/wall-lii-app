@@ -77,4 +77,28 @@ body {
   .prose span img {
     width: 350px;
   }
+
+  .entity-highlight {
+    background-color: rgba(234, 179, 8, 0.15);
+    color: #eab308;
+    cursor: help;
+    border-bottom: 1px dashed #eab308;
+    position: relative;
+    display: inline;
+    padding: 0 2px;
+    transition: background-color 0.2s ease;
+  }
+  
+  .entity-highlight:hover {
+    background-color: rgba(234, 179, 8, 0.3);
+  }
+  
+  @media (max-width: 768px) {
+    .entity-highlight::after {
+      content: '👁️';
+      font-size: 0.8em;
+      margin-left: 2px;
+      vertical-align: super;
+    }
+  }
 }

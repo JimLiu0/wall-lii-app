@@ -1,8 +1,9 @@
-import { supabase } from '@/utils/supabaseClient';
-import Image from 'next/image';
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
-import type { Metadata } from 'next';
+import { supabase } from "@/utils/supabaseClient";
+import Image from "next/image";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import type { Metadata } from "next";
+import EntityHighlighterWrapper from "@/app/components/EntityHighlighterWrapper";
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -22,29 +23,31 @@ interface NewsPost {
 
 async function getNewsPost(slug: string): Promise<NewsPost | null> {
   const { data, error } = await supabase
-    .from('news_posts')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_published', true)
+    .from("news_posts")
+    .select("*")
+    .eq("slug", slug)
+    .eq("is_published", true)
     .single();
 
   if (error || !data) {
-    console.error('Error fetching news post:', error);
+    console.error("Error fetching news post:", error);
     return null;
   }
 
   return data;
 }
 
-export async function generateMetadata(
-  { params }: { params: Promise<{ slug: string }> }
-): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const resolvedParams = await params;
   const post = await getNewsPost(resolvedParams.slug);
 
   if (!post) {
     return {
-      title: 'Post Not Found',
+      title: "Post Not Found",
     };
   }
 
@@ -54,10 +57,10 @@ export async function generateMetadata(
   };
 }
 
-export default async function NewsPostPage({ 
-  params 
-}: { 
-  params: Promise<{ slug: string }> 
+export default async function NewsPostPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
 }) {
   const resolvedParams = await params;
   const post = await getNewsPost(resolvedParams.slug);
@@ -66,16 +69,38 @@ export default async function NewsPostPage({
     notFound();
   }
 
+  const { data: entities, error: entityError } = await supabase
+    .from("bg_entities")
+    .select("entity_name, image_url");
+
+  if (entityError) {
+    console.error("Error fetching bg_entities:", entityError);
+  }
+
+  const entityMap = new Map(
+    entities?.map((e) => [e.entity_name, e.image_url]) ?? [],
+  );
+
   return (
     <div className="min-h-screen bg-gray-950">
       <div className="container mx-auto px-4 py-8">
         {/* Back button */}
-        <Link 
-          href="/news" 
+        <Link
+          href="/news"
           className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-8 transition-colors"
         >
-          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          <svg
+            className="w-5 h-5 mr-2"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M10 19l-7-7m0 0l7-7m-7 7h18"
+            />
           </svg>
           Back to News
         </Link>
@@ -98,10 +123,10 @@ export default async function NewsPostPage({
             {/* Metadata */}
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 mb-6">
               <span className="bg-gray-800 px-3 py-1 rounded-full">
-                {new Date(post.created_at).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
+                {new Date(post.created_at).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}
               </span>
               <span className="bg-gray-800 px-3 py-1 rounded-full">
@@ -128,24 +153,37 @@ export default async function NewsPostPage({
 
             {/* Source */}
             <div className="text-xl text-gray-300 mb-8 font-medium leading-relaxed">
-              <a className="text-blue-400 hover:text-blue-300" href={post.source} target="_blank" rel="noopener noreferrer">Original Source</a>
+              <a
+                className="text-blue-400 hover:text-blue-300"
+                href={post.source}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Original Source
+              </a>
             </div>
 
             {/* Content */}
             <div className="prose prose-lg prose-invert max-w-none">
-              <div dangerouslySetInnerHTML={{ __html: post.content }} />
-              
+              <EntityHighlighterWrapper 
+                content={post.content} 
+                entities={entityMap}
+              />
             </div>
 
             {/* Footer metadata */}
             <div className="mt-12 pt-6 border-t border-gray-800 text-sm text-gray-400">
-              Last updated: {new Date(post.updated_at || post.created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
+              Last updated:{" "}
+              {new Date(post.updated_at || post.created_at).toLocaleDateString(
+                "en-US",
+                {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                },
+              )}
             </div>
           </div>
         </article>
