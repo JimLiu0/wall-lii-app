@@ -65,6 +65,12 @@ export default function RootLayout({
         <meta property="og:image" content="https://wall-lii.vercel.app/og-image.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="google-adsense-account" content="ca-pub-6613952474052415" />
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6613952474052415"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </head>
       <body className={`${inter.className} antialiased bg-black text-white min-h-screen`}>
         <NavBar />
