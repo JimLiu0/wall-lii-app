@@ -198,7 +198,7 @@ export default async function NewsPostPage({
             </div>
 
             {/* Content */}
-            <div className="prose prose-lg prose-invert max-w-none">
+            <div className="prose prose-lg prose-invert max-w-none flex-image">
               <EntityHighlighterWrapper
                 content={post.content}
                 entities={entityMap}
