@@ -69,17 +69,46 @@ export default async function NewsPostPage({
     notFound();
   }
 
-  const { data: entities, error: entityError } = await supabase
-    .from("bg_entities")
-    .select("entity_name, image_url");
+  // Fetch all bg_entities in chunks
+  async function fetchAllEntities(): Promise<
+    { entity_name: string; image_url: string }[]
+  > {
+    const chunkSize = 1000;
+    let allEntities: { entity_name: string; image_url: string }[] = [];
+    let from = 0;
+    let to = chunkSize - 1;
 
-  if (entityError) {
-    console.error("Error fetching bg_entities:", entityError);
+    while (true) {
+      const { data, error } = await supabase
+        .from("bg_entities")
+        .select("entity_name, image_url")
+        .range(from, to);
+
+      if (error) {
+        console.error("Error fetching bg_entities:", error);
+        break;
+      }
+
+      if (!data || data.length === 0) {
+        break;
+      }
+
+      allEntities.push(...data);
+
+      if (data.length < chunkSize) {
+        break; // final chunk
+      }
+
+      from += chunkSize;
+      to += chunkSize;
+    }
+
+    return allEntities;
   }
 
-  const entityMap = new Map(
-    entities?.map((e) => [e.entity_name, e.image_url]) ?? [],
-  );
+  const entities = await fetchAllEntities();
+
+  const entityMap = new Map(entities.map((e) => [e.entity_name, e.image_url]));
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -165,8 +194,8 @@ export default async function NewsPostPage({
 
             {/* Content */}
             <div className="prose prose-lg prose-invert max-w-none">
-              <EntityHighlighterWrapper 
-                content={post.content} 
+              <EntityHighlighterWrapper
+                content={post.content}
                 entities={entityMap}
               />
             </div>

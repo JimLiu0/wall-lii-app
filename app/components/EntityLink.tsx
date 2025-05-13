@@ -9,7 +9,11 @@ interface EntityLinkProps {
   className?: string;
 }
 
-const EntityLink: React.FC<EntityLinkProps> = ({ text, imageUrl, className = "" }) => {
+const EntityLink: React.FC<EntityLinkProps> = ({
+  text,
+  imageUrl,
+  className = "",
+}) => {
   const [showImage, setShowImage] = useState(false);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const linkRef = useRef<HTMLSpanElement>(null);
@@ -52,46 +56,48 @@ const EntityLink: React.FC<EntityLinkProps> = ({ text, imageUrl, className = "" 
     const bodyRect = document.body.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    
+
     // Initial position (centered above the element)
     let x = rect.left + rect.width / 2;
     let y = rect.top - 10;
-    
+
     // The overlay width and height
     const overlayWidth = Math.min(300, viewportWidth * 0.8);
     const overlayHeight = Math.min(250, viewportHeight * 0.6);
-    
+
     // Ensure image stays within viewport
     if (x - overlayWidth / 2 < 0) {
       x = overlayWidth / 2;
     } else if (x + overlayWidth / 2 > viewportWidth) {
       x = viewportWidth - overlayWidth / 2;
     }
-    
+
     // Position popup below text if there's not enough room above
     if (y - overlayHeight < 0) {
       y = rect.bottom + overlayHeight / 2 + 10;
     } else {
       y = y - overlayHeight / 2;
     }
-    
+
     // For mobile, center in viewport
     if (isMobile) {
       x = viewportWidth / 2;
       y = viewportHeight / 2;
     }
-    
+
     setPosition({ x, y });
   };
 
   // Close popup when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showImage && 
-          imageRef.current && 
-          !imageRef.current.contains(event.target as Node) &&
-          linkRef.current && 
-          !linkRef.current.contains(event.target as Node)) {
+      if (
+        showImage &&
+        imageRef.current &&
+        !imageRef.current.contains(event.target as Node) &&
+        linkRef.current &&
+        !linkRef.current.contains(event.target as Node)
+      ) {
         setShowImage(false);
       }
     };
@@ -121,7 +127,7 @@ const EntityLink: React.FC<EntityLinkProps> = ({ text, imageUrl, className = "" 
           style={{
             left: `${position.x}px`,
             top: `${position.y}px`,
-            transform: 'translate(-50%, -50%)',
+            transform: "translate(-50%, -50%)",
             maxWidth: "90vw",
             maxHeight: "80vh",
             width: "300px",
@@ -140,11 +146,8 @@ const EntityLink: React.FC<EntityLinkProps> = ({ text, imageUrl, className = "" 
                 src={imageUrl}
                 alt={text}
                 className="w-full h-auto object-contain rounded mx-auto"
-                style={{ maxHeight: "200px" }}
+                style={{ maxHeight: "230px" }}
               />
-            </div>
-            <div className="px-3 py-2 border-t border-gray-700 bg-gray-900 w-full text-center text-sm text-gray-300 rounded-b-md">
-              {text}
             </div>
           </div>
         </div>
