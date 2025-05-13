@@ -74,7 +74,7 @@ export default async function NewsPostPage({
     { entity_name: string; image_url: string }[]
   > {
     const chunkSize = 1000;
-    let allEntities: { entity_name: string; image_url: string }[] = [];
+    const allEntities: { entity_name: string; image_url: string }[] = [];
     let from = 0;
     let to = chunkSize - 1;
 
@@ -108,7 +108,12 @@ export default async function NewsPostPage({
 
   const entities = await fetchAllEntities();
 
-  const entityMap = new Map(entities.map((e) => [e.entity_name, e.image_url]));
+  const entityMap = new Map(
+    entities.map((e) => [
+      e.entity_name.replace(/\s*\(.*?\)/g, "").trim(), // remove ( ... )
+      e.image_url,
+    ]),
+  );
 
   return (
     <div className="min-h-screen bg-gray-950">

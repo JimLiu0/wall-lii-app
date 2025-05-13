@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { X } from "lucide-react";
 
 interface EntityLinkProps {
@@ -53,7 +54,6 @@ const EntityLink: React.FC<EntityLinkProps> = ({
   // Calculate the position of the popup
   const calculatePosition = (rect: DOMRect) => {
     const isMobile = window.innerWidth < 768;
-    const bodyRect = document.body.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
@@ -121,7 +121,7 @@ const EntityLink: React.FC<EntityLinkProps> = ({
       </span>
 
       {showImage && (
-        <div
+        <span
           ref={imageRef}
           className="fixed z-50 flex flex-col items-center shadow-2xl rounded-md bg-gray-800 border border-gray-700"
           style={{
@@ -133,7 +133,7 @@ const EntityLink: React.FC<EntityLinkProps> = ({
             width: "300px",
           }}
         >
-          <div className="w-full relative">
+          <span className="w-full relative">
             <button
               onClick={() => setShowImage(false)}
               className="absolute top-1 right-1 bg-gray-900 rounded-full p-1 text-gray-400 hover:text-white z-10"
@@ -141,16 +141,19 @@ const EntityLink: React.FC<EntityLinkProps> = ({
             >
               <X size={16} />
             </button>
-            <div className="p-2 w-full h-full">
-              <img
+            <span className="p-2 w-full h-full">
+              <Image
                 src={imageUrl}
                 alt={text}
+                width={300} // arbitrary width
+                height={230} // maxHeight fallback
                 className="w-full h-auto object-contain rounded mx-auto"
-                style={{ maxHeight: "230px" }}
+                style={{ maxHeight: "200px" }}
+                unoptimized // Optional: allows loading external images without optimization errors
               />
-            </div>
-          </div>
-        </div>
+            </span>
+          </span>
+        </span>
       )}
     </>
   );
