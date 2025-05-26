@@ -174,18 +174,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     );
   }
 
-  if (leaderboardData.length === 0) {
-    return (
-      <div className="container mx-auto p-4 max-w-4xl">
-        <div className="bg-gray-900 rounded-lg p-6">
-          <div className="text-2xl font-bold text-white mb-4 text-center">
-            No players found in {region === 'all' ? 'Global' : region.toUpperCase()}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="bg-gray-900 rounded-lg p-6">
@@ -259,7 +247,11 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           )}
         </div>
 
-        <div className="overflow-x-auto">
+        { filteredData.length === 0 && <div className="text-2xl font-bold text-white mb-4 text-center">
+          Error fetching leaderboard, try refreshing the page.
+        </div> }
+
+        { filteredData.length > 0 && <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
@@ -307,6 +299,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             </div>
           )}
         </div>
+      }
       </div>
     </div>
   );
