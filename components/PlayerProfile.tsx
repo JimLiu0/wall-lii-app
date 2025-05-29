@@ -360,7 +360,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
               <div className="text-xl font-bold text-white mt-4">
                 {view === 'all'
                   ? 'Season Rating Record'
-                  : `${view === 'week' ? 'Weekly' : 'Daily'} Record - ${getPeriodLabel(view, offsetNum)}`}
+                  : `${view === 'week' ? 'Week' : 'Day'} - ${getPeriodLabel(view, offsetNum)}`}
               </div>
             </div>
 

@@ -11,7 +11,7 @@ export default function getPeriodLabel(period: string, offset: number): string {
   if (period === 'week') {
     const start = now.minus({ weeks: offset }).startOf('week');
     const end = start.plus({ days: 6 });
-    return `${start.toFormat('MMM d')}–${end.toFormat('d, yyyy')}`;
+    return `${start.toFormat('MMM d')}–${end.toFormat('MMM d, yyyy')}`;
   }
 
   return '';
