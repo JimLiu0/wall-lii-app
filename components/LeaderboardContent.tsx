@@ -141,31 +141,50 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           .limit(limit);
         if (result.error) throw result.error;
 
-        // Fetch baseline stats
-        const yesterRes = await supabase
-          .from('daily_leaderboard_stats')
-          .select('player_name, rating, rank')
-          .eq('region', region.toUpperCase())
-          .eq('game_mode', solo ? '0' : '1')
-          .eq('day_start', prevStart);
-        if (yesterRes.error) throw yesterRes.error;
+        // Paginated fetch of baseline stats on first day in weeklyDates (or prevStart for day)
+        const baselineDate = timeframe === 'week' ? weeklyDates[0] : prevStart;
+        let baselineResults: any[] = [];
+        let baseOffset = 0;
+        while (true) {
+          const { data: baseChunk, error: baseErr } = await supabase
+            .from('daily_leaderboard_stats')
+            .select('player_name, rating, rank')
+            .eq('region', region.toUpperCase())
+            .eq('game_mode', solo ? '0' : '1')
+            .eq('day_start', baselineDate)
+            .order('rank', { ascending: true })
+            .range(baseOffset, baseOffset + limit - 1);
+          if (baseErr) throw baseErr;
+          baselineResults = baselineResults.concat(baseChunk || []);
+          if (!baseChunk || baseChunk.length < limit) break;
+          baseOffset += limit;
+        }
         const yesterMap = Object.fromEntries(
-          (yesterRes.data || []).map(e => [e.player_name, e])
+          baselineResults.map(e => [e.player_name, e])
         );
 
-        // If weekly, sum games_played over the week
+        // If weekly, fetch each day's games_played with pagination and sum
         let gamesMap: Record<string, number> = {};
         if (timeframe === 'week' && weeklyDates.length > 0) {
-          const gamesRes = await supabase
-            .from('daily_leaderboard_stats')
-            .select('player_name, games_played')
-            .in('day_start', weeklyDates)
-            .eq('region', region.toUpperCase())
-            .eq('game_mode', solo ? '0' : '1');
-          if (gamesRes.error) throw gamesRes.error;
-          (gamesRes.data || []).forEach(r => {
-            gamesMap[r.player_name] = (gamesMap[r.player_name] || 0) + r.games_played;
-          });
+          for (const date of weeklyDates) {
+            let dayOffset = 0;
+            while (true) {
+              const { data: dayChunk, error: dayErr } = await supabase
+                .from('daily_leaderboard_stats')
+                .select('player_name, games_played')
+                .eq('region', region.toUpperCase())
+                .eq('game_mode', solo ? '0' : '1')
+                .eq('day_start', date)
+                .order('player_name')
+                .range(dayOffset, dayOffset + limit - 1);
+              if (dayErr) throw dayErr;
+              (dayChunk || []).forEach(r => {
+                gamesMap[r.player_name] = (gamesMap[r.player_name] || 0) + r.games_played;
+              });
+              if (!dayChunk || dayChunk.length < limit) break;
+              dayOffset += limit;
+            }
+          }
         }
 
         // Build final entries
@@ -425,7 +444,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             <tbody>
               {filteredData.map((entry) => (
                 <tr
-                  key={entry.player_name}
+                  key={entry.player_name + entry.region}
                   className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                 >
                   <td className="px-4 py-3 text-sm font-medium text-zinc-400">
