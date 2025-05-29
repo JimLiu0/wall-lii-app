@@ -54,6 +54,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
 
   const [sortColumn, setSortColumn] = useState<'rank' | 'rank_delta' | 'rating' | 'rating_delta' | 'games_played'>('rank');
   const [sortAsc, setSortAsc] = useState(true);
+  const [timeframe, setTimeframe] = useState<'day' | 'week'>('day');
 
   // Save preferences to localStorage when they change
   useEffect(() => {
@@ -95,47 +96,91 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         setLeaderboardData(processedData);
         setShowingAll(limit > 100);
       } else {
-        // Compute today's PT date string
-        const todayPT = new Date(
-          new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
-        ).toISOString().split('T')[0];
-        const yesterdayDate = new Date(
+        // Compute period and baseline based on timeframe
+        const nowPt = new Date(
           new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
         );
-        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-        const yesterdayPT = yesterdayDate.toISOString().split('T')[0];
+        let currentStart: string;
+        let prevStart: string;
+        let weeklyDates: string[] = [];
+
+        if (timeframe === 'day') {
+          currentStart = nowPt.toISOString().split('T')[0];
+          const prev = new Date(nowPt);
+          prev.setDate(prev.getDate() - 1);
+          prevStart = prev.toISOString().split('T')[0];
+        } else {
+          // Weekly baseline: last Sunday
+          const day = nowPt.getDay(); // 0 = Sunday
+          const lastSunday = new Date(nowPt);
+          lastSunday.setDate(lastSunday.getDate() - day);
+          const baselineDate = lastSunday.toISOString().split('T')[0];
+
+          // Today's date
+          const todayDate = nowPt.toISOString().split('T')[0];
+          currentStart = todayDate;
+          prevStart = baselineDate;
+
+          // Build array of dates from Monday (baselineDate + 1) to todayDate
+          const iter = new Date(lastSunday);
+          iter.setDate(iter.getDate() + 1);
+          while (iter.toISOString().split('T')[0] <= todayDate) {
+            weeklyDates.push(iter.toISOString().split('T')[0]);
+            iter.setDate(iter.getDate() + 1);
+          }
+        }
+
+        // Fetch current period stats
         const result = await supabase
           .from('daily_leaderboard_stats')
           .select('player_name, rating, rank, region, games_played')
           .eq('region', region.toUpperCase())
           .eq('game_mode', solo ? '0' : '1')
-          .eq('day_start', todayPT)
+          .eq('day_start', currentStart)
           .order('rank', { ascending: true })
           .limit(limit);
         if (result.error) throw result.error;
 
-        // Fetch yesterday's stats
+        // Fetch baseline stats
         const yesterRes = await supabase
           .from('daily_leaderboard_stats')
           .select('player_name, rating, rank')
           .eq('region', region.toUpperCase())
           .eq('game_mode', solo ? '0' : '1')
-          .eq('day_start', yesterdayPT);
+          .eq('day_start', prevStart);
         if (yesterRes.error) throw yesterRes.error;
         const yesterMap = Object.fromEntries(
           (yesterRes.data || []).map(e => [e.player_name, e])
         );
-        let data = (result.data || []).map((p: any) => {
+
+        // If weekly, sum games_played over the week
+        let gamesMap: Record<string, number> = {};
+        if (timeframe === 'week' && weeklyDates.length > 0) {
+          const gamesRes = await supabase
+            .from('daily_leaderboard_stats')
+            .select('player_name, games_played')
+            .in('day_start', weeklyDates)
+            .eq('region', region.toUpperCase())
+            .eq('game_mode', solo ? '0' : '1');
+          if (gamesRes.error) throw gamesRes.error;
+          (gamesRes.data || []).forEach(r => {
+            gamesMap[r.player_name] = (gamesMap[r.player_name] || 0) + r.games_played;
+          });
+        }
+
+        // Build final entries
+        const data = (result.data || []).map((p: any) => {
           const y = yesterMap[p.player_name] || { rating: p.rating, rank: p.rank };
           return {
             ...p,
-            games_played: p.games_played,
+            games_played: timeframe === 'week'
+              ? gamesMap[p.player_name] || 0
+              : p.games_played,
             rating_delta: p.rating - y.rating,
             rank_delta: y.rank - p.rank,
           };
         });
-        const processedData = data;
-        setLeaderboardData(processedData);
+        setLeaderboardData(data);
         setShowingAll(limit > 100);
       }
     } catch (error) {
@@ -145,14 +190,14 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [region, solo]);
+  }, [region, solo, timeframe]);
 
   // Initial fetch
   useEffect(() => {
     setLoading(true);
     setShowingAll(false);
     void fetchLeaderboard();
-  }, [region, solo, fetchLeaderboard]);
+  }, [region, solo, timeframe, fetchLeaderboard]);
 
   // Handle region button clicks
   const handleRegionChange = (newRegion: string) => {
@@ -280,6 +325,28 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                 Duo
               </button>
             </div>
+            <div className="flex bg-gray-800 rounded-full p-1 ml-4">
+              <button
+                onClick={() => setTimeframe('day')}
+                className={`px-4 py-1.5 rounded-full transition ${
+                  timeframe === 'day'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                Day
+              </button>
+              <button
+                onClick={() => setTimeframe('week')}
+                className={`px-4 py-1.5 rounded-full transition ${
+                  timeframe === 'week'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                Week
+              </button>
+            </div>
           </div>
         </div>
 
@@ -308,7 +375,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             <thead>
               <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
                 <th
-                  className="px-4 py-2 cursor-pointer select-none"
+                  className="px-4 py-2 text-left cursor-pointer select-none"
                   onClick={() => {
                     if (sortColumn === 'rank') setSortAsc(!sortAsc);
                     else { setSortColumn('rank'); setSortAsc(true); }
@@ -317,7 +384,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                   Rank{sortColumn === 'rank' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                 </th>
                 <th
-                  className="px-4 py-2 cursor-pointer select-none"
+                  className="px-4 py-2 text-left cursor-pointer select-none"
                   onClick={() => {
                     if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
                     else { setSortColumn('rank_delta'); setSortAsc(false); }
@@ -327,7 +394,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                 </th>
                 <th className="px-4 py-2 text-left">Player</th>
                 <th
-                  className="px-4 py-2 cursor-pointer select-none text-right"
+                  className="px-4 py-2 cursor-pointer select-none text-left"
                   onClick={() => {
                     if (sortColumn === 'rating') setSortAsc(!sortAsc);
                     else { setSortColumn('rating'); setSortAsc(true); }
@@ -336,7 +403,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                   Rating{sortColumn === 'rating' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                 </th>
                 <th
-                  className="px-4 py-2 cursor-pointer select-none text-right"
+                  className="px-4 py-2 cursor-pointer select-none text-left"
                   onClick={() => {
                     if (sortColumn === 'rating_delta') setSortAsc(!sortAsc);
                     else { setSortColumn('rating_delta'); setSortAsc(false); }
@@ -345,7 +412,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                   ΔRating{sortColumn === 'rating_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                 </th>
                 <th
-                  className="px-4 py-2 cursor-pointer select-none text-right"
+                  className="px-4 py-2 cursor-pointer select-none text-left"
                   onClick={() => {
                     if (sortColumn === 'games_played') setSortAsc(!sortAsc);
                     else { setSortColumn('games_played'); setSortAsc(false); }
@@ -387,10 +454,10 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       </Link>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right text-lg font-semibold text-white">
+                  <td className="px-4 py-3 text-left text-lg font-semibold text-white">
                     {entry.rating}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-left">
                     {entry.rating_delta > 0 ? (
                       <span className="text-green-400">+{entry.rating_delta}</span>
                     ) : entry.rating_delta < 0 ? (
@@ -399,7 +466,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       <span className="text-zinc-400">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right text-white">
+                  <td className="px-4 py-3 text-left text-white">
                     {entry.games_played}
                   </td>
                 </tr>
