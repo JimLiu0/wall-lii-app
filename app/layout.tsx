@@ -62,7 +62,6 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="google-site-verification" content="Qtz9PYfR7FFiM9dXZOWfJ4RKtztrWIU2Xx3M2Bt5sHU" />
-        <meta property="og:image" content="https://wall-lii.vercel.app/og-image.jpg" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="google-adsense-account" content="ca-pub-6613952474052415" />
         <Script
