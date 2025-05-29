@@ -86,14 +86,16 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         data = result.data;
         error = result.error;
         if (error) throw error;
-        // No delta for global for now
-        const processedData = (data || []).map((p: any) => ({
+        // Normalize games and zero out deltas
+        const baseData = (data || []).map((p: any) => ({
           ...p,
           games_played: p.games_played ?? 0,
           rating_delta: 0,
           rank_delta: 0,
         }));
-        setLeaderboardData(processedData);
+        // Compute sequential rank based on rating descending
+        const rankedData = processRanks(baseData);
+        setLeaderboardData(rankedData);
         setShowingAll(limit > 100);
       } else {
         // Compute period and baseline based on timeframe
@@ -344,28 +346,30 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                 Duo
               </button>
             </div>
-            <div className="flex bg-gray-800 rounded-full p-1 ml-4">
-              <button
-                onClick={() => setTimeframe('day')}
-                className={`px-4 py-1.5 rounded-full transition ${
-                  timeframe === 'day'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Day
-              </button>
-              <button
-                onClick={() => setTimeframe('week')}
-                className={`px-4 py-1.5 rounded-full transition ${
-                  timeframe === 'week'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Week
-              </button>
-            </div>
+            {region !== 'all' && (
+              <div className="flex bg-gray-800 rounded-full p-1 ml-4">
+                <button
+                  onClick={() => setTimeframe('day')}
+                  className={`px-4 py-1.5 rounded-full transition ${
+                    timeframe === 'day'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  Day
+                </button>
+                <button
+                  onClick={() => setTimeframe('week')}
+                  className={`px-4 py-1.5 rounded-full transition ${
+                    timeframe === 'week'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  Week
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -392,54 +396,62 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         { filteredData.length > 0 && <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
-                <th
-                  className="px-4 py-2 text-left cursor-pointer select-none"
-                  onClick={() => {
-                    if (sortColumn === 'rank') setSortAsc(!sortAsc);
-                    else { setSortColumn('rank'); setSortAsc(true); }
-                  }}
-                >
-                  Rank{sortColumn === 'rank' ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                </th>
-                <th
-                  className="px-4 py-2 text-left cursor-pointer select-none"
-                  onClick={() => {
-                    if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
-                    else { setSortColumn('rank_delta'); setSortAsc(false); }
-                  }}
-                >
-                  ΔRank{sortColumn === 'rank_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                </th>
-                <th className="px-4 py-2 text-left">Player</th>
-                <th
-                  className="px-4 py-2 cursor-pointer select-none text-left"
-                  onClick={() => {
-                    if (sortColumn === 'rating') setSortAsc(!sortAsc);
-                    else { setSortColumn('rating'); setSortAsc(true); }
-                  }}
-                >
-                  Rating{sortColumn === 'rating' ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                </th>
-                <th
-                  className="px-4 py-2 cursor-pointer select-none text-left"
-                  onClick={() => {
-                    if (sortColumn === 'rating_delta') setSortAsc(!sortAsc);
-                    else { setSortColumn('rating_delta'); setSortAsc(false); }
-                  }}
-                >
-                  ΔRating{sortColumn === 'rating_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                </th>
-                <th
-                  className="px-4 py-2 cursor-pointer select-none text-left"
-                  onClick={() => {
-                    if (sortColumn === 'games_played') setSortAsc(!sortAsc);
-                    else { setSortColumn('games_played'); setSortAsc(false); }
-                  }}
-                >
-                  Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                </th>
-              </tr>
+              {region === 'all' ? (
+                <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
+                  <th className="px-4 py-2 text-left">Rank</th>
+                  <th className="px-4 py-2 text-left">Player</th>
+                  <th className="px-4 py-2 text-right">Rating</th>
+                </tr>
+              ) : (
+                <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
+                  <th
+                    className="px-4 py-2 text-left cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortColumn === 'rank') setSortAsc(!sortAsc);
+                      else { setSortColumn('rank'); setSortAsc(true); }
+                    }}
+                  >
+                    Rank{sortColumn === 'rank' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  <th
+                    className="px-4 py-2 text-left cursor-pointer select-none"
+                    onClick={() => {
+                      if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
+                      else { setSortColumn('rank_delta'); setSortAsc(false); }
+                    }}
+                  >
+                    ΔRank{sortColumn === 'rank_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  <th className="px-4 py-2 text-left">Player</th>
+                  <th
+                    className="px-4 py-2 cursor-pointer select-none text-left"
+                    onClick={() => {
+                      if (sortColumn === 'rating') setSortAsc(!sortAsc);
+                      else { setSortColumn('rating'); setSortAsc(true); }
+                    }}
+                  >
+                    Rating{sortColumn === 'rating' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  <th
+                    className="px-4 py-2 cursor-pointer select-none text-left"
+                    onClick={() => {
+                      if (sortColumn === 'rating_delta') setSortAsc(!sortAsc);
+                      else { setSortColumn('rating_delta'); setSortAsc(false); }
+                    }}
+                  >
+                    ΔRating{sortColumn === 'rating_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  <th
+                    className="px-4 py-2 cursor-pointer select-none text-left"
+                    onClick={() => {
+                      if (sortColumn === 'games_played') setSortAsc(!sortAsc);
+                      else { setSortColumn('games_played'); setSortAsc(false); }
+                    }}
+                  >
+                    Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                </tr>
+              )}
             </thead>
             <tbody>
               {filteredData.map((entry) => (
@@ -447,47 +459,70 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                   key={entry.player_name + entry.region}
                   className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                 >
-                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">
-                    #{entry.rank}
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">
-                    {entry.rank_delta > 0 ? (
-                      <span className="text-green-400">+{entry.rank_delta}</span>
-                    ) : entry.rank_delta < 0 ? (
-                      <span className="text-red-400">{entry.rank_delta}</span>
-                    ) : (
-                      <span className="text-zinc-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
-                        className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
-                      >
-                        {entry.player_name} {region === 'all' && (
-                          <span className="text-sm text-gray-400 hover:text-white transition-colors">
-                            ({entry.region})
-                          </span>
+                  {region === 'all' ? (
+                    <>
+                      <td className="px-4 py-3 text-sm font-medium text-zinc-400">
+                        #{entry.rank}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
+                            className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
+                          >
+                            {entry.player_name} {region === 'all' && (
+                              <span className="text-sm text-gray-400 hover:text-white transition-colors">
+                                ({entry.region})
+                              </span>
+                            )}
+                          </Link>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-lg font-semibold text-white">
+                        {entry.rating}
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 text-sm font-medium text-zinc-400">
+                        #{entry.rank}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-zinc-400">
+                        {entry.rank_delta > 0 ? (
+                          <span className="text-green-400">+{entry.rank_delta}</span>
+                        ) : entry.rank_delta < 0 ? (
+                          <span className="text-red-400">{entry.rank_delta}</span>
+                        ) : (
+                          <span className="text-zinc-400">—</span>
                         )}
-                      </Link>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-left text-lg font-semibold text-white">
-                    {entry.rating}
-                  </td>
-                  <td className="px-4 py-3 text-left">
-                    {entry.rating_delta > 0 ? (
-                      <span className="text-green-400">+{entry.rating_delta}</span>
-                    ) : entry.rating_delta < 0 ? (
-                      <span className="text-red-400">{entry.rating_delta}</span>
-                    ) : (
-                      <span className="text-zinc-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-left text-white">
-                    {entry.games_played}
-                  </td>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
+                            className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
+                          >
+                            {entry.player_name}
+                          </Link>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-left text-lg font-semibold text-white">
+                        {entry.rating}
+                      </td>
+                      <td className="px-4 py-3 text-left">
+                        {entry.rating_delta > 0 ? (
+                          <span className="text-green-400">+{entry.rating_delta}</span>
+                        ) : entry.rating_delta < 0 ? (
+                          <span className="text-red-400">{entry.rating_delta}</span>
+                        ) : (
+                          <span className="text-zinc-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-left text-white">
+                        {entry.games_played}
+                      </td>
+                    </>
+                  )}
                 </tr>
               ))}
             </tbody>
