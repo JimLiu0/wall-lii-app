@@ -72,14 +72,14 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       let error;
 
       if (region === 'all') {
-        const result = await supabase.rpc('get_global_leaderboard_with_duplicates_v2', {
+        const result = await supabase.rpc('get_global_leaderboard_with_duplicates', {
           game_mode_input: solo ? '0' : '1',
           limit_input: limit
         });
         data = result.data;
         error = result.error;
       } else {
-        const result = await supabase.rpc('get_latest_snapshots_per_rank_v2', {
+        const result = await supabase.rpc('get_latest_snapshots_per_rank', {
           region_input: region.toUpperCase(),
           game_mode_input: solo ? '0' : '1',
           limit_input: limit

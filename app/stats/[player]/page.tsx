@@ -97,7 +97,7 @@ export default async function PlayerPage({
 
   // Fetch all data for the player across all regions and game modes
   const { data, error } = await supabase
-    .from('leaderboard_snapshots_season15')
+    .from('leaderboard_snapshots')
     .select('player_name, rating, snapshot_time, region, rank, game_mode')
     .eq('player_name', player)
     .order('snapshot_time', { ascending: true });
