@@ -197,7 +197,6 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="flex flex-col gap-4 mb-8">
           <div className="flex items-center gap-4">
-            {!isEditing && <h1 className="text-2xl font-semibold text-white">Player Profile</h1>}
             {isEditing ? (
               <div className="flex flex-col gap-2 w-full">
                 <form ref={formRef} onSubmit={handleSubmit} className="flex items-center gap-2">
