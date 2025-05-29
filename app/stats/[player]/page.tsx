@@ -3,6 +3,7 @@ import { supabase } from '@/utils/supabaseClient';
 import PlayerProfile from '@/components/PlayerProfile';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { PostgrestError } from '@supabase/supabase-js';
 
 interface PageParams {
   player: string;
@@ -95,12 +96,37 @@ export default async function PlayerPage({
   const requestedOffset = parseInt(resolvedSearchParams.o || '0', 10);
   const requestedGameMode = resolvedSearchParams.g || 's';
 
-  // Fetch all data for the player across all regions and game modes
-  const { data, error } = await supabase
-    .from('leaderboard_snapshots')
-    .select('player_name, rating, snapshot_time, region, rank, game_mode')
-    .eq('player_name', player)
-    .order('snapshot_time', { ascending: true });
+  // Fetch all data for the player using pagination to avoid Supabase limits
+  const pageSize = 1000;
+  let allData: Array<{
+    player_name: string;
+    rating: number;
+    snapshot_time: string;
+    region: string;
+    rank: number;
+    game_mode: string;
+  }> = [];
+  let from = 0;
+  let error: PostgrestError | null = null;
+  while (true) {
+    const { data: chunk, error: chunkError } = await supabase
+      .from('leaderboard_snapshots')
+      .select('player_name, rating, snapshot_time, region, rank, game_mode')
+      .eq('player_name', player)
+      .order('snapshot_time', { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (chunkError) {
+      error = chunkError;
+      break;
+    }
+    allData = allData.concat(chunk || []);
+    if (!chunk || chunk.length < pageSize) {
+      // No more rows
+      break;
+    }
+    from += pageSize;
+  }
+  const data = allData;
 
   if (error || !data || data.length === 0) {
     return (
