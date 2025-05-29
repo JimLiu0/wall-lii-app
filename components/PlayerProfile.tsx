@@ -196,8 +196,8 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     <div className="container mx-auto p-4">
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="flex flex-col gap-4 mb-8">
-          <h1 className="text-2xl font-semibold text-white mb-2 text-center">Player Profile</h1>
           <div className="flex items-center gap-4">
+            {!isEditing && <h1 className="text-2xl font-semibold text-white">Player Profile</h1>}
             {isEditing ? (
               <div className="flex flex-col gap-2 w-full">
                 <form ref={formRef} onSubmit={handleSubmit} className="flex items-center gap-2">
@@ -206,7 +206,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     type="text"
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
-                    placeholder={playerData.name}
+                    placeholder="Search for a player"
                     className="text-2xl sm:text-4xl font-bold bg-gray-800 text-white px-3 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
                     autoFocus
                   />
