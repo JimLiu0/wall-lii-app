@@ -10,6 +10,9 @@ interface LeaderboardEntry {
   rating: number;
   rank: number;
   region: string;
+  games_played: number;
+  rating_delta: number;
+  rank_delta: number;
 }
 
 interface Props {
@@ -49,6 +52,9 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [searchQuery, setSearchQuery] = useState('');
   const observerTarget = useRef<HTMLDivElement>(null);
 
+  const [sortColumn, setSortColumn] = useState<'rank' | 'rank_delta' | 'rating' | 'rating_delta' | 'games_played'>('rank');
+  const [sortAsc, setSortAsc] = useState(true);
+
   // Save preferences to localStorage when they change
   useEffect(() => {
     localStorage.setItem('preferredRegion', region);
@@ -78,20 +84,60 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         });
         data = result.data;
         error = result.error;
+        if (error) throw error;
+        // No delta for global for now
+        const processedData = (data || []).map((p: any) => ({
+          ...p,
+          games_played: p.games_played ?? 0,
+          rating_delta: 0,
+          rank_delta: 0,
+        }));
+        setLeaderboardData(processedData);
+        setShowingAll(limit > 100);
       } else {
-        const result = await supabase.rpc('get_latest_snapshots_per_rank', {
-          region_input: region.toUpperCase(),
-          game_mode_input: solo ? '0' : '1',
-          limit_input: limit
-        });
-        data = result.data;
-        error = result.error;
-      }
+        // Compute today's PT date string
+        const todayPT = new Date(
+          new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
+        ).toISOString().split('T')[0];
+        const yesterdayDate = new Date(
+          new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
+        );
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterdayPT = yesterdayDate.toISOString().split('T')[0];
+        const result = await supabase
+          .from('daily_leaderboard_stats')
+          .select('player_name, rating, rank, region, games_played')
+          .eq('region', region.toUpperCase())
+          .eq('game_mode', solo ? '0' : '1')
+          .eq('day_start', todayPT)
+          .order('rank', { ascending: true })
+          .limit(limit);
+        if (result.error) throw result.error;
 
-      if (error) throw error;
-      const processedData = processRanks(data || []);
-      setLeaderboardData(processedData);
-      setShowingAll(limit > 100);
+        // Fetch yesterday's stats
+        const yesterRes = await supabase
+          .from('daily_leaderboard_stats')
+          .select('player_name, rating, rank')
+          .eq('region', region.toUpperCase())
+          .eq('game_mode', solo ? '0' : '1')
+          .eq('day_start', yesterdayPT);
+        if (yesterRes.error) throw yesterRes.error;
+        const yesterMap = Object.fromEntries(
+          (yesterRes.data || []).map(e => [e.player_name, e])
+        );
+        let data = (result.data || []).map((p: any) => {
+          const y = yesterMap[p.player_name] || { rating: p.rating, rank: p.rank };
+          return {
+            ...p,
+            games_played: p.games_played,
+            rating_delta: p.rating - y.rating,
+            rank_delta: y.rank - p.rank,
+          };
+        });
+        const processedData = data;
+        setLeaderboardData(processedData);
+        setShowingAll(limit > 100);
+      }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
       setLeaderboardData([]);
@@ -149,20 +195,26 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     return () => observer.disconnect();
   }, [loading, loadingMore, showingAll, searchQuery, fetchLeaderboard]);
 
-  const handleSearchClick = () => {
-    if (!showingAll) {
-      void fetchLeaderboard(1000);
-    }
-  };
+  const sortedData = useMemo(() => {
+    const dataCopy = [...leaderboardData];
+    dataCopy.sort((a, b) => {
+      const valA = a[sortColumn];
+      const valB = b[sortColumn];
+      if (valA < valB) return sortAsc ? -1 : 1;
+      if (valA > valB) return sortAsc ? 1 : -1;
+      return 0;
+    });
+    return dataCopy;
+  }, [leaderboardData, sortColumn, sortAsc]);
 
   const filteredData = useMemo(() => {
-    if (!searchQuery) return leaderboardData;
+    if (!searchQuery) return sortedData;
     const query = searchQuery.toLowerCase();
-    return leaderboardData.filter(entry => 
+    return sortedData.filter(entry => 
       entry.player_name.toLowerCase().includes(query) ||
       entry.rank.toString().includes(query)
     );
-  }, [leaderboardData, searchQuery]);
+  }, [sortedData, searchQuery]);
 
   if (loading) {
     return (
@@ -236,7 +288,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             type="text"
             placeholder="Search by player name or rank..."
             value={searchQuery}
-            onClick={() => handleSearchClick()}
+            onClick={() => fetchLeaderboard(1000)}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:border-blue-500 transition-colors"
           />
@@ -255,18 +307,72 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           <table className="w-full">
             <thead>
               <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
-                <th className="px-4 py-2 text-left">Rank</th>
+                <th
+                  className="px-4 py-2 cursor-pointer select-none"
+                  onClick={() => {
+                    if (sortColumn === 'rank') setSortAsc(!sortAsc);
+                    else { setSortColumn('rank'); setSortAsc(true); }
+                  }}
+                >
+                  Rank{sortColumn === 'rank' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                </th>
+                <th
+                  className="px-4 py-2 cursor-pointer select-none"
+                  onClick={() => {
+                    if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
+                    else { setSortColumn('rank_delta'); setSortAsc(false); }
+                  }}
+                >
+                  ΔRank{sortColumn === 'rank_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                </th>
                 <th className="px-4 py-2 text-left">Player</th>
-                <th className="px-4 py-2 text-right">Rating</th>
+                <th
+                  className="px-4 py-2 cursor-pointer select-none text-right"
+                  onClick={() => {
+                    if (sortColumn === 'rating') setSortAsc(!sortAsc);
+                    else { setSortColumn('rating'); setSortAsc(true); }
+                  }}
+                >
+                  Rating{sortColumn === 'rating' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                </th>
+                <th
+                  className="px-4 py-2 cursor-pointer select-none text-right"
+                  onClick={() => {
+                    if (sortColumn === 'rating_delta') setSortAsc(!sortAsc);
+                    else { setSortColumn('rating_delta'); setSortAsc(false); }
+                  }}
+                >
+                  ΔRating{sortColumn === 'rating_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                </th>
+                <th
+                  className="px-4 py-2 cursor-pointer select-none text-right"
+                  onClick={() => {
+                    if (sortColumn === 'games_played') setSortAsc(!sortAsc);
+                    else { setSortColumn('games_played'); setSortAsc(false); }
+                  }}
+                >
+                  Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                </th>
               </tr>
             </thead>
             <tbody>
               {filteredData.map((entry) => (
                 <tr
-                  key={entry.rank}
+                  key={entry.player_name}
                   className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                 >
-                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">#{entry.rank}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">
+                    #{entry.rank}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">
+                    {entry.rank_delta > 0 ? (
+                      <span className="text-green-400">+{entry.rank_delta}</span>
+                    ) : entry.rank_delta < 0 ? (
+                      <span className="text-red-400">{entry.rank_delta}</span>
+                    ) : (
+                      <span className="text-zinc-400">—</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Link
@@ -281,7 +387,21 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       </Link>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-right text-lg font-semibold text-white">{entry.rating}</td>
+                  <td className="px-4 py-3 text-right text-lg font-semibold text-white">
+                    {entry.rating}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {entry.rating_delta > 0 ? (
+                      <span className="text-green-400">+{entry.rating_delta}</span>
+                    ) : entry.rating_delta < 0 ? (
+                      <span className="text-red-400">{entry.rating_delta}</span>
+                    ) : (
+                      <span className="text-zinc-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right text-white">
+                    {entry.games_played}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -303,4 +423,4 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       </div>
     </div>
   );
-} 
+}
