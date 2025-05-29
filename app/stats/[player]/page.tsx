@@ -3,6 +3,7 @@ import { supabase } from '@/utils/supabaseClient';
 import PlayerProfile from '@/components/PlayerProfile';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { PostgrestError } from '@supabase/supabase-js';
 
 interface PageParams {
   player: string;
@@ -106,7 +107,7 @@ export default async function PlayerPage({
     game_mode: string;
   }> = [];
   let from = 0;
-  let error: any = null;
+  let error: PostgrestError | null = null;
   while (true) {
     const { data: chunk, error: chunkError } = await supabase
       .from('leaderboard_snapshots')

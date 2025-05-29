@@ -15,6 +15,20 @@ interface LeaderboardEntry {
   rank_delta: number;
 }
 
+interface RawLeaderboardEntry {
+  player_name: string;
+  rating: number;
+  rank: number;
+  region: string;
+  games_played?: number;
+}
+
+interface BaselineEntry {
+  player_name: string;
+  rating: number;
+  rank: number;
+}
+
 interface Props {
   region: string;
   defaultSolo?: boolean;
@@ -87,7 +101,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         error = result.error;
         if (error) throw error;
         // Normalize games and zero out deltas
-        const baseData = (data || []).map((p: any) => ({
+        const baseData = (data || []).map((p: RawLeaderboardEntry) => ({
           ...p,
           games_played: p.games_played ?? 0,
           rating_delta: 0,
@@ -104,7 +118,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         );
         let currentStart: string;
         let prevStart: string;
-        let weeklyDates: string[] = [];
+        const weeklyDates: string[] = [];
 
         if (timeframe === 'day') {
           currentStart = nowPt.toISOString().split('T')[0];
@@ -145,7 +159,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
 
         // Paginated fetch of baseline stats on first day in weeklyDates (or prevStart for day)
         const baselineDate = timeframe === 'week' ? weeklyDates[0] : prevStart;
-        let baselineResults: any[] = [];
+        let baselineResults: BaselineEntry[] = [];
         let baseOffset = 0;
         while (true) {
           const { data: baseChunk, error: baseErr } = await supabase
@@ -166,7 +180,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         );
 
         // If weekly, fetch each day's games_played with pagination and sum
-        let gamesMap: Record<string, number> = {};
+        const gamesMap: Record<string, number> = {};
         if (timeframe === 'week' && weeklyDates.length > 0) {
           for (const date of weeklyDates) {
             let dayOffset = 0;
@@ -190,16 +204,16 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         }
 
         // Build final entries
-        const data = (result.data || []).map((p: any) => {
+        const data = (result.data || []).map((p: RawLeaderboardEntry) => {
           const y = yesterMap[p.player_name] || { rating: p.rating, rank: p.rank };
           return {
             ...p,
             games_played: timeframe === 'week'
               ? gamesMap[p.player_name] || 0
-              : p.games_played,
+              : (p.games_played ?? 0),
             rating_delta: p.rating - y.rating,
             rank_delta: y.rank - p.rank,
-          };
+          } as LeaderboardEntry;
         });
         setLeaderboardData(data);
         setShowingAll(limit > 100);
