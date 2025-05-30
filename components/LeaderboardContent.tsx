@@ -91,7 +91,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     try {
       setLoadingMore(true);
       let data;
-      let error;
 
       // Compute current PT date at midnight
       const ptNow = DateTime.now().setZone('America/Los_Angeles').startOf('day');
@@ -107,7 +106,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           throw result.error;
         }
         data = result.data;
-        error = result.error;
         // Normalize games and zero out deltas
         const baseData = (data || []).map((p: RawLeaderboardEntry) => ({
           ...p,
@@ -126,18 +124,18 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         const weeklyDates: string[] = [];
 
         if (timeframe === 'day') {
-          currentStart = ptNow.toISODate();
-          prevStart = ptNow.minus({ days: 1 }).toISODate();
+          currentStart = ptNow.toISODate() || '';
+          prevStart = ptNow.minus({ days: 1 }).toISODate() || '';
         } else {
           // Weekly baseline: last Sunday
           const lastSunday = ptNow.minus({ days: ptNow.weekday % 7 + 1 });
-          const baselineDate = lastSunday.toISODate();
-          currentStart = ptNow.toISODate();
+          const baselineDate = lastSunday.toISODate() || '';
+          currentStart = ptNow.toISODate() || '';
           prevStart = baselineDate;
           // Build dates from Monday to today
           let iter = lastSunday.plus({ days: 1 });
           while (iter <= ptNow) {
-            weeklyDates.push(iter.toISODate());
+            weeklyDates.push(iter.toISODate() || '');
             iter = iter.plus({ days: 1 });
           }
         }
