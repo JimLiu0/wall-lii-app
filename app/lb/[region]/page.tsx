@@ -73,6 +73,12 @@ export default async function Page({ params, searchParams }: PageProps) {
               Rankings are fetched from the 
               <Link href={leaderboardLink} className="text-blue-500 hover:text-blue-600 ml-1" target='blank'>official leaderboards </Link>
               every 5 minutes. Wallii fetches the top 1000 players in each region.
+              <div className='mt-2'>All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
+              {region === 'cn' && (
+                <div className='mt-2'>
+                  Blizzard CN only updates their leaderboards every hour.
+                </div>
+              )}
             </p>
           </div>
           <LeaderboardContent region={region} searchParams={resolvedSearchParams} />

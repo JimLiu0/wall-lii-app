@@ -354,7 +354,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
               </div>
             )}
           </div>
-          <div className="text-xs text-gray-400 mt-2">All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
         </div>
 
         <div className="mb-6 relative">
