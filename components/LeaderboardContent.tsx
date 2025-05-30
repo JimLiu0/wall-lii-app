@@ -93,10 +93,13 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       let error;
 
       if (region === 'all') {
+        console.log('fetchLeaderboard: timeframe=', timeframe, 'region=', region, 'solo=', solo);
         const result = await supabase.rpc('get_global_leaderboard_with_duplicates', {
           game_mode_input: solo ? '0' : '1',
           limit_input: limit
         });
+        console.log("Result from Supabase:", result);
+        console.log("result.data length:", result.data?.length);
         data = result.data;
         error = result.error;
         if (error) throw error;
@@ -109,31 +112,33 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         }));
         // Compute sequential rank based on rating descending
         const rankedData = processRanks(baseData);
+        console.log("Mapped data sample:", rankedData.slice(0, 5));
+        console.log("Mapped data length:", rankedData.length);
         setLeaderboardData(rankedData);
         setShowingAll(limit > 100);
       } else {
         // Compute period and baseline based on timeframe
-        const nowPt = new Date(
-          new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })
-        );
+        const now = new Date();
+        const ptNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+        ptNow.setHours(0, 0, 0, 0); // Normalize to PT midnight
         let currentStart: string;
         let prevStart: string;
         const weeklyDates: string[] = [];
 
         if (timeframe === 'day') {
-          currentStart = nowPt.toISOString().split('T')[0];
-          const prev = new Date(nowPt);
+          currentStart = ptNow.toISOString().split('T')[0];
+          const prev = new Date(ptNow);
           prev.setDate(prev.getDate() - 1);
           prevStart = prev.toISOString().split('T')[0];
         } else {
           // Weekly baseline: last Sunday
-          const day = nowPt.getDay(); // 0 = Sunday
-          const lastSunday = new Date(nowPt);
+          const day = ptNow.getDay(); // 0 = Sunday
+          const lastSunday = new Date(ptNow);
           lastSunday.setDate(lastSunday.getDate() - day);
           const baselineDate = lastSunday.toISOString().split('T')[0];
 
           // Today's date
-          const todayDate = nowPt.toISOString().split('T')[0];
+          const todayDate = ptNow.toISOString().split('T')[0];
           currentStart = todayDate;
           prevStart = baselineDate;
 
@@ -146,6 +151,8 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           }
         }
 
+        console.log('fetchLeaderboard: timeframe=', timeframe, 'region=', region, 'solo=', solo);
+        console.log('fetchLeaderboard: fetching currentStart=', currentStart);
         // Fetch current period stats
         const result = await supabase
           .from('daily_leaderboard_stats')
@@ -155,10 +162,13 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           .eq('day_start', currentStart)
           .order('rank', { ascending: true })
           .limit(limit);
+        console.log("Result from Supabase:", result);
+        console.log("result.data length:", result.data?.length);
         if (result.error) throw result.error;
 
         // Paginated fetch of baseline stats on first day in weeklyDates (or prevStart for day)
         const baselineDate = timeframe === 'week' ? weeklyDates[0] : prevStart;
+        console.log('fetchLeaderboard: baselineDate=', baselineDate);
         let baselineResults: BaselineEntry[] = [];
         let baseOffset = 0;
         while (true) {
@@ -182,6 +192,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         // If weekly, fetch each day's games_played with pagination and sum
         const gamesMap: Record<string, number> = {};
         if (timeframe === 'week' && weeklyDates.length > 0) {
+          console.log('fetchLeaderboard: weeklyDates=', weeklyDates);
           for (const date of weeklyDates) {
             let dayOffset = 0;
             while (true) {
@@ -215,12 +226,14 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             rank_delta: y.rank - p.rank,
           } as LeaderboardEntry;
         });
+        console.log("Mapped data sample:", data.slice(0, 5));
+        console.log("Mapped data length:", data.length);
         setLeaderboardData(data);
         setShowingAll(limit > 100);
       }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      setLeaderboardData([]);
+      throw error;  // Rethrow to surface the stack trace in the console
     } finally {
       setLoading(false);
       setLoadingMore(false);
