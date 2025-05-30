@@ -101,25 +101,40 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       const ptNow = DateTime.now().setZone('America/Los_Angeles').startOf('day');
 
       if (region === 'all') {
-        // Removed debug logs
-        const result = await supabase.rpc('get_global_leaderboard_with_duplicates', {
-          game_mode_input: solo ? '0' : '1',
-          limit_input: limit
-        });
-        if (result.error) {
-          console.error('Error fetching global leaderboard:', result.error);
-          throw result.error;
+        const currentStart = ptNow.toISODate() || '';
+
+        // Fetch top N from each region and combine
+        const regionCodes = regions.map(r => r.toUpperCase());
+        let combinedData: RawLeaderboardEntry[] = [];
+
+        for (const reg of regionCodes) {
+          const { data: regData, error: regError } = await supabase
+            .from('daily_leaderboard_stats')
+            .select('player_name, rating, region, games_played')
+            .eq('day_start', currentStart)
+            .eq('game_mode', solo ? '0' : '1')
+            .eq('region', reg)
+            .order('rank', { ascending: true })
+            .limit(limit);
+
+          if (regError) {
+            console.error(`Error fetching leaderboard for region ${reg}:`, regError);
+            throw regError;
+          }
+
+          combinedData = combinedData.concat(regData || []);
         }
-        data = result.data;
-        // Normalize games and zero out deltas
-        const baseData = (data || []).map((p: RawLeaderboardEntry) => ({
+
+        // Normalize and zero out deltas
+        const baseData = combinedData.map((p: RawLeaderboardEntry) => ({
           ...p,
           games_played: p.games_played ?? 0,
           rating_delta: 0,
           rank_delta: 0,
         }));
-        // Compute sequential rank based on rating descending
-        const rankedData = processRanks(baseData);
+
+        // Compute global ranks and take top limit
+        const rankedData = processRanks(baseData).slice(0, limit);
         setLeaderboardData(rankedData);
         setShowingAll(limit > 100);
       } else {
@@ -150,9 +165,11 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           console.error('Error fetching leaderboard:', result.error);
           throw result.error;
         }
+        console.log(`Fetched ${result.data?.length ?? 0} current entries for ${currentStart}`, result.data);
 
         // Paginated fetch of baseline stats on prevStart
         const baselineDate = prevStart;
+        const baselinePageSize = 1000;
         let baselineResults: BaselineEntry[] = [];
         let baseOffset = 0;
         while (true) {
@@ -163,15 +180,16 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .eq('game_mode', solo ? '0' : '1')
             .eq('day_start', baselineDate)
             .order('rank', { ascending: true })
-            .range(baseOffset, baseOffset + limit - 1);
+            .range(baseOffset, baseOffset + baselinePageSize - 1);
           if (baseErr) {
             console.error('Error fetching baseline leaderboard:', baseErr);
             throw baseErr;
           }
           baselineResults = baselineResults.concat(baseChunk || []);
-          if (!baseChunk || baseChunk.length < limit) break;
-          baseOffset += limit;
+          if (!baseChunk || baseChunk.length < baselinePageSize) break;
+          baseOffset += baselinePageSize;
         }
+        console.log(`Fetched ${baselineResults.length} baseline entries for ${baselineDate}`);
         const yesterMap = Object.fromEntries(
           baselineResults.map(e => [e.player_name, e])
         );
@@ -179,6 +197,9 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         // Build final entries
         type RawLeaderboardEntryWithWeekly = RawLeaderboardEntry & { weekly_games_played?: number };
         const data = (result.data || []).map((p: RawLeaderboardEntryWithWeekly) => {
+          if (!yesterMap[p.player_name]) {
+            console.warn(`No baseline entry for ${p.player_name} on ${baselineDate}`);
+          }
           const y = yesterMap[p.player_name] || { rating: p.rating, rank: p.rank };
           return {
             ...p,
