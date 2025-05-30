@@ -121,29 +121,21 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         // Compute period and baseline based on timeframe in PT
         let currentStart: string;
         let prevStart: string;
-        const weeklyDates: string[] = [];
-
         if (timeframe === 'day') {
           currentStart = ptNow.toISODate() || '';
           prevStart = ptNow.minus({ days: 1 }).toISODate() || '';
         } else {
-          // Weekly baseline: last Sunday
-          const lastSunday = ptNow.minus({ days: ptNow.weekday % 7 + 1 });
-          const baselineDate = lastSunday.toISODate() || '';
+          // Weekly baseline: start of current week (Monday)
+          const weekStart = ptNow.startOf('week').minus({ days: 1 });
           currentStart = ptNow.toISODate() || '';
-          prevStart = baselineDate;
-          // Build dates from Monday to today
-          let iter = lastSunday.plus({ days: 1 });
-          while (iter <= ptNow) {
-            weeklyDates.push(iter.toISODate() || '');
-            iter = iter.plus({ days: 1 });
-          }
+          prevStart = weekStart.toISODate() || '';
         }
 
         // Fetch current period stats using currentStart in PT
+        // For week: also select weekly_games_played
         const result = await supabase
           .from('daily_leaderboard_stats')
-          .select('player_name, rating, rank, region, games_played')
+          .select('player_name, rating, rank, region, games_played, weekly_games_played')
           .eq('region', region.toUpperCase())
           .eq('game_mode', solo ? '0' : '1')
           .eq('day_start', currentStart)
@@ -154,8 +146,8 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           throw result.error;
         }
 
-        // Paginated fetch of baseline stats on first day in weeklyDates (or prevStart for day)
-        const baselineDate = timeframe === 'week' ? weeklyDates[0] : prevStart;
+        // Paginated fetch of baseline stats on prevStart
+        const baselineDate = prevStart;
         let baselineResults: BaselineEntry[] = [];
         let baseOffset = 0;
         while (true) {
@@ -179,40 +171,14 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           baselineResults.map(e => [e.player_name, e])
         );
 
-        // If weekly, fetch each day's games_played with pagination and sum, all in PT
-        const gamesMap: Record<string, number> = {};
-        if (timeframe === 'week' && weeklyDates.length > 0) {
-          for (const date of weeklyDates) {
-            let dayOffset = 0;
-            while (true) {
-              const { data: dayChunk, error: dayErr } = await supabase
-                .from('daily_leaderboard_stats')
-                .select('player_name, games_played')
-                .eq('region', region.toUpperCase())
-                .eq('game_mode', solo ? '0' : '1')
-                .eq('day_start', date)
-                .order('player_name')
-                .range(dayOffset, dayOffset + limit - 1);
-              if (dayErr) {
-                console.error('Error fetching weekly games_played:', dayErr);
-                throw dayErr;
-              }
-              (dayChunk || []).forEach(r => {
-                gamesMap[r.player_name] = (gamesMap[r.player_name] || 0) + r.games_played;
-              });
-              if (!dayChunk || dayChunk.length < limit) break;
-              dayOffset += limit;
-            }
-          }
-        }
-
         // Build final entries
-        const data = (result.data || []).map((p: RawLeaderboardEntry) => {
+        type RawLeaderboardEntryWithWeekly = RawLeaderboardEntry & { weekly_games_played?: number };
+        const data = (result.data || []).map((p: RawLeaderboardEntryWithWeekly) => {
           const y = yesterMap[p.player_name] || { rating: p.rating, rank: p.rank };
           return {
             ...p,
             games_played: timeframe === 'week'
-              ? gamesMap[p.player_name] || 0
+              ? (p.weekly_games_played ?? 0)
               : (p.games_played ?? 0),
             rating_delta: p.rating - y.rating,
             rank_delta: y.rank - p.rank,
