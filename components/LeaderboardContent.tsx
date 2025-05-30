@@ -70,6 +70,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [sortColumn, setSortColumn] = useState<'rank' | 'rank_delta' | 'rating' | 'rating_delta' | 'games_played'>('rank');
   const [sortAsc, setSortAsc] = useState(true);
   const [timeframe, setTimeframe] = useState<'day' | 'week'>('day');
+  const fullFetchedRef = useRef(false);
 
   // Save preferences to localStorage when they change
   useEffect(() => {
@@ -88,6 +89,10 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   }, [region, solo, searchParams, router]);
 
   const fetchLeaderboard = useCallback(async (limit: number = 100) => {
+    if (limit === 1000) {
+      if (fullFetchedRef.current) return;
+      fullFetchedRef.current = true;
+    }
     try {
       setLoadingMore(true);
       let data;
@@ -361,7 +366,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             type="text"
             placeholder="Search by player name or rank..."
             value={searchQuery}
-            onClick={() => fetchLeaderboard(1000)}
+            onClick={() => void fetchLeaderboard(1000)}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:border-blue-500 transition-colors"
           />
@@ -392,6 +397,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                     onClick={() => {
                       if (sortColumn === 'rank') setSortAsc(!sortAsc);
                       else { setSortColumn('rank'); setSortAsc(true); }
+                      void fetchLeaderboard(1000);
                     }}
                   >
                     Rank{sortColumn === 'rank' ? (sortAsc ? ' ▲' : ' ▼') : ''}
@@ -401,6 +407,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                     onClick={() => {
                       if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
                       else { setSortColumn('rank_delta'); setSortAsc(false); }
+                      void fetchLeaderboard(1000);
                     }}
                   >
                     ΔRank{sortColumn === 'rank_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
@@ -411,6 +418,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                     onClick={() => {
                       if (sortColumn === 'rating') setSortAsc(!sortAsc);
                       else { setSortColumn('rating'); setSortAsc(true); }
+                      void fetchLeaderboard(1000);
                     }}
                   >
                     Rating{sortColumn === 'rating' ? (sortAsc ? ' ▲' : ' ▼') : ''}
@@ -420,6 +428,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                     onClick={() => {
                       if (sortColumn === 'rating_delta') setSortAsc(!sortAsc);
                       else { setSortColumn('rating_delta'); setSortAsc(false); }
+                      void fetchLeaderboard(1000);
                     }}
                   >
                     ΔRating{sortColumn === 'rating_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
@@ -429,6 +438,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                     onClick={() => {
                       if (sortColumn === 'games_played') setSortAsc(!sortAsc);
                       else { setSortColumn('games_played'); setSortAsc(false); }
+                      void fetchLeaderboard(1000);
                     }}
                   >
                     Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}

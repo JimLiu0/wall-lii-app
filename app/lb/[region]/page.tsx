@@ -69,7 +69,7 @@ export default async function Page({ params, searchParams }: PageProps) {
           </div>
           <div className="bg-gray-900 rounded-lg p-4 mb-6">
             <h1 className="text-2xl font-semibold text-white mb-2 text-center">{regionName} Top 1000 Leaderboard</h1>
-            <p className="text-gray-400 text-sm text-center">
+            <div className="text-gray-400 text-sm text-center">
               Rankings are fetched from the 
               <Link href={leaderboardLink} className="text-blue-500 hover:text-blue-600 ml-1" target='blank'>official leaderboards </Link>
               every 5 minutes. Wallii fetches the top 1000 players in each region.
@@ -79,7 +79,7 @@ export default async function Page({ params, searchParams }: PageProps) {
                   Blizzard CN only updates their leaderboards every hour.
                 </div>
               )}
-            </p>
+            </div>
           </div>
           <LeaderboardContent region={region} searchParams={resolvedSearchParams} />
         </div>
