@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { DateTime } from 'luxon';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -92,17 +93,21 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       let data;
       let error;
 
+      // Compute current PT date at midnight
+      const ptNow = DateTime.now().setZone('America/Los_Angeles').startOf('day');
+
       if (region === 'all') {
-        console.log('fetchLeaderboard: timeframe=', timeframe, 'region=', region, 'solo=', solo);
+        // Removed debug logs
         const result = await supabase.rpc('get_global_leaderboard_with_duplicates', {
           game_mode_input: solo ? '0' : '1',
           limit_input: limit
         });
-        console.log("Result from Supabase:", result);
-        console.log("result.data length:", result.data?.length);
+        if (result.error) {
+          console.error('Error fetching global leaderboard:', result.error);
+          throw result.error;
+        }
         data = result.data;
         error = result.error;
-        if (error) throw error;
         // Normalize games and zero out deltas
         const baseData = (data || []).map((p: RawLeaderboardEntry) => ({
           ...p,
@@ -112,48 +117,32 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         }));
         // Compute sequential rank based on rating descending
         const rankedData = processRanks(baseData);
-        console.log("Mapped data sample:", rankedData.slice(0, 5));
-        console.log("Mapped data length:", rankedData.length);
         setLeaderboardData(rankedData);
         setShowingAll(limit > 100);
       } else {
-        // Compute period and baseline based on timeframe
-        const now = new Date();
-        const ptNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-        ptNow.setHours(0, 0, 0, 0); // Normalize to PT midnight
+        // Compute period and baseline based on timeframe in PT
         let currentStart: string;
         let prevStart: string;
         const weeklyDates: string[] = [];
 
         if (timeframe === 'day') {
-          currentStart = ptNow.toISOString().split('T')[0];
-          const prev = new Date(ptNow);
-          prev.setDate(prev.getDate() - 1);
-          prevStart = prev.toISOString().split('T')[0];
+          currentStart = ptNow.toISODate();
+          prevStart = ptNow.minus({ days: 1 }).toISODate();
         } else {
           // Weekly baseline: last Sunday
-          const day = ptNow.getDay(); // 0 = Sunday
-          const lastSunday = new Date(ptNow);
-          lastSunday.setDate(lastSunday.getDate() - day);
-          const baselineDate = lastSunday.toISOString().split('T')[0];
-
-          // Today's date
-          const todayDate = ptNow.toISOString().split('T')[0];
-          currentStart = todayDate;
+          const lastSunday = ptNow.minus({ days: ptNow.weekday % 7 + 1 });
+          const baselineDate = lastSunday.toISODate();
+          currentStart = ptNow.toISODate();
           prevStart = baselineDate;
-
-          // Build array of dates from Monday (baselineDate + 1) to todayDate
-          const iter = new Date(lastSunday);
-          iter.setDate(iter.getDate() + 1);
-          while (iter.toISOString().split('T')[0] <= todayDate) {
-            weeklyDates.push(iter.toISOString().split('T')[0]);
-            iter.setDate(iter.getDate() + 1);
+          // Build dates from Monday to today
+          let iter = lastSunday.plus({ days: 1 });
+          while (iter <= ptNow) {
+            weeklyDates.push(iter.toISODate());
+            iter = iter.plus({ days: 1 });
           }
         }
 
-        console.log('fetchLeaderboard: timeframe=', timeframe, 'region=', region, 'solo=', solo);
-        console.log('fetchLeaderboard: fetching currentStart=', currentStart);
-        // Fetch current period stats
+        // Fetch current period stats using currentStart in PT
         const result = await supabase
           .from('daily_leaderboard_stats')
           .select('player_name, rating, rank, region, games_played')
@@ -162,13 +151,13 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           .eq('day_start', currentStart)
           .order('rank', { ascending: true })
           .limit(limit);
-        console.log("Result from Supabase:", result);
-        console.log("result.data length:", result.data?.length);
-        if (result.error) throw result.error;
+        if (result.error) {
+          console.error('Error fetching leaderboard:', result.error);
+          throw result.error;
+        }
 
         // Paginated fetch of baseline stats on first day in weeklyDates (or prevStart for day)
         const baselineDate = timeframe === 'week' ? weeklyDates[0] : prevStart;
-        console.log('fetchLeaderboard: baselineDate=', baselineDate);
         let baselineResults: BaselineEntry[] = [];
         let baseOffset = 0;
         while (true) {
@@ -180,7 +169,10 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .eq('day_start', baselineDate)
             .order('rank', { ascending: true })
             .range(baseOffset, baseOffset + limit - 1);
-          if (baseErr) throw baseErr;
+          if (baseErr) {
+            console.error('Error fetching baseline leaderboard:', baseErr);
+            throw baseErr;
+          }
           baselineResults = baselineResults.concat(baseChunk || []);
           if (!baseChunk || baseChunk.length < limit) break;
           baseOffset += limit;
@@ -189,10 +181,9 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           baselineResults.map(e => [e.player_name, e])
         );
 
-        // If weekly, fetch each day's games_played with pagination and sum
+        // If weekly, fetch each day's games_played with pagination and sum, all in PT
         const gamesMap: Record<string, number> = {};
         if (timeframe === 'week' && weeklyDates.length > 0) {
-          console.log('fetchLeaderboard: weeklyDates=', weeklyDates);
           for (const date of weeklyDates) {
             let dayOffset = 0;
             while (true) {
@@ -204,7 +195,10 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                 .eq('day_start', date)
                 .order('player_name')
                 .range(dayOffset, dayOffset + limit - 1);
-              if (dayErr) throw dayErr;
+              if (dayErr) {
+                console.error('Error fetching weekly games_played:', dayErr);
+                throw dayErr;
+              }
               (dayChunk || []).forEach(r => {
                 gamesMap[r.player_name] = (gamesMap[r.player_name] || 0) + r.games_played;
               });
@@ -226,14 +220,12 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             rank_delta: y.rank - p.rank,
           } as LeaderboardEntry;
         });
-        console.log("Mapped data sample:", data.slice(0, 5));
-        console.log("Mapped data length:", data.length);
         setLeaderboardData(data);
         setShowingAll(limit > 100);
       }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
-      throw error;  // Rethrow to surface the stack trace in the console
+      throw error;
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -398,6 +390,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
               </div>
             )}
           </div>
+          <div className="text-xs text-gray-400 mt-2">All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
         </div>
 
         <div className="mb-6 relative">

@@ -88,7 +88,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     let filtered = playerData.data;
 
     if (view !== 'all') {
-      const now = DateTime.now();
+      const now = DateTime.now().setZone('America/Los_Angeles');
       let startTime: DateTime;
       let endTime: DateTime;
 
@@ -102,23 +102,23 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
 
       // Get data in current window
       filtered = playerData.data.filter((item) => {
-        const itemTime = DateTime.fromISO(item.snapshot_time);
+        const itemTime = DateTime.fromISO(item.snapshot_time).setZone('America/Los_Angeles');
         return itemTime >= startTime && itemTime <= endTime;
       });
 
       // Get all data before current window
       const previousWindowData = playerData.data
-        .filter(item => DateTime.fromISO(item.snapshot_time) < startTime)
-        .sort((a, b) => DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis());
+        .filter(item => DateTime.fromISO(item.snapshot_time).setZone('America/Los_Angeles') < startTime)
+        .sort((a, b) => DateTime.fromISO(b.snapshot_time).setZone('America/Los_Angeles').toMillis() - DateTime.fromISO(a.snapshot_time).setZone('America/Los_Angeles').toMillis());
 
       // If we have data in current window
       if (filtered.length > 0) {
 
         // Get all entries before the window
         const beforeWindow = previousWindowData.filter(item =>
-          DateTime.fromISO(item.snapshot_time) < startTime
+          DateTime.fromISO(item.snapshot_time).setZone('America/Los_Angeles') < startTime
         ).sort((a, b) =>
-          DateTime.fromISO(b.snapshot_time).toMillis() - DateTime.fromISO(a.snapshot_time).toMillis()
+          DateTime.fromISO(b.snapshot_time).setZone('America/Los_Angeles').toMillis() - DateTime.fromISO(a.snapshot_time).setZone('America/Los_Angeles').toMillis()
         );
 
         // If we have entries before the window, add the most recent one
@@ -248,7 +248,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
               </div>
             )}
           </div>
-
+          <div className="text-xs text-gray-400 mt-2">All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
           <div className="flex gap-8">
             <div>
               <div className="text-gray-400 text-sm">Rank</div>
