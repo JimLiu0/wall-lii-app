@@ -1,0 +1,64 @@
+# CursorRules
+
+## Intro
+
+I am building **Wall_Lii**, a companion platform for Hearthstone Battlegrounds. It tracks leaderboard performance and player stats, focused solely on data available from leaderboard snapshots: **rank**, **rating**, **region**, **games played**, and **deltas**. The project includes a frontend (React + Tailwind) and backend (Supabase).
+
+---
+
+## Wall_Lii MVP
+
+### Overview
+
+Wall_Lii helps users track their **rating**, **rank**, **region**, and **performance deltas** in Hearthstone Battlegrounds. The MVP includes:
+
+- Global and regional leaderboards (solo and duos)
+- Player profile pages with rating history and stat breakdowns
+- Sortable tables and charts comparing current data with previous timeframes (day/week)
+
+---
+
+## UI Description
+
+Wall_Lii Interface
+
+### Leaderboard Page
+
+- Region selector (NA, EU, Asia) and mode selector (Solo, Duos)
+- Sortable table showing: rank, player name, rating, deltas, games played
+- Pagination and timeframe filter (day/week)
+- Columns: current rank, rating, rating delta, rank delta, games played
+
+### Player Profile Page
+
+- Header with player name and region
+- Rating chart over time (daily or weekly granularity)
+- StatCards for:
+  - Rank delta
+  - Rating delta
+  - Games played
+- No session-level or in-game stat data — all information is derived from periodic leaderboard snapshots
+
+---
+
+## Technical
+
+### Overview
+
+Wall_Lii uses the following stack:
+
+- **Next.js (App Router)** — always ensure suggestions are for App Router, not Pages Router
+- **Supabase** — used for database, auth, and type-safe queries
+- **Tailwind CSS** — used for all styling; component extraction is encouraged over repeated utility classes
+- **TypeScript** — used throughout the frontend
+- **React** — components are prop-driven and modular
+- **ShadCN + Lucide** — selectively used for UI primitives
+- **Vercel** — deployment and serverless hosting
+- **OpenAI API** — used for news summarization and patch note parsing
+
+### Dev Practices
+
+- Folder structure follows the `app/` convention under `src/app`
+- Prompt-generated code should prefer modular components (e.g. `<StatCard>`, `<TabSwitcher>`, `<RegionSelector>`)
+- Avoid hardcoded Tailwind utility strings repeated in multiple files
+- Use `cn` from `lib/utils` for conditional classNames and dynamic styling
