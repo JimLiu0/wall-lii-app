@@ -7,6 +7,7 @@ import PlayerGraph from '@/components/PlayerGraph';
 import StatsSummary from '@/components/StatsSummary';
 import getPeriodLabel from '@/utils/getPeriodLabel';
 import { dedupData } from '@/utils/getDedupData';
+import ButtonGroup from './ButtonGroup';
 
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
@@ -269,60 +270,30 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
           <div className="w-full md:w-2/3">
             <div className="mb-6">
               <div className="flex flex-wrap gap-4 items-center mb-4">
-                <div className="flex gap-2">
-                  {showSoloButton && (
-                    <button
-                      onClick={() => gameMode !== 's' && updateGameMode('s')}
-                      className={`px-3 py-2 rounded transition-colors ${gameMode === 's'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                        }`}
-                    >
-                      Solo
-                    </button>
-                  )}
-                  {showDuoButton && (
-                    <button
-                      onClick={() => gameMode !== 'd' && updateGameMode('d')}
-                      className={`px-3 py-2 rounded transition-colors ${gameMode === 'd'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                        }`}
-                    >
-                      Duo
-                    </button>
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  {showRegionButtons.map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => region !== r && updateRegion(r)}
-                      className={`px-3 py-2 rounded transition-colors ${region.toLowerCase() === r.toLowerCase()
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                        }`}
-                    >
-                      {r.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
+                <ButtonGroup
+                  options={[
+                    ...(showSoloButton ? [{ label: 'Solo', value: 's' as const }] : []),
+                    ...(showDuoButton ? [{ label: 'Duo', value: 'd' as const }] : []),
+                  ]}
+                  selected={gameMode}
+                  onChange={updateGameMode}
+                />
+                <ButtonGroup
+                  options={showRegionButtons.map(r => ({ label: r.toUpperCase(), value: r }))}
+                  selected={region}
+                  onChange={updateRegion}
+                />
               </div>
 
               <div className="flex gap-2 mt-4">
-                {['all', 'week', 'day'].map((value) => (
-                  <button
-                    key={value}
-                    onClick={() => view !== value && updateView(value as TimeView)}
-                    className={`px-3 py-2 rounded transition-colors ${view === value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
-                  >
-                    {value === 'all' ? 'Season' : value.charAt(0).toUpperCase() + value.slice(1)}
-                  </button>
-                ))}
+                <ButtonGroup
+                  options={['all', 'week', 'day'].map(v => ({
+                    label: v === 'all' ? 'Season' : v.charAt(0).toUpperCase() + v.slice(1),
+                    value: v as TimeView
+                  }))}
+                  selected={view}
+                  onChange={updateView}
+                />
               </div>
 
               {view !== 'all' && (

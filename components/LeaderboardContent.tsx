@@ -5,6 +5,8 @@ import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
+import Button from './Button';
+import ButtonGroup from './ButtonGroup';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -333,103 +335,24 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="text-xl sm:text-2xl font-semibold mb-6 text-center">
           <div className="mt-4 flex justify-center items-center gap-4 flex-wrap">
-            <div className="flex bg-gray-800 rounded-full p-1">
-              <button
-                key="all"
-                onClick={() => handleRegionChange('all')}
-                className={`px-4 py-1.5 rounded-full transition ${
-                  !region || region === 'all'
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                ALL
-              </button>
-              {regions.map((r) => (
-                <button
-                  key={r}
-                  onClick={() => handleRegionChange(r)}
-                  className={`px-4 py-1.5 rounded-full transition ${
-                    region === r
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  {r.toUpperCase()}
-                </button>
-              ))}
-            </div>
+            <ButtonGroup
+              options={[{ label: 'ALL', value: 'all' }, ...regions.map(r => ({ label: r.toUpperCase(), value: r }))]}
+              selected={region || 'all'}
+              onChange={handleRegionChange}
+            />
 
-            <div className="flex bg-gray-800 rounded-full p-1">
-              <button
-                onClick={() => handleGameModeChange(true)}
-                className={`px-4 py-1.5 rounded-full transition ${
-                  solo
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Solo
-              </button>
-              <button
-                onClick={() => handleGameModeChange(false)}
-                className={`px-4 py-1.5 rounded-full transition ${
-                  !solo
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                Duo
-              </button>
-            </div>
-            {region === 'all' && (
-              <div className="flex bg-gray-800 rounded-full p-1 ml-4">
-                <button
-                  onClick={() => setTimeframe('day')}
-                  className={`px-4 py-1.5 rounded-full transition ${
-                    timeframe === 'day'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  Day
-                </button>
-                <button
-                  onClick={() => setTimeframe('week')}
-                  className={`px-4 py-1.5 rounded-full transition ${
-                    timeframe === 'week'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  Week
-                </button>
-              </div>
-            )}
-            {region !== 'all' && (
-              <div className="flex bg-gray-800 rounded-full p-1 ml-4">
-                <button
-                  onClick={() => setTimeframe('day')}
-                  className={`px-4 py-1.5 rounded-full transition ${
-                    timeframe === 'day'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  Day
-                </button>
-                <button
-                  onClick={() => setTimeframe('week')}
-                  className={`px-4 py-1.5 rounded-full transition ${
-                    timeframe === 'week'
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-300 hover:bg-gray-700'
-                  }`}
-                >
-                  Week
-                </button>
-              </div>
-            )}
+            <ButtonGroup
+              options={[{ label: 'Solo', value: true }, { label: 'Duo', value: false }]}
+              selected={solo}
+              onChange={handleGameModeChange}
+            />
+
+            <ButtonGroup
+              options={['day', 'week'].map(v => ({ label: v[0].toUpperCase() + v.slice(1), value: v }))}
+              selected={timeframe}
+              onChange={(val) => setTimeframe(val as 'day' | 'week')}
+              className="ml-4"
+            />
           </div>
         </div>
 
