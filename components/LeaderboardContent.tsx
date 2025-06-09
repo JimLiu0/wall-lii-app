@@ -5,7 +5,6 @@ import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
-import Button from './Button';
 import ButtonGroup from './ButtonGroup';
 
 interface LeaderboardEntry {
