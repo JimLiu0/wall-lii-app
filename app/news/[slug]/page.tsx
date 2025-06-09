@@ -21,17 +21,64 @@ interface NewsPost {
   source?: string;
 }
 
+function enhancePlaceholdersWithLinks(html: string): string {
+  const dom = new JSDOM(html);
+  const doc = dom.window.document;
+
+  doc.querySelectorAll(".card-grid-placeholder").forEach((placeholder) => {
+    const text = placeholder.textContent?.trim();
+    if (!text) return;
+
+    const link = doc.createElement("a");
+    const query = encodeURIComponent(text);
+    link.href = `https://hearthstone.wiki.gg/wiki/Special:Search?search=${query}&fulltext=1&ns0=1`;
+    link.textContent = text;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.className = "text-blue-400 hover:text-blue-500 underline";
+
+    placeholder.textContent = ""; // clear existing text
+    placeholder.appendChild(link);
+  });
+
+  return doc.body.innerHTML;
+}
+
+function normalizeEntityName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/gi, "");
+}
+
 function injectEntityImages(html: string, entityToImageMap: Map<string, string>): string {
   const dom = new JSDOM(html);
   const doc = dom.window.document;
 
+  // First handle card-grid-placeholders
+  const placeholders = Array.from(doc.querySelectorAll(".card-grid-placeholder")) as HTMLElement[];
+  for (const placeholder of placeholders) {
+    const entityName = placeholder.textContent?.trim();
+    if (!entityName) continue;
+
+    const imgSrc = entityToImageMap.get(normalizeEntityName(entityName));
+    if (!imgSrc) continue;
+
+    // Replace the placeholder with an img element
+    const img = doc.createElement("img");
+    img.src = imgSrc;
+    img.alt = entityName;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.className = "w-64 h-auto object-contain rounded";
+    placeholder.replaceWith(img);
+  }
+
+  // Then handle h3 elements as before
   const h3s = Array.from(doc.querySelectorAll("h3")) as HTMLHeadingElement[];
 
   for (const h3 of h3s) {
     const entityName = h3.textContent?.trim();
     if (!entityName) continue;
     
-    const imgSrc = entityToImageMap.get(entityName);
+    const imgSrc = entityToImageMap.get(normalizeEntityName(entityName));
     if (!imgSrc) continue;
 
     let foundImage = false;
@@ -62,6 +109,31 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
     newImgPara.appendChild(img);
 
     insertAfter.insertAdjacentElement("afterend", newImgPara);
+  }
+
+  // Finally, inject images after <li> items with <strong> entity references
+  const strongsInLi = Array.from(doc.querySelectorAll("li > strong")) as HTMLElement[];
+  for (const strong of strongsInLi) {
+    const entityName = strong.textContent?.replace(/[:：]$/, "").trim();
+    if (!entityName) continue;
+
+    const imgSrc = entityToImageMap.get(normalizeEntityName(entityName));
+    if (!imgSrc) continue;
+
+    const parentLi = strong.closest("li");
+    if (!parentLi) continue;
+
+    const hasImage = parentLi.querySelector(`img[alt="${entityName}"]`);
+    if (hasImage) continue;
+
+    const img = doc.createElement("img");
+    img.src = imgSrc;
+    img.alt = entityName;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.className = "ml-2";
+
+    parentLi.appendChild(img);
   }
 
   return doc.body.innerHTML;
@@ -156,13 +228,16 @@ export default async function NewsPostPage({
 
   const entityMap = new Map(
     entities.map((e) => [
-      e.entity_name.replace(/\s*\(.*?\)/g, "").trim(), // remove ( ... )
+      normalizeEntityName(e.entity_name.replace(/\s*\(.*?\)/g, "").trim()), // remove ( ... ) and normalize
       e.image_url,
     ]),
   );
 
   // Process the content to inject entity images
   const processedContent = injectEntityImages(post.content, entityMap);
+
+  // Add placeholder links
+  const processedContentWithLinks = enhancePlaceholdersWithLinks(processedContent);
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -255,8 +330,27 @@ export default async function NewsPostPage({
               [&>p>img]:w-48
               [&>p>img]:sm:w-64
               [&>p>img]:mx-auto
-              [&>p>img]:h-auto" 
-              dangerouslySetInnerHTML={{ __html: processedContent }}
+              [&>p>img]:h-auto
+              [&>.card-grid]:grid
+              [&>.card-grid]:gap-6
+              [&>.card-grid]:grid-cols-1
+              sm:[&>.card-grid]:grid-cols-2
+              md:[&>.card-grid]:grid-cols-3
+              [&_.card-grid-placeholder]:bg-gray-800
+              [&_.card-grid-placeholder]:text-white
+              [&_.card-grid-placeholder]:rounded
+              [&_.card-grid-placeholder]:p-4
+              [&_.card-grid-placeholder]:text-center
+              [&_.card-grid-placeholder]:font-semibold
+              [&_.card-grid-placeholder]:text-lg
+              [&_.card-grid-placeholder]:border
+              [&_.card-grid-placeholder]:border-gray-700
+              [&_.card-grid-placeholder]:shadow
+              [&_.card-grid-item:has(.card-grid-placeholder)]:flex
+              [&_.card-grid-item:has(.card-grid-placeholder)]:flex-col
+              [&_.card-grid-item:has(.card-grid-placeholder)]:items-center
+              [&_.card-grid-item:has(.card-grid-placeholder)]:justify-center" 
+              dangerouslySetInnerHTML={{ __html: processedContentWithLinks }}
             />
             
             {/* Footer metadata */}
