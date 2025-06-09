@@ -3,7 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import EntityHighlighterWrapper from "@/app/components/EntityHighlighterWrapper";
+import { JSDOM } from "jsdom";
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -19,6 +19,52 @@ interface NewsPost {
   updated_at?: string;
   type?: string;
   source?: string;
+}
+
+function injectEntityImages(html: string, entityToImageMap: Map<string, string>): string {
+  const dom = new JSDOM(html);
+  const doc = dom.window.document;
+
+  const h3s = Array.from(doc.querySelectorAll("h3")) as HTMLHeadingElement[];
+
+  for (const h3 of h3s) {
+    const entityName = h3.textContent?.trim();
+    if (!entityName) continue;
+    
+    const imgSrc = entityToImageMap.get(entityName);
+    if (!imgSrc) continue;
+
+    let foundImage = false;
+    let node = h3.nextElementSibling;
+    let insertAfter: HTMLElement = h3;
+
+    while (node && ["UL", "P"].includes(node.tagName)) {
+      if (
+        node.tagName === "P" &&
+        node.querySelector(`img[alt="${entityName}"]`)
+      ) {
+        foundImage = true;
+        break;
+      }
+      insertAfter = node as HTMLElement;
+      node = node.nextElementSibling;
+    }
+
+    if (foundImage) continue;
+
+    // Create new <p><img /></p>
+    const newImgPara = doc.createElement("p");
+    const img = doc.createElement("img");
+    img.src = imgSrc;
+    img.alt = entityName;
+    img.loading = "lazy";
+    img.decoding = "async";
+    newImgPara.appendChild(img);
+
+    insertAfter.insertAdjacentElement("afterend", newImgPara);
+  }
+
+  return doc.body.innerHTML;
 }
 
 async function getNewsPost(slug: string): Promise<NewsPost | null> {
@@ -115,6 +161,9 @@ export default async function NewsPostPage({
     ]),
   );
 
+  // Process the content to inject entity images
+  const processedContent = injectEntityImages(post.content, entityMap);
+
   return (
     <div className="min-h-screen bg-gray-950">
       <div className="container mx-auto px-4 py-8">
@@ -198,13 +247,18 @@ export default async function NewsPostPage({
             </div>
 
             {/* Content */}
-            <div className="prose prose-lg prose-invert max-w-none flex-image">
-              <EntityHighlighterWrapper
-                content={post.content}
-                entities={entityMap}
-              />
-            </div>
-
+            <div 
+              className="prose prose-lg prose-invert max-w-none flex-image
+              [&>p]:block
+              sm:[&>p:has(img)]:grid
+              sm:[&>p:has(img)]:grid-cols-2
+              [&>p>img]:w-48
+              [&>p>img]:sm:w-64
+              [&>p>img]:mx-auto
+              [&>p>img]:h-auto" 
+              dangerouslySetInnerHTML={{ __html: processedContent }}
+            />
+            
             {/* Footer metadata */}
             <div className="mt-12 pt-6 border-t border-gray-800 text-sm text-gray-400">
               Last updated:{" "}
