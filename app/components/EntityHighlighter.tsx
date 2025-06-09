@@ -90,5 +90,14 @@ export default function EntityHighlighter({
 
   const processedContent = parse(content, options);
 
-  return <div className="entity-highlighter">{processedContent}</div>;
+  return <div className="
+    entity-highlighter
+    [&>p]:block
+    sm:[&>p:has(img)]:grid
+    sm:[&>p:has(img)]:grid-cols-2
+    [&>p>img]:w-48
+    [&>p>img]:sm:w-64
+    [&>p>img]:mx-auto
+    [&>p>img]:h-auto
+    ">{processedContent}</div>;
 }
