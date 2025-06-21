@@ -1,13 +1,14 @@
 'use client';
-
+import SocialIndicators from './SocialIndicators';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState, useRef, useEffect } from 'react';
+import { useMemo } from 'react';
 import { DateTime } from 'luxon';
 import PlayerGraph from '@/components/PlayerGraph';
 import StatsSummary from '@/components/StatsSummary';
 import getPeriodLabel from '@/utils/getPeriodLabel';
 import { dedupData } from '@/utils/getDedupData';
 import ButtonGroup from './ButtonGroup';
+import PlayerHeader from './PlayerHeader';
 
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
@@ -28,62 +29,38 @@ interface PlayerData {
   };
 }
 
+interface ChannelEntry {
+  channel: string;
+  player: string;
+  live: boolean;
+  youtube?: string;
+}
+
 interface Props {
   player: string;
   region: string;
   view: string;
   offset: number;
   playerData: PlayerData;
+  channelData: ChannelEntry[];
 }
 
-export default function PlayerProfile({ player, region, view: viewParam, offset, playerData }: Props) {
+export default function PlayerProfile({ player, region, view: viewParam, offset, playerData, channelData }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [isEditing, setIsEditing] = useState(false);
-  const [inputValue, setInputValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-
-  // Handle escape key and click outside
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsEditing(false);
-        setInputValue('');
-      }
-    };
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (isEditing && formRef.current && !formRef.current.contains(e.target as Node)) {
-        setIsEditing(false);
-        setInputValue('');
-      }
-    };
-
-    if (isEditing) {
-      document.addEventListener('keydown', handleEscape);
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isEditing]);
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (inputValue.trim() && inputValue !== playerData.name) {
-      router.push(`/stats/${inputValue.toLowerCase().trim()}`);
-    } else {
-      setIsEditing(false);
-      setInputValue('');
-    }
-  };
 
   const view: TimeView = viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all';
   const offsetNum = offset || 0;
   const gameMode = searchParams.get('g') as GameMode || 's';
+
+  // Generate back button URL based on current region and game mode
+  const getBackUrl = () => {
+    const gameModeParam = gameMode === 'd' ? 'duo' : 'solo';
+    if (region === 'all') {
+      return `/lb/all?mode=${gameModeParam}`;
+    }
+    return `/lb/${region}?mode=${gameModeParam}`;
+  };
 
   let filteredData = useMemo(() => {
     let filtered = playerData.data;
@@ -197,58 +174,16 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     <div className="container mx-auto p-4">
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="flex flex-col gap-4 mb-8">
-          <div className="flex items-center gap-4">
-            {isEditing ? (
-              <div className="flex flex-col gap-2 w-full">
-                <form ref={formRef} onSubmit={handleSubmit} className="flex items-center gap-2">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="Search for a player"
-                    className="text-2xl sm:text-4xl font-bold bg-gray-800 text-white px-3 py-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
-                    autoFocus
-                  />
-                  <div className="flex gap-2 shrink-0">
-                    <button
-                      type="submit"
-                      className="p-2 hover:bg-gray-700 rounded transition-colors"
-                    >
-                      ✓
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsEditing(false);
-                        setInputValue('');
-                      }}
-                      className="p-2 hover:bg-gray-700 rounded transition-colors"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </form>
-              </div>
-            ) : (
-              <div
-                className="group flex items-center gap-2 cursor-pointer border border-gray-600 px-1 py-1"
-                onClick={() => {
-                  setIsEditing(true);
-                  setTimeout(() => inputRef.current?.focus(), 0);
-                }}
-              >
-                <h1 className="text-2xl sm:text-4xl font-bold text-white group-hover:text-gray-300 transition-colors break-all">
-                  {playerData.name}
-                </h1>
-                <div className="text-gray-400 flex items-center gap-1 shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-search" viewBox="0 0 16 16">
-                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0" />
-                  </svg>
-                </div>
-              </div>
-            )}
+          <PlayerHeader backUrl={getBackUrl()} />
+
+          {/* Player name with social indicators */}
+          <div className="flex items-center gap-2">
+            <SocialIndicators playerName={playerData.name} channelData={channelData} />
+            <h1 className="text-4xl sm:text-4xl font-bold text-white break-all">
+              {playerData.name}
+            </h1>
           </div>
+
           <div className="text-xs text-gray-400 mt-2">All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
           <div className="flex gap-8">
             <div>

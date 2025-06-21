@@ -4,6 +4,7 @@ import PlayerProfile from '@/components/PlayerProfile';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { PostgrestError } from '@supabase/supabase-js';
+import PlayerNotFound from '@/components/PlayerNotFound';
 
 interface PageParams {
   player: string;
@@ -19,6 +20,13 @@ interface SearchParams {
 interface PageProps {
   params: Promise<PageParams>;
   searchParams: Promise<SearchParams>;
+}
+
+interface ChannelEntry {
+  channel: string;
+  player: string;
+  live: boolean;
+  youtube?: string;
 }
 
 const regionNames = {
@@ -96,6 +104,23 @@ export default async function PlayerPage({
   const requestedOffset = parseInt(resolvedSearchParams.o || '0', 10);
   const requestedGameMode = resolvedSearchParams.g || 's';
 
+  // Fetch channel data for the player
+  let channelData: ChannelEntry[] = [];
+  try {
+    const { data: channelResult, error: channelError } = await supabase
+      .from('channels')
+      .select('channel, player, live, youtube')
+      .eq('player', player);
+    
+    if (channelError) {
+      console.error('Error fetching channel data:', channelError);
+    } else {
+      channelData = channelResult || [];
+    }
+  } catch (error) {
+    console.error('Error fetching channel data:', error);
+  }
+
   // Fetch all data for the player using pagination to avoid Supabase limits
   const pageSize = 1000;
   let allData: Array<{
@@ -129,15 +154,7 @@ export default async function PlayerPage({
   const data = allData;
 
   if (error || !data || data.length === 0) {
-    return (
-      <div className="container mx-auto p-4 max-w-4xl">
-        <div className="bg-gray-900 rounded-lg p-6">
-          <div className="text-2xl font-bold text-white mb-4 text-center">
-            No data found for {player}
-          </div>
-        </div>
-      </div>
-    );
+    return <PlayerNotFound player={player} />;
   }
 
   // Get unique regions and game modes for this player
@@ -297,6 +314,7 @@ export default async function PlayerPage({
         view={requestedView}
         offset={requestedOffset}
         playerData={playerData}
+        channelData={channelData}
       />
     </Suspense>
   );

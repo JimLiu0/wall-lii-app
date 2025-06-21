@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DateTime } from 'luxon';
 import ButtonGroup from './ButtonGroup';
+import SocialIndicators from './SocialIndicators';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -33,6 +34,13 @@ interface BaselineEntry {
   rank: number;
 }
 
+interface ChannelEntry {
+  channel: string;
+  player: string;
+  live: boolean;
+  youtube?: string;
+}
+
 interface Props {
   region: string;
   defaultSolo?: boolean;
@@ -54,6 +62,7 @@ function processRanks(data: LeaderboardEntry[]): LeaderboardEntry[] {
 export default function LeaderboardContent({ region, defaultSolo = true, searchParams }: Props) {
   const router = useRouter();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showingAll, setShowingAll] = useState(false);
@@ -75,6 +84,24 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [timeframe, setTimeframe] = useState<'day' | 'week'>('day');
   const fullFetchedRef = useRef(false);
 
+  // Fetch channel data
+  const fetchChannelData = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from('channels')
+        .select('channel, player, live, youtube');
+      
+      if (error) {
+        console.error('Error fetching channel data:', error);
+        return;
+      }
+      
+      setChannelData(data || []);
+    } catch (error) {
+      console.error('Error fetching channel data:', error);
+    }
+  }, []);
+
   // Save preferences to localStorage when they change
   useEffect(() => {
     localStorage.setItem('preferredRegion', region);
@@ -90,6 +117,11 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       router.replace(correctUrl);
     }
   }, [region, solo, searchParams, router]);
+
+  // Fetch channel data on component mount
+  useEffect(() => {
+    void fetchChannelData();
+  }, [fetchChannelData]);
 
   const fetchLeaderboard = useCallback(async (limit: number = 100) => {
     if (limit === 1000) {
@@ -460,6 +492,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       >
                         {entry.player_name}
                       </Link>
+                      <SocialIndicators playerName={entry.player_name} channelData={channelData} />
                       {region === 'all' && (
                         <span className="text-sm text-gray-400">({entry.region})</span>
                       )}
