@@ -98,7 +98,7 @@ export default async function PlayerPage({
     params,
     searchParams
   ]);
-  const player = decodeURIComponent(resolvedParams.player);
+  const player = decodeURIComponent(resolvedParams.player.toLowerCase());
   const requestedRegion = resolvedSearchParams.r || 'all';
   const requestedView = resolvedSearchParams.v;
   const requestedOffset = parseInt(resolvedSearchParams.o || '0', 10);

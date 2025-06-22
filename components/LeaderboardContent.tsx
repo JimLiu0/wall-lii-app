@@ -365,25 +365,24 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="text-xl sm:text-2xl font-semibold mb-6 text-center">
-          <div className="mt-4 flex justify-center items-center gap-4 flex-wrap">
+          <div className="mt-4 flex flex-col lg:flex-row lg:items-center lg:justify-center lg:gap-6 gap-4 items-center">
             <ButtonGroup
               options={[{ label: 'ALL', value: 'all' }, ...regions.map(r => ({ label: r.toUpperCase(), value: r }))]}
               selected={region || 'all'}
               onChange={handleRegionChange}
             />
-
-            <ButtonGroup
-              options={[{ label: 'Solo', value: true }, { label: 'Duo', value: false }]}
-              selected={solo}
-              onChange={handleGameModeChange}
-            />
-
-            <ButtonGroup
-              options={['day', 'week'].map(v => ({ label: v[0].toUpperCase() + v.slice(1), value: v }))}
-              selected={timeframe}
-              onChange={(val) => setTimeframe(val as 'day' | 'week')}
-              className="ml-4"
-            />
+            <div className="flex items-center gap-4">
+              <ButtonGroup
+                options={[{ label: 'Solo', value: true }, { label: 'Duo', value: false }]}
+                selected={solo}
+                onChange={handleGameModeChange}
+              />
+              <ButtonGroup
+                options={['day', 'week'].map(v => ({ label: v[0].toUpperCase() + v.slice(1), value: v }))}
+                selected={timeframe}
+                onChange={(val) => setTimeframe(val as 'day' | 'week')}
+              />
+            </div>
           </div>
         </div>
 
@@ -411,7 +410,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           <table className="w-full">
             <thead>
               <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
-                <th className="px-4 py-2 text-left cursor-pointer"
+                <th className="sticky left-0 bg-gray-900 z-10 px-4 py-2 text-left cursor-pointer"
                     onClick={() => {
                       if (sortColumn === 'rank') setSortAsc(!sortAsc);
                       else { setSortColumn('rank'); setSortAsc(true); }
@@ -469,7 +468,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                   key={entry.player_name + entry.region}
                   className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
                 >
-                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">
+                  <td className="sticky left-0 bg-gray-900 px-4 py-3 text-sm font-medium text-zinc-400">
                     #{entry.rank}
                   </td>
                   {region !== 'all' && (
