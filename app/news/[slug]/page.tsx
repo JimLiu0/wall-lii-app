@@ -45,7 +45,7 @@ function enhancePlaceholdersWithLinks(html: string): string {
 }
 
 function normalizeEntityName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9]/gi, "");
+  return name.toLowerCase().replace(/\s+/g, "").replace(/[^a-zA-Z0-9()]/gi, "");
 }
 
 function injectEntityImages(html: string, entityToImageMap: Map<string, string>): string {
@@ -226,12 +226,21 @@ export default async function NewsPostPage({
 
   const entities = await fetchAllEntities();
 
-  const entityMap = new Map(
-    entities.map((e) => [
-      normalizeEntityName(e.entity_name.replace(/\s*\(.*?\)/g, "").trim()), // remove ( ... ) and normalize
-      e.image_url,
-    ]),
-  );
+  const entityMap = new Map<string, string>();
+  for (const e of entities) {
+    const baseName = e.entity_name.trim();
+    const normalized = normalizeEntityName(baseName);
+    entityMap.set(normalized, e.image_url);
+
+    const isLesser = baseName.toLowerCase().includes("(lesser)");
+    const stripped = baseName.replace(/\s*\(.*?\)/g, "").trim();
+    const normalizedStripped = normalizeEntityName(stripped);
+
+    // Only set stripped -> lesser mapping if it's not already set or if this one is (lesser)
+    if (isLesser || !entityMap.has(normalizedStripped)) {
+      entityMap.set(normalizedStripped, e.image_url);
+    }
+  }
 
   // Process the content to inject entity images
   const processedContent = injectEntityImages(post.content, entityMap);
