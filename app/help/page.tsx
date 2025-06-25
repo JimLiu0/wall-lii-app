@@ -57,12 +57,12 @@ export default function HelpPage() {
         <Typography variant="body1" gutterBottom>
           These commands must be used in Twitch chat on{" "}
           <a
-            href="https://twitch.tv/WaLiiBot"
+            href="https://twitch.tv/WalliiBot"
             target="_blank"
             rel="noopener noreferrer"
             style={{ color: "#60A5FA" }}
           >
-            twitch.tv/WaLiiBot
+            twitch.tv/WalliiBot
           </a>:
         </Typography>
 
