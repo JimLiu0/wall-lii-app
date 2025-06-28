@@ -1,5 +1,5 @@
 'use client';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Label } from 'recharts';
 import RatingTooltip from './ToolTip';
 import { DateTime } from 'luxon';
 import { dedupData } from '@/utils/getDedupData';
@@ -40,35 +40,64 @@ export default function PlayerGraph({ data, playerName }: Props) {
 
   const uniqueDatesLength = (new Set(data.map((d) => new Date(d.snapshot_time).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric'}) ))).size;
 
-  const formattedData = data.map((d, i) => ({
-    date: uniqueDatesLength <= 8 ? new Date(d.snapshot_time).toLocaleDateString('en-US', {
-      weekday: 'short'
-    }) : new Date(d.snapshot_time).toLocaleDateString('en-US', {
-      month: 'numeric',
-      day: 'numeric',
-    }),
-    rating: d.rating,
-    snapshot_time: d.snapshot_time,
-    prevRating: i > 0 ? data[i - 1].rating : null,
-  }));
+  const formattedData = data.map((d, i) => {
+    const dt = new Date(d.snapshot_time);
+    let dateLabel: string;
+    if (uniqueDatesLength <= 2) {
+      // two days: show hour in 24-hour clock
+      dateLabel = dt.toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: '2-digit',
+      });
+    } else if (uniqueDatesLength <= 8) {
+      // up to a week: show weekday
+      dateLabel = dt.toLocaleDateString('en-US', {
+        weekday: 'short',
+      });
+    } else {
+      // full season: show month/day
+      dateLabel = dt.toLocaleDateString('en-US', {
+        month: 'numeric',
+        day: 'numeric',
+      });
+    }
+    return {
+      date: dateLabel,
+      rating: d.rating,
+      snapshot_time: d.snapshot_time,
+      prevRating: i > 0 ? data[i - 1].rating : null,
+    };
+  });
 
   const tickInterval = Math.ceil(formattedData.length / 10); // Show ~10 ticks max
 
+  // Determine X-axis label based on the span
+  const axisLabel = uniqueDatesLength <= 2
+    ? 'Time (HH)'
+    : ''
+
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={formattedData}>
+      <LineChart
+        data={formattedData}
+      >
         <XAxis
           dataKey="date"
           tickFormatter={(value, index) => {
             // Only show label if the previous one is different
-            if (uniqueDatesLength <= 8) {
-              return (index > 0) && formattedData[index - 1].date !== value ? value : '';
+            if (uniqueDatesLength <= 2) {
+              // two days: same dedupe logic as week
+              return (index > 0 && formattedData[index - 1].date !== value) ? value : '';
+            } else if (uniqueDatesLength <= 8) {
+              return (index > 0 && formattedData[index - 1].date !== value) ? value : '';
             } else {
-              return index === 0 || formattedData[index - 1].date !== value ? value : '';
+              return (index === 0 || formattedData[index - 1].date !== value) ? value : '';
             }
           }}
-          interval={uniqueDatesLength <= 8 ? 0 : tickInterval} // force it to attempt to render all ticks, then we hide dups
-        />
+          interval={uniqueDatesLength <= 8 ? 0 : tickInterval}
+        >
+          <Label value={axisLabel} position="insideBottom" dy={10} />
+        </XAxis>
         <YAxis
           domain={['dataMin', 'dataMax']}
           tickFormatter={(value) => Math.round(value).toString()}
