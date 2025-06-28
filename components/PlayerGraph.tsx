@@ -70,7 +70,7 @@ export default function PlayerGraph({ data, playerName }: Props) {
           interval={uniqueDatesLength <= 8 ? 0 : tickInterval} // force it to attempt to render all ticks, then we hide dups
         />
         <YAxis
-          domain={['dataMin - 50', 'dataMax + 50']}
+          domain={['dataMin', 'dataMax']}
           tickFormatter={(value) => Math.round(value).toString()}
         />
         <Tooltip content={<RatingTooltip />} />
