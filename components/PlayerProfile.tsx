@@ -202,7 +202,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-2/3">
+          <div className="w-full md:w-3/4">
             <div className="mb-6">
               <div className="flex flex-wrap gap-4 items-center mb-4">
                 <ButtonGroup
@@ -281,7 +281,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
           </div>
 
           {filteredData.length > 0 && (
-            <div className="w-full md:w-1/3 flex justify-center items-center">
+            <div className="w-full md:w-1/4 flex justify-center items-center">
               <StatsSummary data={filteredData} />
             </div>
           )}
