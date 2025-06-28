@@ -60,7 +60,6 @@ export default function PlayerGraph({ data, playerName }: Props) {
         dateLabel = dt.toLocaleTimeString('en-US', {
           hour12: false,
           hour: '2-digit',
-          minute: '2-digit',
         });
         break;
       case 'weekday':
@@ -87,7 +86,7 @@ export default function PlayerGraph({ data, playerName }: Props) {
 
   // Determine X-axis label based on the span
   const axisLabel = viewMode === 'hour'
-    ? 'Time (HH)'
+    ? 'Time(HH) in PT'
     : ''
 
   return (
@@ -106,7 +105,7 @@ export default function PlayerGraph({ data, playerName }: Props) {
               return (index === 0 || formattedData[index - 1].date !== value) ? value : '';
             }
           }}
-          interval={viewMode === 'weekday' ? 0 : tickInterval}
+          interval={viewMode === 'monthDay' ? tickInterval : 0}
         >
           <Label value={axisLabel} position="insideBottom" dy={10} />
         </XAxis>
