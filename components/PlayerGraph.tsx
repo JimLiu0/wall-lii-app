@@ -38,15 +38,22 @@ export default function PlayerGraph({ data, playerName }: Props) {
     );
   }
 
+  const uniqueDatesLength = (new Set(data.map((d) => new Date(d.snapshot_time).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric'}) ))).size;
+
   const formattedData = data.map((d, i) => ({
-    date: new Date(d.snapshot_time).toLocaleDateString('en-US', {
+    date: uniqueDatesLength <= 7 ? new Date(d.snapshot_time).toLocaleDateString('en-US', {
       weekday: 'short',
+      day: 'numeric',
+    }) : new Date(d.snapshot_time).toLocaleDateString('en-US', {
+      month: 'numeric',
       day: 'numeric',
     }),
     rating: d.rating,
     snapshot_time: d.snapshot_time,
     prevRating: i > 0 ? data[i - 1].rating : null,
   }));
+
+  const tickInterval = Math.ceil(formattedData.length / 10); // Show ~10 ticks max
 
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -57,7 +64,8 @@ export default function PlayerGraph({ data, playerName }: Props) {
             // Only show label if the previous one is different
             return index === 0 || formattedData[index - 1].date !== value ? value : '';
           }}
-          interval={0} // force it to attempt to render all ticks, then we hide dups
+          angle={-30}
+          interval={tickInterval} // force it to attempt to render all ticks, then we hide dups
         />
         <YAxis
           domain={['dataMin - 50', 'dataMax + 50']}
