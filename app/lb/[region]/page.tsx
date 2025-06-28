@@ -67,20 +67,6 @@ export default async function Page({ params, searchParams }: PageProps) {
               Latest Battlegrounds News
             </Link>
           </div>
-          <div className="bg-gray-900 rounded-lg p-4 mb-6">
-            <h1 className="text-2xl font-semibold text-white mb-2 text-center">{regionName} Top 1000 Leaderboard</h1>
-            <div className="text-gray-400 text-sm text-center">
-              Rankings are fetched from the 
-              <Link href={leaderboardLink} className="text-blue-500 hover:text-blue-600 ml-1" target='blank'>official leaderboards </Link>
-              every 5 minutes. Wallii fetches the top 1000 players in each region.
-              <div className='mt-2'>All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
-              {region === 'cn' && (
-                <div className='mt-2'>
-                  Blizzard CN only updates their leaderboards every hour.
-                </div>
-              )}
-            </div>
-          </div>
           <LeaderboardContent region={region} searchParams={resolvedSearchParams} />
         </div>
       </main>

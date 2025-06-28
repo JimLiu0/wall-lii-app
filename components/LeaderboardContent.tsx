@@ -83,6 +83,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [sortAsc, setSortAsc] = useState(true);
   const [timeframe, setTimeframe] = useState<'day' | 'week'>('day');
   const fullFetchedRef = useRef(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
 
   // Fetch channel data
   const fetchChannelData = useCallback(async () => {
@@ -351,6 +352,19 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     );
   }, [sortedData, searchQuery]);
 
+  // Info content for modal
+  const regionNames = {
+    na: 'Americas',
+    eu: 'Europe',
+    ap: 'Asia Pacific',
+    cn: 'China',
+    all: 'Global',
+  };
+  const leaderboardLink = region === 'cn'
+    ? 'https://hs.blizzard.cn/community/leaderboards/'
+    : `https://hearthstone.blizzard.com/en-us/community/leaderboards?region=${region}&leaderboardId=battlegrounds${searchParams?.mode === 'duo' ? 'duo' : ''}`;
+  const regionName = regionNames[region as keyof typeof regionNames];
+
   if (loading) {
     return (
       <div className="container mx-auto p-4">
@@ -364,6 +378,44 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="bg-gray-900 rounded-lg p-6">
+        {/* Info row */}
+        <div className="flex items-center justify-center mb-2 text-center">
+          <h1 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-2 flex-wrap justify-center">
+            {regionName} Leaderboard
+            <button
+              className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm px-2 py-1 rounded transition-colors border border-blue-400 hover:bg-blue-900"
+              onClick={() => setShowInfoModal(!showInfoModal)}
+              aria-label="Toggle leaderboard info"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+            </button>
+          </h1>
+        </div>
+        
+        {/* Expandable Info Section */}
+        {showInfoModal && (
+          <div className="mb-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+            <div className="space-y-2 text-sm text-gray-300">
+              <p>
+                Rankings are fetched from the{' '}
+                <a
+                  href={leaderboardLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline"
+                >
+                  official leaderboards
+                </a>{' '}
+                every 5 minutes. Wallii fetches the top 1000 players in each region.
+              </p>
+              <p>All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</p>
+              {region === 'cn' && (
+                <p>Blizzard CN only updates their leaderboards every hour.</p>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="text-xl sm:text-2xl font-semibold mb-6 text-center">
           <div className="mt-4 flex flex-col lg:flex-row lg:items-center lg:justify-center lg:gap-6 gap-4 items-center">
             <ButtonGroup
