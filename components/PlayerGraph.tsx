@@ -41,9 +41,8 @@ export default function PlayerGraph({ data, playerName }: Props) {
   const uniqueDatesLength = (new Set(data.map((d) => new Date(d.snapshot_time).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric'}) ))).size;
 
   const formattedData = data.map((d, i) => ({
-    date: uniqueDatesLength <= 7 ? new Date(d.snapshot_time).toLocaleDateString('en-US', {
-      weekday: 'short',
-      day: 'numeric',
+    date: uniqueDatesLength <= 8 ? new Date(d.snapshot_time).toLocaleDateString('en-US', {
+      weekday: 'short'
     }) : new Date(d.snapshot_time).toLocaleDateString('en-US', {
       month: 'numeric',
       day: 'numeric',
@@ -62,10 +61,13 @@ export default function PlayerGraph({ data, playerName }: Props) {
           dataKey="date"
           tickFormatter={(value, index) => {
             // Only show label if the previous one is different
-            return index === 0 || formattedData[index - 1].date !== value ? value : '';
+            if (uniqueDatesLength <= 8) {
+              return (index > 0) && formattedData[index - 1].date !== value ? value : '';
+            } else {
+              return index === 0 || formattedData[index - 1].date !== value ? value : '';
+            }
           }}
-          angle={-30}
-          interval={tickInterval} // force it to attempt to render all ticks, then we hide dups
+          interval={uniqueDatesLength <= 8 ? 0 : tickInterval} // force it to attempt to render all ticks, then we hide dups
         />
         <YAxis
           domain={['dataMin - 50', 'dataMax + 50']}
