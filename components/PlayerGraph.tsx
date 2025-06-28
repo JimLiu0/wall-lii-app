@@ -40,27 +40,41 @@ export default function PlayerGraph({ data, playerName }: Props) {
 
   const uniqueDatesLength = (new Set(data.map((d) => new Date(d.snapshot_time).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric'}) ))).size;
 
+  // Determine if the first two snapshots span different days
+  const twoDaysOnlyAndDifferent = uniqueDatesLength <= 2 && data.length >= 2 &&
+    new Date(data[0].snapshot_time).toDateString() !== new Date(data[1].snapshot_time).toDateString();
+
+  // Determine view mode for labeling
+  const viewMode: 'hour' | 'weekday' | 'monthDay' = twoDaysOnlyAndDifferent
+    ? 'hour'
+    : uniqueDatesLength <= 8
+      ? 'weekday'
+      : 'monthDay';
+
   const formattedData = data.map((d, i) => {
     const dt = new Date(d.snapshot_time);
     let dateLabel: string;
-    if (uniqueDatesLength <= 2) {
-      // two days: show hour in 24-hour clock
-      dateLabel = dt.toLocaleTimeString('en-US', {
-        hour12: false,
-        hour: '2-digit',
-      });
-    } else if (uniqueDatesLength <= 8) {
-      // up to a week: show weekday
-      dateLabel = dt.toLocaleDateString('en-US', {
-        weekday: 'short',
-      });
-    } else {
-      // full season: show month/day
-      dateLabel = dt.toLocaleDateString('en-US', {
-        month: 'numeric',
-        day: 'numeric',
-      });
+
+    switch (viewMode) {
+      case 'hour':
+        dateLabel = dt.toLocaleTimeString('en-US', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+        break;
+      case 'weekday':
+        dateLabel = dt.toLocaleDateString('en-US', {
+          weekday: 'short',
+        });
+        break;
+      default: // monthDay
+        dateLabel = dt.toLocaleDateString('en-US', {
+          month: 'numeric',
+          day: 'numeric',
+        });
     }
+
     return {
       date: dateLabel,
       rating: d.rating,
@@ -72,7 +86,7 @@ export default function PlayerGraph({ data, playerName }: Props) {
   const tickInterval = Math.ceil(formattedData.length / 10); // Show ~10 ticks max
 
   // Determine X-axis label based on the span
-  const axisLabel = uniqueDatesLength <= 2
+  const axisLabel = viewMode === 'hour'
     ? 'Time (HH)'
     : ''
 
@@ -84,17 +98,15 @@ export default function PlayerGraph({ data, playerName }: Props) {
         <XAxis
           dataKey="date"
           tickFormatter={(value, index) => {
-            // Only show label if the previous one is different
-            if (uniqueDatesLength <= 2) {
-              // two days: same dedupe logic as week
+            if (viewMode === 'hour') {
               return (index > 0 && formattedData[index - 1].date !== value) ? value : '';
-            } else if (uniqueDatesLength <= 8) {
+            } else if (viewMode === 'weekday') {
               return (index > 0 && formattedData[index - 1].date !== value) ? value : '';
             } else {
               return (index === 0 || formattedData[index - 1].date !== value) ? value : '';
             }
           }}
-          interval={uniqueDatesLength <= 8 ? 0 : tickInterval}
+          interval={viewMode === 'weekday' ? 0 : tickInterval}
         >
           <Label value={axisLabel} position="insideBottom" dy={10} />
         </XAxis>
