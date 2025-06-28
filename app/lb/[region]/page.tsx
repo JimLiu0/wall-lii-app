@@ -44,13 +44,10 @@ export default async function Page({ params, searchParams }: PageProps) {
   const resolvedSearchParams = await searchParams;
   const { region } = resolvedParams;
   const validRegions = ['all', 'na', 'eu', 'ap', 'cn'];
-  const leaderboardLink = region == 'cn' ? 'https://hs.blizzard.cn/community/leaderboards/' : `https://hearthstone.blizzard.com/en-us/community/leaderboards?region=${region}&leaderboardId=battlegrounds${resolvedSearchParams.mode == 'duo' ? 'duo' : ''}`
 
   if (!validRegions.includes(region)) {
     notFound();
   }
-
-  const regionName = regionNames[region as keyof typeof regionNames];
 
   return (
     <div className="min-h-screen">
