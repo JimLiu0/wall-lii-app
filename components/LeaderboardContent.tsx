@@ -441,7 +441,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         <div className="mb-6 relative">
           <input
             type="text"
-            placeholder="Search by player name or rank..."
+            placeholder="Filter by player name or rank..."
             value={searchQuery}
             onClick={() => void fetchLeaderboard(1000)}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -455,7 +455,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         </div>
 
         { filteredData.length === 0 && <div className="text-2xl font-bold text-white mb-4 text-center">
-          Error fetching leaderboard, try refreshing the page.
+          No results found.
         </div> }
 
         { filteredData.length > 0 && <div className="overflow-x-auto">

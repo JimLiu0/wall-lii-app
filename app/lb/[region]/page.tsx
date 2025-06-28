@@ -1,4 +1,5 @@
 import LeaderboardContent from '@/components/LeaderboardContent';
+import NewsBanner from '@/components/NewsBanner';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -53,17 +54,7 @@ export default async function Page({ params, searchParams }: PageProps) {
     <div className="min-h-screen">
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <div className="flex justify-center mb-4">
-            <Link
-              href="/news"
-              className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-full hover:bg-blue-700 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0l-3-3m3 3l-3 3" />
-              </svg>
-              Latest Battlegrounds News
-            </Link>
-          </div>
+          <NewsBanner />
           <LeaderboardContent region={region} searchParams={resolvedSearchParams} />
         </div>
       </main>
