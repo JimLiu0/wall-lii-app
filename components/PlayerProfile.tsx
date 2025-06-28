@@ -178,10 +178,10 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
 
           {/* Player name with social indicators */}
           <div className="flex items-center gap-2">
-            <SocialIndicators playerName={playerData.name} channelData={channelData} />
             <h1 className="text-4xl sm:text-4xl font-bold text-white break-all">
               {playerData.name}
             </h1>
+            <SocialIndicators playerName={playerData.name} channelData={channelData} />
           </div>
 
           <div className="text-xs text-gray-400 mt-2">All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
