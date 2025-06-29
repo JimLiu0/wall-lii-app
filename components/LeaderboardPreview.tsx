@@ -41,33 +41,33 @@ interface ChannelEntry {
 }
 
 export default function LeaderboardPreview() {
-  const [selectedRegion, setSelectedRegion] = useState(() => {
-    // Initialize from localStorage or default to 'na'
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('preferredRegion') || 'na';
-    }
-    return 'na';
-  });
-  const [selectedMode, setSelectedMode] = useState<'0' | '1'>(() => {
-    // Initialize from localStorage or default to '0' (solo)
-    if (typeof window !== 'undefined') {
-      const storedGameMode = localStorage.getItem('preferredGameMode');
-      return storedGameMode === 'duo' ? '1' : '0';
-    }
-    return '0';
-  });
+  const [mounted, setMounted] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState('na');
+  const [selectedMode, setSelectedMode] = useState<'0' | '1'>('0');
   const [data, setData] = useState<LeaderboardEntry[]>([]);
   const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Initialize from localStorage after mounting to prevent hydration mismatch
+  useEffect(() => {
+    const storedRegion = localStorage.getItem('preferredRegion') || 'na';
+    const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
+    
+    setSelectedRegion(storedRegion);
+    setSelectedMode(storedGameMode === 'duo' ? '1' : '0');
+    setMounted(true);
+  }, []);
+
   // Save preferences to localStorage when they change
   useEffect(() => {
+    if (!mounted) return; // Don't save until after initial load
+    
     localStorage.setItem('preferredRegion', selectedRegion);
     localStorage.setItem('preferredGameMode', selectedMode === '1' ? 'duo' : 'solo');
     
     // Dispatch custom event to notify other components in the same tab
     window.dispatchEvent(new Event('localStorageChange'));
-  }, [selectedRegion, selectedMode]);
+  }, [selectedRegion, selectedMode, mounted]);
 
   useEffect(() => {
     async function fetchData() {
