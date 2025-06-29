@@ -74,7 +74,7 @@ export default function LeaderboardPreview() {
       setLoading(true);
       const ptNow = DateTime.now().setZone('America/Los_Angeles').startOf('day');
       const today = ptNow.toISODate() || '';
-      // Get top 5 for region/mode
+      // Get top 10 for region/mode
       const { data: lb } = await supabase
         .from('daily_leaderboard_stats')
         .select('player_name, rating, rank, region, game_mode')
@@ -82,7 +82,7 @@ export default function LeaderboardPreview() {
         .eq('game_mode', selectedMode)
         .eq('day_start', today)
         .order('rank', { ascending: true })
-        .limit(5);
+        .limit(10);
       // Get channel data for these players
       const playerNames = lb?.map((p) => p.player_name) || [];
       const { data: channels } = await supabase
