@@ -2,6 +2,7 @@ import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import SocialIndicators from './SocialIndicators';
 import { DateTime } from 'luxon';
+import { unstable_noStore } from 'next/cache';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -39,6 +40,9 @@ function getWallLiiLeaderboardLink(region: string, mode: string) {
 }
 
 export default async function LiveStreamsTable() {
+  // Prevent caching for live data
+  unstable_noStore();
+  
   // Fetch all live channels
   const { data: channelData, error: channelError } = await supabase
     .from('channels')
