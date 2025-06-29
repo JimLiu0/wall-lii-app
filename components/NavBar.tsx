@@ -92,7 +92,7 @@ export default function NavBar() {
             </Link>
           </div>
           
-          <div className="hidden lg:block font-bold max-w-4xl text-center text-2xl text-zinc-300 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full pointer-events-none">
+          <div className="hidden xl:block absolute left-1/2 -translate-x-1/2 font-bold text-center text-2xl text-zinc-300 whitespace-nowrap">
             The Hearthstone Battlegrounds Hub
           </div>
 
