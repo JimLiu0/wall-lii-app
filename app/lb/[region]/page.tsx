@@ -1,7 +1,6 @@
 import LeaderboardContent from '@/components/LeaderboardContent';
 import NewsBanner from '@/components/NewsBanner';
 import { Metadata } from 'next';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 interface PageParams {

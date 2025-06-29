@@ -15,14 +15,29 @@ const regions = [
 ];
 
 const gameModes = [
-  { label: 'Solo', value: '0' as '0' },
-  { label: 'Duo', value: '1' as '1' },
+  { label: 'Solo', value: '0' as const },
+  { label: 'Duo', value: '1' as const },
 ];
 
 function getWallLiiLeaderboardLink(region: string, mode: string) {
   const regionLower = region.toLowerCase();
   const modeStr = mode === '1' ? 'duo' : 'solo';
   return `/lb/${regionLower}?mode=${modeStr}`;
+}
+
+interface LeaderboardEntry {
+  player_name: string;
+  rating: number;
+  rank: number;
+  region: string;
+  game_mode: string;
+}
+
+interface ChannelEntry {
+  channel: string;
+  player: string;
+  live: boolean;
+  youtube?: string;
 }
 
 export default function LeaderboardPreview() {
@@ -41,8 +56,8 @@ export default function LeaderboardPreview() {
     }
     return '0';
   });
-  const [data, setData] = useState<any[]>([]);
-  const [channelData, setChannelData] = useState<any[]>([]);
+  const [data, setData] = useState<LeaderboardEntry[]>([]);
+  const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Save preferences to localStorage when they change
