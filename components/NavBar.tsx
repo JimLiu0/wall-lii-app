@@ -4,7 +4,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { Heart, Newspaper, HelpCircle, Trophy } from 'lucide-react';
-import * as Icons from 'lucide-react';
 
 export default function NavBar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -22,14 +21,36 @@ export default function NavBar() {
 
   useEffect(() => {
     setLeaderboardUrl(getLeaderboardUrlFromStorage());
+    
+    // Listen for storage events from other tabs/windows
     function handleStorage(e: StorageEvent) {
       if (e.key === 'preferredRegion' || e.key === 'preferredGameMode') {
         setLeaderboardUrl(getLeaderboardUrlFromStorage());
       }
     }
+    
+    // Listen for custom events from same tab
+    function handleLocalStorageChange() {
+      setLeaderboardUrl(getLeaderboardUrlFromStorage());
+    }
+    
+    // Poll for localStorage changes (fallback for same-tab updates)
+    const interval = setInterval(() => {
+      const currentUrl = getLeaderboardUrlFromStorage();
+      if (currentUrl !== leaderboardUrl) {
+        setLeaderboardUrl(currentUrl);
+      }
+    }, 100);
+    
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+    window.addEventListener('localStorageChange', handleLocalStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('localStorageChange', handleLocalStorageChange);
+      clearInterval(interval);
+    };
+  }, [leaderboardUrl]);
 
   // Click outside to close support/help dropdowns
   useEffect(() => {

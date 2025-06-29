@@ -26,11 +26,33 @@ function getWallLiiLeaderboardLink(region: string, mode: string) {
 }
 
 export default function LeaderboardPreview() {
-  const [selectedRegion, setSelectedRegion] = useState('na');
-  const [selectedMode, setSelectedMode] = useState<'0' | '1'>('0');
+  const [selectedRegion, setSelectedRegion] = useState(() => {
+    // Initialize from localStorage or default to 'na'
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('preferredRegion') || 'na';
+    }
+    return 'na';
+  });
+  const [selectedMode, setSelectedMode] = useState<'0' | '1'>(() => {
+    // Initialize from localStorage or default to '0' (solo)
+    if (typeof window !== 'undefined') {
+      const storedGameMode = localStorage.getItem('preferredGameMode');
+      return storedGameMode === 'duo' ? '1' : '0';
+    }
+    return '0';
+  });
   const [data, setData] = useState<any[]>([]);
   const [channelData, setChannelData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Save preferences to localStorage when they change
+  useEffect(() => {
+    localStorage.setItem('preferredRegion', selectedRegion);
+    localStorage.setItem('preferredGameMode', selectedMode === '1' ? 'duo' : 'solo');
+    
+    // Dispatch custom event to notify other components in the same tab
+    window.dispatchEvent(new Event('localStorageChange'));
+  }, [selectedRegion, selectedMode]);
 
   useEffect(() => {
     async function fetchData() {

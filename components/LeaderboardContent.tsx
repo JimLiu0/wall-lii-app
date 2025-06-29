@@ -107,6 +107,9 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   useEffect(() => {
     localStorage.setItem('preferredRegion', region);
     localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
+    
+    // Dispatch custom event to notify other components in the same tab
+    window.dispatchEvent(new Event('localStorageChange'));
   }, [region, solo]);
 
   useEffect(() => {
