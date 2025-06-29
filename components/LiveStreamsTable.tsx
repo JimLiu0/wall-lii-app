@@ -23,16 +23,6 @@ function getModeLabel(mode: string) {
   return mode === '1' ? 'Duo' : 'Solo';
 }
 
-function getRegionLabel(region: string) {
-  switch (region.toLowerCase()) {
-    case 'na': return 'Americas';
-    case 'eu': return 'Europe';
-    case 'ap': return 'Asia Pacific';
-    case 'cn': return 'China';
-    default: return region;
-  }
-}
-
 function getWallLiiLeaderboardLink(region: string, mode: string) {
   const regionLower = region.toLowerCase();
   const modeStr = mode === '1' ? 'duo' : 'solo';
@@ -94,7 +84,7 @@ export default async function LiveStreamsTable() {
   bestEntryByPlayer.sort((a, b) => a.rank - b.rank);
 
   return (
-    <div className="bg-gray-900 rounded-lg p-6 mt-8">
+    <div className="bg-gray-900 rounded-lg p-6 mt-6">
       <h2 className="text-center text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-red-400 to-yellow-400 drop-shadow-sm mb-6">
         Top Ranked Livestreams
       </h2>
@@ -132,7 +122,7 @@ export default async function LiveStreamsTable() {
                     href={getWallLiiLeaderboardLink(entry.region, entry.game_mode)}
                     className="text-blue-400 hover:underline"
                   >
-                    {getRegionLabel(entry.region)}
+                    {entry.region.toUpperCase()}
                   </Link>
                 </td>
               </tr>
