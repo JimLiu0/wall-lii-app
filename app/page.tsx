@@ -1,22 +1,27 @@
-import { Suspense } from 'react';
-import { Metadata } from 'next';
-import HomeContent from '@/components/HomeContent';
+import NewsBanner from '@/components/NewsBanner';
+import LiveStreamsTable from '@/components/LiveStreamsTable';
+import LeaderboardPreview from '@/components/LeaderboardPreview';
 
-export const metadata: Metadata = {
+export const metadata = {
   title: 'Hearthstone Battlegrounds Leaderboard | Wallii',
   description: 'View hearthstone battlegrounds leaderboard rankings for all regions in Wallii',
 };
 
-export default async function HomePage() {
+export default function HomePage() {
   return (
-    <Suspense fallback={
-      <div className="container mx-auto p-4">
-        <div className="bg-gray-900 rounded-lg p-6">
-          <div className="text-2xl font-bold text-white mb-4 text-center">Loading...</div>
+    <div className="container mx-auto p-4 max-w-7xl">
+      <NewsBanner />
+      <div className="bg-zinc-800 px-4 py-3 rounded-lg text-center text-zinc-300 mb-4">
+        Track Battlegrounds leaderboards, stats, livestreams, and stay updated with the latest patch notes.
+      </div>
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="lg:w-1/2">
+          <LiveStreamsTable />
+        </div>
+        <div className="lg:w-1/2">
+          <LeaderboardPreview />
         </div>
       </div>
-    }>
-      <HomeContent />
-    </Suspense>
+    </div>
   );
 }
