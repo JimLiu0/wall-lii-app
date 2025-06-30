@@ -63,7 +63,7 @@ export default function PlayerSearch() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    const trimmedValue = inputValue.trim();
+    const trimmedValue = inputValue.trim().toLowerCase();
     
     if (!trimmedValue) {
       setIsEditing(false);
