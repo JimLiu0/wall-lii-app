@@ -1,8 +1,8 @@
 import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import SocialIndicators from './SocialIndicators';
-import { DateTime } from 'luxon';
 import { unstable_noStore } from 'next/cache';
+import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -46,9 +46,8 @@ export default async function LiveStreamsTable() {
   // Get all live player names
   const livePlayers = channelData.map((c: ChannelEntry) => c.player);
 
-  // Get today's date in PT
-  const ptNow = DateTime.now().setZone('America/Los_Angeles').startOf('day');
-  const today = ptNow.toISODate() || '';
+  // Get the appropriate date for leaderboard queries (with fallback)
+  const { date: today } = await getCurrentLeaderboardDate();
 
   // Fetch today's leaderboard entries for all live players
   const { data: leaderboardData, error: lbError } = await supabase

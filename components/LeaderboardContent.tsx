@@ -4,9 +4,10 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { DateTime } from 'luxon';
+
 import ButtonGroup from './ButtonGroup';
 import SocialIndicators from './SocialIndicators';
+import { getLeaderboardDateRange } from '@/utils/dateUtils';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -135,22 +136,20 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     let data;
     try {
       setLoadingMore(true);
-      // Compute PT date and inputs
-      const ptNow = DateTime.now().setZone('America/Los_Angeles').startOf('day');
-      const dayStart = ptNow.toISODate() || '';
+      
+      // Get the appropriate date range for leaderboard queries (with fallback)
+      const { currentStart, prevStart, isUsingFallback } = await getLeaderboardDateRange(timeframe);
+      
+      // Simple console log for fallback case
+      if (isUsingFallback) {
+        console.log('Using fallback data (yesterday) for leaderboard - today\'s data not yet available');
+      }
+      
       const mode = solo ? '0' : '1';
 
       let entries: LeaderboardEntry[] = [];
 
       if (region === 'all') {
-        // Determine previous period start
-        let prevStart: string;
-        if (timeframe === 'day') {
-          prevStart = ptNow.minus({ days: 1 }).toISODate() || '';
-        } else {
-          const weekStart = ptNow.startOf('week').minus({ days: 1 });
-          prevStart = weekStart.toISODate() || '';
-        }
         // Fetch top N per region, with rating_delta
         const regionsUpper = regions.map(r => r.toUpperCase());
         let combinedRaw: RawLeaderboardEntry[] = [];
@@ -159,7 +158,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           const { data: currentChunk, error: currErr } = await supabase
             .from('daily_leaderboard_stats')
             .select('player_name, rating, region, games_played, weekly_games_played')
-            .eq('day_start', dayStart)
+            .eq('day_start', currentStart)
             .eq('game_mode', mode)
             .eq('region', reg)
             .limit(limit)
@@ -202,21 +201,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         }));
         entries = processRanks(mapped).slice(0, limit);
       } else {
-        // Single-region logic (unchanged)
-        // ... keep existing code for fetching current and baseline stats ...
-        // Compute period and baseline based on timeframe in PT
-        let currentStart: string;
-        let prevStart: string;
-        if (timeframe === 'day') {
-          currentStart = ptNow.toISODate() || '';
-          prevStart = ptNow.minus({ days: 1 }).toISODate() || '';
-        } else {
-          // Weekly baseline: start of current week (Monday)
-          const weekStart = ptNow.startOf('week').minus({ days: 1 });
-          currentStart = ptNow.toISODate() || '';
-          prevStart = weekStart.toISODate() || '';
-        }
-
+        // Single-region logic
         // Fetch current period stats using currentStart in PT
         // For week: also select weekly_games_played
         const result = await supabase

@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import SocialIndicators from './SocialIndicators';
-import { DateTime } from 'luxon';
 import ButtonGroup from './ButtonGroup';
+import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
 
 const regions = [
   { code: 'na', label: 'NA' },
@@ -72,8 +72,10 @@ export default function LeaderboardPreview() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const ptNow = DateTime.now().setZone('America/Los_Angeles').startOf('day');
-      const today = ptNow.toISODate() || '';
+      
+      // Get the appropriate date for leaderboard queries (with fallback)
+      const { date: today } = await getCurrentLeaderboardDate();
+      
       // Get top 10 for region/mode
       const { data: lb } = await supabase
         .from('daily_leaderboard_stats')
@@ -83,12 +85,14 @@ export default function LeaderboardPreview() {
         .eq('day_start', today)
         .order('rank', { ascending: true })
         .limit(10);
+      
       // Get channel data for these players
       const playerNames = lb?.map((p) => p.player_name) || [];
       const { data: channels } = await supabase
         .from('channels')
         .select('channel, player, live, youtube')
         .in('player', playerNames);
+      
       setData(lb || []);
       setChannelData(channels || []);
       setLoading(false);
