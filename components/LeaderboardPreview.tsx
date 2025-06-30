@@ -135,7 +135,6 @@ export default function LeaderboardPreview() {
               <th className="px-4 py-2 text-left">Rank</th>
               <th className="px-4 py-2 text-left">Player</th>
               <th className="px-4 py-2 text-left">Rating</th>
-              <th className="px-4 py-2 text-left">Mode</th>
             </tr>
           </thead>
           <tbody>
@@ -160,7 +159,6 @@ export default function LeaderboardPreview() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-left text-lg font-semibold text-white">{entry.rating}</td>
-                  <td className="px-4 py-3 text-left text-white">{entry.game_mode === '1' ? 'Duo' : 'Solo'}</td>
                 </tr>
               ))
             )}
