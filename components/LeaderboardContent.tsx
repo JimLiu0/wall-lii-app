@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import ButtonGroup from './ButtonGroup';
 import SocialIndicators from './SocialIndicators';
 import { getLeaderboardDateRange } from '@/utils/dateUtils';
+import { Info } from 'lucide-react';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -353,16 +354,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     : `https://hearthstone.blizzard.com/en-us/community/leaderboards?region=${region}&leaderboardId=battlegrounds${searchParams?.mode === 'duo' ? 'duo' : ''}`;
   const regionName = regionNames[region as keyof typeof regionNames];
 
-  if (loading) {
-    return (
-      <div className="container mx-auto p-4">
-        <div className="bg-gray-900 rounded-lg p-6">
-          <div className="text-2xl font-bold text-white mb-4 text-center">Loading...</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto p-4 max-w-4xl">
       <div className="bg-gray-900 rounded-lg p-6">
@@ -370,13 +361,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         <div className="flex items-center justify-center mb-2 text-center">
           <h1 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-2 flex-wrap justify-center">
             {regionName} Leaderboard
-            <button
-              className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm px-2 py-1 rounded transition-colors border border-blue-400 hover:bg-blue-900"
-              onClick={() => setShowInfoModal(!showInfoModal)}
-              aria-label="Toggle leaderboard info"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none"/><path d="M12 16v-4M12 8h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-            </button>
+            <Info onClick={() => setShowInfoModal(!showInfoModal)} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
           </h1>
         </div>
         
@@ -442,7 +427,11 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           )}
         </div>
 
-        { filteredData.length === 0 && <div className="text-2xl font-bold text-white mb-4 text-center">
+        { loading && <div className="text-2xl font-bold text-white mb-4 text-center">
+          Loading...
+        </div> }
+
+        { !loading && filteredData.length === 0 && <div className="text-2xl font-bold text-white mb-4 text-center">
           No results found.
         </div> }
 

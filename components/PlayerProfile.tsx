@@ -1,7 +1,7 @@
 'use client';
 import SocialIndicators from './SocialIndicators';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { DateTime } from 'luxon';
 import PlayerGraph from '@/components/PlayerGraph';
 import StatsSummary from '@/components/StatsSummary';
@@ -9,7 +9,7 @@ import getPeriodLabel from '@/utils/getPeriodLabel';
 import { dedupData } from '@/utils/getDedupData';
 import ButtonGroup from './ButtonGroup';
 import PlayerHeader from './PlayerHeader';
-
+import { Info } from 'lucide-react';
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
 
@@ -48,6 +48,7 @@ interface Props {
 export default function PlayerProfile({ player, region, view: viewParam, offset, playerData, channelData }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [showTimeModal, setShowTimeModal] = useState(false);
 
   const view: TimeView = viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all';
   const offsetNum = offset || 0;
@@ -183,8 +184,6 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
             </h1>
             <SocialIndicators playerName={playerData.name} channelData={channelData} />
           </div>
-
-          <div className="text-xs text-gray-400 mt-2">All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
           <div className="flex gap-8">
             <div>
               <div className="text-gray-400 text-sm">Rank</div>
@@ -220,7 +219,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                 />
               </div>
 
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-2 mt-4 items-center">
                 <ButtonGroup
                   options={['all', 'week', 'day'].map(v => ({
                     label: v === 'all' ? 'Season' : v.charAt(0).toUpperCase() + v.slice(1),
@@ -229,6 +228,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   selected={view}
                   onChange={updateView}
                 />
+                <Info onClick={() => setShowTimeModal(!showTimeModal)} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
               </div>
 
               {view !== 'all' && (
@@ -260,6 +260,10 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     ➡️
                   </button>
                 </div>
+              )}
+
+              {showTimeModal && (
+                <div className="text-xs text-gray-400 mt-2">All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
               )}
 
               <div className="text-xl font-bold text-white mt-4">
