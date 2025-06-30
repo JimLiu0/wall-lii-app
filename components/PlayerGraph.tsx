@@ -93,7 +93,7 @@ export default function PlayerGraph({ data, playerName }: Props) {
     <ResponsiveContainer width="100%" height={300}>
       <LineChart
         data={formattedData}
-        margin={{ right: 10, bottom: 10 }}
+        margin={{ right: 10, bottom: 10, top: 10 }}
       >
         <XAxis
           dataKey="date"
