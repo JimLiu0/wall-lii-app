@@ -103,7 +103,7 @@ export default function NavBar() {
               aria-label="Leaderboard"
             >
               <Trophy className="w-5 h-5" />
-              Leaderboard
+              <div className="hide-below-430">Leaderboard</div>
             </Link>
             <Link
               href="/news"
@@ -111,7 +111,7 @@ export default function NavBar() {
               aria-label="Latest News"
             >
               <Newspaper className="w-5 h-5" />
-              News
+              <div className="hide-below-430">News</div>
             </Link>
             <div className="relative" ref={supportRef}>
               <button
