@@ -48,7 +48,7 @@ export default function LeaderboardPreview() {
   const [selectedMode, setSelectedMode] = useState<'0' | '1'>(
     storedGameMode === 'duo' ? '1' : '0'
   );
-  const [data, setData] = useState<LeaderboardEntry[]>([]);
+  const [fullData, setFullData] = useState<LeaderboardEntry[]>([]);
   const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -69,33 +69,31 @@ export default function LeaderboardPreview() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      
-      // Get the appropriate date for leaderboard queries (with fallback)
       const { date: today } = await getCurrentLeaderboardDate();
-      
-      // Get top 10 for region/mode
+
       const { data: lb } = await supabase
         .from('daily_leaderboard_stats')
         .select('player_name, rating, rank, region, game_mode')
-        .eq('region', selectedRegion.toUpperCase())
-        .eq('game_mode', selectedMode)
         .eq('day_start', today)
         .order('rank', { ascending: true })
-        .limit(10);
-      
-      // Get channel data for these players
+        .limit(80);
+
       const playerNames = lb?.map((p) => p.player_name) || [];
       const { data: channels } = await supabase
         .from('channels')
         .select('channel, player, live, youtube')
         .in('player', playerNames);
-      
-      setData(lb || []);
+
+      setFullData(lb || []);
       setChannelData(channels || []);
       setLoading(false);
     }
     fetchData();
-  }, [selectedRegion, selectedMode]);
+  }, []);
+
+  const data = fullData.filter(
+    (entry) => entry.region.toLowerCase() === selectedRegion && entry.game_mode === selectedMode
+  );
 
   return (
     <div className="bg-gray-900 rounded-lg p-6 mt-8">
@@ -170,4 +168,4 @@ export default function LeaderboardPreview() {
       </div>
     </div>
   );
-} 
+}
