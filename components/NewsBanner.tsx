@@ -59,14 +59,13 @@ export default async function NewsBanner() {
                 <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                <span>Latest News</span>
+                <span className="text-gray-400 text-xs whitespace-nowrap">
+                  {new Date(latestPost.created_at).toLocaleDateString()}
+                </span>
               </div>
               <h2 className="text-white font-semibold text-base line-clamp-1 flex-1">
                 {latestPost.title}
               </h2>
-              <span className="text-gray-400 text-xs whitespace-nowrap">
-                {new Date(latestPost.created_at).toLocaleDateString()}
-              </span>
             </div>
             <p className="text-gray-400 text-sm hidden sm:block line-clamp-1 mt-1">
               {latestPost.summary}

@@ -84,7 +84,7 @@ export default async function LiveStreamsTable() {
 
   return (
     <div className="bg-gray-900 rounded-lg p-6 mt-6">
-      <h2 className="text-center text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-red-400 to-yellow-400 drop-shadow-sm mb-6">
+      <h2 className="text-center text-xl font-bold text-white">
         Top Ranked Livestreams
       </h2>
       <div className="overflow-x-auto">
