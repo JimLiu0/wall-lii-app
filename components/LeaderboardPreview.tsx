@@ -41,33 +41,30 @@ interface ChannelEntry {
 }
 
 export default function LeaderboardPreview() {
-  const [mounted, setMounted] = useState(false);
-  const [selectedRegion, setSelectedRegion] = useState('na');
-  const [selectedMode, setSelectedMode] = useState<'0' | '1'>('0');
+  const isClient = typeof window !== 'undefined';
+  const storedRegion = isClient ? localStorage.getItem('preferredRegion') : null;
+  const storedGameMode = isClient ? localStorage.getItem('preferredGameMode') : null;
+  const [selectedRegion, setSelectedRegion] = useState(storedRegion || 'na');
+  const [selectedMode, setSelectedMode] = useState<'0' | '1'>(
+    storedGameMode === 'duo' ? '1' : '0'
+  );
   const [data, setData] = useState<LeaderboardEntry[]>([]);
   const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
-  // Initialize from localStorage after mounting to prevent hydration mismatch
   useEffect(() => {
-    const storedRegion = localStorage.getItem('preferredRegion') || 'na';
-    const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
-    
-    setSelectedRegion(storedRegion);
-    setSelectedMode(storedGameMode === 'duo' ? '1' : '0');
     setMounted(true);
   }, []);
 
   // Save preferences to localStorage when they change
   useEffect(() => {
-    if (!mounted) return; // Don't save until after initial load
-    
     localStorage.setItem('preferredRegion', selectedRegion);
     localStorage.setItem('preferredGameMode', selectedMode === '1' ? 'duo' : 'solo');
     
     // Dispatch custom event to notify other components in the same tab
     window.dispatchEvent(new Event('localStorageChange'));
-  }, [selectedRegion, selectedMode, mounted]);
+  }, [selectedRegion, selectedMode]);
 
   useEffect(() => {
     async function fetchData() {
@@ -107,27 +104,33 @@ export default function LeaderboardPreview() {
         <h2 className="flex items-center text-xl font-bold text-white">
           Leaderboard Preview
         </h2>
-        <Link
-          href={getWallLiiLeaderboardLink(selectedRegion, selectedMode)}
-          className="text-blue-400 hover:underline font-semibold"
-        >
-          Full Leaderboards →
-        </Link>
+        {/* Mount guard to prevent hydration mismatch from localStorage defaults */}
+        {mounted && (
+          <Link
+            href={getWallLiiLeaderboardLink(selectedRegion, selectedMode)}
+            className="text-blue-400 hover:underline font-semibold"
+          >
+            Full Leaderboards →
+          </Link>
+        )}
       </div>
 
       {/* Mobile / below md */}
-      <div className="flex flex-wrap justify-center gap-2 mb-4 items-center">
-        <ButtonGroup
-          options={regions.map(r => ({ label: r.label, value: r.code }))}
-          selected={selectedRegion}
-          onChange={setSelectedRegion}
-        />
-        <ButtonGroup
-          options={gameModes}
-          selected={selectedMode}
-          onChange={val => setSelectedMode(val as '0' | '1')}
-        />
-      </div>
+      {/* Mount guard to prevent hydration mismatch for toggle defaults */}
+      {mounted && (
+        <div className="flex flex-wrap justify-center gap-2 mb-4 items-center">
+          <ButtonGroup
+            options={regions.map(r => ({ label: r.label, value: r.code }))}
+            selected={selectedRegion}
+            onChange={setSelectedRegion}
+          />
+          <ButtonGroup
+            options={gameModes}
+            selected={selectedMode}
+            onChange={val => setSelectedMode(val as '0' | '1')}
+          />
+        </div>
+      )}
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
