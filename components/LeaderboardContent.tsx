@@ -67,7 +67,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [showingAll, setShowingAll] = useState(false);
+  const [renderCount, setRenderCount] = useState(100);
   const [solo, setSolo] = useState(() => {
     // Initialize from URL params if available
     const urlGameMode = searchParams?.mode;
@@ -261,7 +261,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       }
 
       setLeaderboardData(entries);
-      setShowingAll(limit > 100);
     } 
     catch (error) {
       console.error('Error fetching leaderboard:', error);
@@ -274,9 +273,12 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
 
   // Initial fetch
   useEffect(() => {
+    // Reset previous data and fetch state when toggles change
+    fullFetchedRef.current = false;
+    setLeaderboardData([]);
+    setRenderCount(100);
     setLoading(true);
-    setShowingAll(false);
-    void fetchLeaderboard();
+    void fetchLeaderboard(1000);
   }, [region, solo, timeframe, fetchLeaderboard]);
 
   // Handle region button clicks
@@ -300,26 +302,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     router.push(url);
   };
 
-  // Infinite scroll observer
-  useEffect(() => {
-    if (loading || showingAll) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loadingMore && !showingAll && !searchQuery) {
-          void fetchLeaderboard(1000);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => observer.disconnect();
-  }, [loading, loadingMore, showingAll, searchQuery, fetchLeaderboard]);
-
   const sortedData = useMemo(() => {
     const dataCopy = [...leaderboardData];
     dataCopy.sort((a, b) => {
@@ -340,6 +322,30 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       entry.rank.toString().includes(query)
     );
   }, [sortedData, searchQuery]);
+
+  // Infinite scroll observer (incremental rendering)
+  useEffect(() => {
+    if (loading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          !loadingMore &&
+          renderCount < filteredData.length
+        ) {
+          setRenderCount(prev => Math.min(prev + 100, filteredData.length));
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [loading, loadingMore, renderCount, filteredData.length]);
 
   // Info content for modal
   const regionNames = {
@@ -435,130 +441,131 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           No results found.
         </div> }
 
-        { filteredData.length > 0 && <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
-                <th className="sticky left-0 bg-gray-900 z-10 px-4 py-2 text-left cursor-pointer"
-                    onClick={() => {
-                      if (sortColumn === 'rank') setSortAsc(!sortAsc);
-                      else { setSortColumn('rank'); setSortAsc(true); }
-                      void fetchLeaderboard(1000);
-                    }}>
-                  Rank{sortColumn === 'rank' ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                </th>
-                {region !== 'all' && (
-                  <th className="px-4 py-2 text-left cursor-pointer"
+        { filteredData.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
+                  <th className="sticky left-0 bg-gray-900 z-10 px-4 py-2 text-left cursor-pointer"
                       onClick={() => {
-                        if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
-                        else { setSortColumn('rank_delta'); setSortAsc(false); }
+                        if (sortColumn === 'rank') setSortAsc(!sortAsc);
+                        else { setSortColumn('rank'); setSortAsc(true); }
                         void fetchLeaderboard(1000);
                       }}>
-                    ΔRank{sortColumn === 'rank_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                    Rank{sortColumn === 'rank' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
-                )}
-                <th className="px-4 py-2 text-left cursor-pointer"
-                    onClick={() => {
-                      if (sortColumn === 'player_name') setSortAsc(!sortAsc);
-                      else { setSortColumn('player_name'); setSortAsc(true); }
-                      void fetchLeaderboard(1000);
-                    }}>
-                  Player{sortColumn === 'player_name' ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                </th>
-                <th className="px-4 py-2 text-left cursor-pointer"
-                    onClick={() => {
-                      if (sortColumn === 'rating') setSortAsc(!sortAsc);
-                      else { setSortColumn('rating'); setSortAsc(true); }
-                      void fetchLeaderboard(1000);
-                    }}>
-                  Rating{sortColumn === 'rating' ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                </th>
-                <th className="px-4 py-2 text-left cursor-pointer"
-                    onClick={() => {
-                      if (sortColumn === 'rating_delta') setSortAsc(!sortAsc);
-                      else { setSortColumn('rating_delta'); setSortAsc(false); }
-                      void fetchLeaderboard(1000);
-                    }}>
-                  ΔRating{sortColumn === 'rating_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                </th>
-                <th className="px-4 py-2 text-left cursor-pointer"
-                    onClick={() => {
-                      if (sortColumn === 'games_played') setSortAsc(!sortAsc);
-                      else { setSortColumn('games_played'); setSortAsc(false); }
-                      void fetchLeaderboard(1000);
-                    }}>
-                  Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredData.map((entry) => (
-                <tr
-                  key={entry.player_name + entry.region}
-                  className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
-                >
-                  <td className="sticky left-0 bg-gray-900 px-4 py-3 text-sm font-medium text-zinc-400">
-                    #{entry.rank}
-                  </td>
                   {region !== 'all' && (
-                    <td className="px-4 py-3 text-sm font-medium text-zinc-400">
-                      {entry.rank_delta > 0 ? (
-                        <span className="text-green-400">+{entry.rank_delta}</span>
-                      ) : entry.rank_delta < 0 ? (
-                        <span className="text-red-400">{entry.rank_delta}</span>
+                    <th className="px-4 py-2 text-left cursor-pointer"
+                        onClick={() => {
+                          if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
+                          else { setSortColumn('rank_delta'); setSortAsc(false); }
+                          void fetchLeaderboard(1000);
+                        }}>
+                      ΔRank{sortColumn === 'rank_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                    </th>
+                  )}
+                  <th className="px-4 py-2 text-left cursor-pointer"
+                      onClick={() => {
+                        if (sortColumn === 'player_name') setSortAsc(!sortAsc);
+                        else { setSortColumn('player_name'); setSortAsc(true); }
+                        void fetchLeaderboard(1000);
+                      }}>
+                    Player{sortColumn === 'player_name' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer"
+                      onClick={() => {
+                        if (sortColumn === 'rating') setSortAsc(!sortAsc);
+                        else { setSortColumn('rating'); setSortAsc(true); }
+                        void fetchLeaderboard(1000);
+                      }}>
+                    Rating{sortColumn === 'rating' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer"
+                      onClick={() => {
+                        if (sortColumn === 'rating_delta') setSortAsc(!sortAsc);
+                        else { setSortColumn('rating_delta'); setSortAsc(false); }
+                        void fetchLeaderboard(1000);
+                      }}>
+                    ΔRating{sortColumn === 'rating_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer"
+                      onClick={() => {
+                        if (sortColumn === 'games_played') setSortAsc(!sortAsc);
+                        else { setSortColumn('games_played'); setSortAsc(false); }
+                        void fetchLeaderboard(1000);
+                      }}>
+                    Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredData.slice(0, renderCount).map((entry) => (
+                  <tr
+                    key={entry.player_name + entry.region}
+                    className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
+                  >
+                    <td className="sticky left-0 bg-gray-900 px-4 py-3 text-sm font-medium text-zinc-400">
+                      #{entry.rank}
+                    </td>
+                    {region !== 'all' && (
+                      <td className="px-4 py-3 text-sm font-medium text-zinc-400">
+                        {entry.rank_delta > 0 ? (
+                          <span className="text-green-400">+{entry.rank_delta}</span>
+                        ) : entry.rank_delta < 0 ? (
+                          <span className="text-red-400">{entry.rank_delta}</span>
+                        ) : (
+                          <span className="text-zinc-400">—</span>
+                        )}
+                      </td>
+                    )}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
+                          target="_blank"
+                          className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
+                        >
+                          {entry.player_name}
+                        </Link>
+                        <SocialIndicators playerName={entry.player_name} channelData={channelData} />
+                        {region === 'all' && (
+                          <span className="text-sm text-gray-400">({entry.region})</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-left text-lg font-semibold text-white">
+                      {entry.rating}
+                    </td>
+                    <td className="px-4 py-3 text-left">
+                      {entry.rating_delta > 0 ? (
+                        <span className="text-green-400">+{entry.rating_delta}</span>
+                      ) : entry.rating_delta < 0 ? (
+                        <span className="text-red-400">{entry.rating_delta}</span>
                       ) : (
                         <span className="text-zinc-400">—</span>
                       )}
                     </td>
-                  )}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
-                        target="_blank"
-                        className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
-                      >
-                        {entry.player_name}
-                      </Link>
-                      <SocialIndicators playerName={entry.player_name} channelData={channelData} />
-                      {region === 'all' && (
-                        <span className="text-sm text-gray-400">({entry.region})</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-left text-lg font-semibold text-white">
-                    {entry.rating}
-                  </td>
-                  <td className="px-4 py-3 text-left">
-                    {entry.rating_delta > 0 ? (
-                      <span className="text-green-400">+{entry.rating_delta}</span>
-                    ) : entry.rating_delta < 0 ? (
-                      <span className="text-red-400">{entry.rating_delta}</span>
-                    ) : (
-                      <span className="text-zinc-400">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-left text-white">
-                    {entry.games_played}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {!showingAll && !searchQuery && (
-            <div
-              ref={observerTarget}
-              className="py-8 text-center text-sm font-medium text-zinc-400"
-            >
-              {loadingMore ? (
-                'Loading more players...'
-              ) : (
-                'Scroll down or click search to view all players'
-              )}
-            </div>
-          )}
-        </div>
-      }
+                    <td className="px-4 py-3 text-left text-white">
+                      {entry.games_played}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {renderCount < filteredData.length && !searchQuery && (
+              <div
+                ref={observerTarget}
+                className="py-8 text-center text-sm font-medium text-zinc-400"
+              >
+                {loadingMore ? (
+                  'Loading more players...'
+                ) : (
+                  "If you're seeing this, automatic loading is not working. Please refresh the page."
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
