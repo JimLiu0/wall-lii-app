@@ -112,7 +112,7 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
   }
 
   // Finally, inject images after <li> items with <strong> entity references
-  const strongsInLi = Array.from(doc.querySelectorAll("li > strong")) as HTMLElement[];
+  const strongsInLi = Array.from(doc.querySelectorAll("li > strong, li > em")) as HTMLElement[];
   for (const strong of strongsInLi) {
     const entityName = strong.textContent?.replace(/[:：]$/, "").trim();
     if (!entityName) continue;
