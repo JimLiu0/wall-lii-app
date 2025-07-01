@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import ButtonGroup from './ButtonGroup';
 import SocialIndicators from './SocialIndicators';
 import { getLeaderboardDateRange } from '@/utils/dateUtils';
-import { Info } from 'lucide-react';
+import { Info, X } from 'lucide-react';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -74,6 +74,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   });
   const [searchQuery, setSearchQuery] = useState('');
   const observerTarget = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [sortColumn, setSortColumn] = useState<'rank' | 'rank_delta' | 'rating' | 'rating_delta' | 'games_played' | 'player_name'>('rank');
   const [sortAsc, setSortAsc] = useState(true);
@@ -411,10 +412,25 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             onClick={() => void fetchLeaderboard(1000)}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:border-blue-500 transition-colors"
+            ref={searchInputRef}
           />
+          {/* Results count and clear button */}
           {searchQuery && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-              {filteredData.length} result{filteredData.length !== 1 ? 's' : ''}
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              <span className="text-gray-400 text-sm">
+                {filteredData.length} result{filteredData.length !== 1 ? 's' : ''}
+              </span>
+              <button
+                type="button"
+                aria-label="Clear search"
+                className="p-1 rounded-full hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                onClick={() => {
+                  setSearchQuery('');
+                  setTimeout(() => searchInputRef.current?.focus(), 0);
+                }}
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
           )}
         </div>
