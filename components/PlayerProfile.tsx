@@ -1,7 +1,7 @@
 'use client';
 import SocialIndicators from './SocialIndicators';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { DateTime } from 'luxon';
 import PlayerGraph from '@/components/PlayerGraph';
 import StatsSummary from '@/components/StatsSummary';
@@ -53,6 +53,11 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   const view: TimeView = viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all';
   const offsetNum = offset || 0;
   const gameMode = searchParams.get('g') as GameMode || 's';
+
+  // Memoize the Info icon click handler to prevent unnecessary re-renders
+  const handleInfoClick = useCallback(() => {
+    setShowTimeModal(prev => !prev);
+  }, []);
 
   // Generate back button URL based on current region and game mode
   const getBackUrl = () => {
@@ -228,7 +233,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   selected={view}
                   onChange={updateView}
                 />
-                <Info onClick={() => setShowTimeModal(!showTimeModal)} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
+                <Info onClick={handleInfoClick} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
               </div>
 
               {view !== 'all' && (

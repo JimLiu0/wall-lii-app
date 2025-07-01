@@ -87,6 +87,11 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const fullFetchedRef = useRef(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
+  // Memoize the Info icon click handler to prevent unnecessary re-renders
+  const handleInfoClick = useCallback(() => {
+    setShowInfoModal(prev => !prev);
+  }, []);
+
   // Fetch channel data
   const fetchChannelData = useCallback(async () => {
     try {
@@ -367,7 +372,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         <div className="flex items-center justify-center mb-2 text-center">
           <h1 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-2 flex-wrap justify-center">
             {regionName} Leaderboard
-            <Info onClick={() => setShowInfoModal(!showInfoModal)} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
+            <Info onClick={handleInfoClick} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
           </h1>
         </div>
         
