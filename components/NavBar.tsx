@@ -113,17 +113,22 @@ export default function NavBar() {
               <Newspaper className="w-5 h-5" />
               <div className="hide-below-430">News</div>
             </Link>
-            <div className="relative" ref={supportRef}>
+            <div
+              className="relative"
+              ref={supportRef}
+              onMouseEnter={() => setIsSupportOpen(true)}
+              onMouseLeave={() => setIsSupportOpen(false)}
+            >
               <button
                 className="p-2 bg-gray-800 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                onClick={() => setIsSupportOpen((v) => !v)}
                 aria-label="Support Wallii"
                 type="button"
+                tabIndex={0}
               >
                 <Heart className="w-5 h-5" />
               </button>
               {isSupportOpen && (
-                <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-32 bg-gray-800 rounded-lg shadow-lg py-2 z-10">
+                <div className="absolute left-1/2 -translate-x-1/2 z-10 bg-gray-800 rounded-lg shadow-lg py-2 w-32">
                   <a
                     href="https://patreon.com/wallii"
                     target="_blank"
@@ -169,17 +174,23 @@ export default function NavBar() {
                 </div>
               )}
             </div>
-            <div className="relative" ref={helpRef}>
+            <div
+              className="relative"
+              ref={helpRef}
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              onMouseEnter={() => setIsDropdownOpen(true)}
+              onMouseLeave={() => setIsDropdownOpen(false)}
+            >
               <button
                 className="p-2 bg-gray-800 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 aria-label="Help menu"
                 type="button"
+                tabIndex={0}
               >
                 <HelpCircle className="w-5 h-5" />
               </button>
               {isDropdownOpen && (
-                <div className="absolute right-0 md:left-1/2 md:-translate-x-1/2 mt-2 w-42 bg-gray-800 rounded-lg shadow-lg py-2 z-10">
+                <div className="absolute right-0 md:left-1/2 md:-translate-x-1/2 w-42 bg-gray-800 rounded-lg shadow-lg py-2 z-10">
                   <Link
                     href="/about"
                     className="flex items-center px-4 py-2 text-gray-300 hover:bg-blue-700 hover:text-white transition-colors"
