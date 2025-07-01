@@ -123,7 +123,7 @@ export default function NavBar() {
                 <Heart className="w-5 h-5" />
               </button>
               {isSupportOpen && (
-                <div className="absolute right-0 md:left-1/2 md:-translate-x-1/2 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg py-2 z-10">
+                <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-32 bg-gray-800 rounded-lg shadow-lg py-2 z-10">
                   <a
                     href="https://patreon.com/wallii"
                     target="_blank"
@@ -179,7 +179,7 @@ export default function NavBar() {
                 <HelpCircle className="w-5 h-5" />
               </button>
               {isDropdownOpen && (
-                <div className="absolute right-0 md:left-1/2 md:-translate-x-1/2 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg py-2 z-10">
+                <div className="absolute right-0 md:left-1/2 md:-translate-x-1/2 mt-2 w-42 bg-gray-800 rounded-lg shadow-lg py-2 z-10">
                   <Link
                     href="/about"
                     className="flex items-center px-4 py-2 text-gray-300 hover:bg-blue-700 hover:text-white transition-colors"
