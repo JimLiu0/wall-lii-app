@@ -3,16 +3,33 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Label } fr
 import RatingTooltip from './ToolTip';
 import { DateTime } from 'luxon';
 import { dedupData } from '@/utils/getDedupData';
+import { useEffect, useState } from 'react';
 
 interface Props {
   data: { snapshot_time: string; rating: number }[];
   playerName: string;
 }
 
+function useIsSmallScreen() {
+  const [isSmall, setIsSmall] = useState(false);
+
+  useEffect(() => {
+    function handleResize() {
+      setIsSmall(window.innerWidth <= 640);
+    }
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return isSmall;
+}
+
 export default function PlayerGraph({ data, playerName }: Props) {
   data = dedupData(data);
   // Check if all ratings are the same
   const allSameRating = data.every(d => d.rating === data[0].rating);
+  const isSmallScreen = useIsSmallScreen();
   
   if (allSameRating) {
     // Find the earliest timestamp with this rating
@@ -107,6 +124,7 @@ export default function PlayerGraph({ data, playerName }: Props) {
             }
           }}
           interval={viewMode === 'monthDay' ? tickInterval : 0}
+          angle={isSmallScreen ? -30 : 0}
         >
           <Label value={axisLabel} position="insideBottom" dy={10} />
         </XAxis>
