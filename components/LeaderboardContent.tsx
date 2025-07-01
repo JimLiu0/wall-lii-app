@@ -552,7 +552,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                 ))}
               </tbody>
             </table>
-            {renderCount < filteredData.length && !searchQuery && (
+            {renderCount < filteredData.length && (
               <div
                 ref={observerTarget}
                 className="py-8 text-center text-sm font-medium text-zinc-400"
