@@ -67,7 +67,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [renderCount, setRenderCount] = useState(100);
+  const [renderCount, setRenderCount] = useState(25);
   const [solo, setSolo] = useState(() => {
     // Initialize from URL params if available
     const urlGameMode = searchParams?.mode;
@@ -276,7 +276,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     // Reset previous data and fetch state when toggles change
     fullFetchedRef.current = false;
     setLeaderboardData([]);
-    setRenderCount(100);
+    setRenderCount(50);
     setLoading(true);
     void fetchLeaderboard(1000);
   }, [region, solo, timeframe, fetchLeaderboard]);
@@ -334,7 +334,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           !loadingMore &&
           renderCount < filteredData.length
         ) {
-          setRenderCount(prev => Math.min(prev + 100, filteredData.length));
+          setRenderCount(prev => Math.min(prev + 25, filteredData.length));
         }
       },
       { threshold: 0.1 }
