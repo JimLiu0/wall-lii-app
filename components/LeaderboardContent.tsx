@@ -30,12 +30,6 @@ interface RawLeaderboardEntry {
   rating_delta?: number;
 }
 
-interface BaselineEntry {
-  player_name: string;
-  rating: number;
-  rank: number;
-}
-
 interface ChannelEntry {
   channel: string;
   player: string;
@@ -223,30 +217,17 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           throw result.error;
         }
 
-        // Paginated fetch of baseline stats on prevStart
-        const baselineDate = prevStart;
-        const baselinePageSize = 1000;
-        let baselineResults: BaselineEntry[] = [];
-        let baseOffset = 0;
-        while (true) {
-          const { data: baseChunk, error: baseErr } = await supabase
-            .from('daily_leaderboard_stats')
-            .select('player_name, rating, rank')
-            .eq('region', region.toUpperCase())
-            .eq('game_mode', solo ? '0' : '1')
-            .eq('day_start', baselineDate)
-            .order('rank', { ascending: true })
-            .range(baseOffset, baseOffset + baselinePageSize - 1);
-          if (baseErr) {
-            console.error('Error fetching baseline leaderboard:', baseErr);
-            throw baseErr;
-          }
-          baselineResults = baselineResults.concat(baseChunk || []);
-          if (!baseChunk || baseChunk.length < baselinePageSize) break;
-          baseOffset += baselinePageSize;
-        }
+        const { data: baselineResults } = await supabase
+          .from('daily_leaderboard_stats')
+          .select('player_name, rating, rank')
+          .eq('region', region.toUpperCase())
+          .eq('game_mode', solo ? '0' : '1')
+          .eq('day_start', prevStart)
+          .order('rank', { ascending: true })
+          .limit(limit);
+
         const yesterMap = Object.fromEntries(
-          baselineResults.map(e => [e.player_name, e])
+          (baselineResults || []).map(e => [e.player_name, e])
         );
 
         // Build final entries
