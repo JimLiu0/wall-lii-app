@@ -1,5 +1,6 @@
 import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
+import { Newspaper } from 'lucide-react';
 
 interface NewsPost {
   id: number;
@@ -56,9 +57,7 @@ export default async function NewsBanner() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 text-gray-200 text-sm font-medium whitespace-nowrap">
-                <svg className="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <Newspaper className="w-4 h-4 text-blue-400" />
                 <span className="text-gray-400 text-xs whitespace-nowrap">
                   {new Date(latestPost.created_at).toLocaleDateString()}
                 </span>
