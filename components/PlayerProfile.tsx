@@ -1,7 +1,7 @@
 'use client';
 import SocialIndicators from './SocialIndicators';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
 import PlayerGraph from '@/components/PlayerGraph';
 import StatsSummary from '@/components/StatsSummary';
@@ -49,9 +49,14 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   const searchParams = useSearchParams();
   const router = useRouter();
   const [showTimeModal, setShowTimeModal] = useState(false);
+  const [isLoadingOffset, setIsLoadingOffset] = useState(false);
 
   const view: TimeView = viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all';
   const offsetNum = offset || 0;
+  const [offsetInput, setOffsetInput] = useState(offsetNum);
+  useEffect(() => {
+    setOffsetInput(offsetNum);
+  }, [searchParams]);
   const gameMode = searchParams.get('g') as GameMode || 's';
 
   // Memoize the Info icon click handler to prevent unnecessary re-renders
@@ -144,10 +149,12 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     router.push(`/stats/${player}?${params.toString()}`);
   };
 
-  const updateOffset = (newOffset: number) => {
+  const updateOffset = async (newOffset: number) => {
+    setIsLoadingOffset(true);
     const params = new URLSearchParams(searchParams);
     params.set('o', newOffset.toString());
-    router.push(`/stats/${player}?${params.toString()}`);
+    await router.push(`/stats/${player}?${params.toString()}`);
+    setIsLoadingOffset(false);
   };
 
   const updateGameMode = (newGameMode: GameMode) => {
@@ -244,22 +251,30 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                   >
                     ⬅️
                   </button>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded bg-gray-800">
+                    <input
+                      type="number"
+                      value={offsetInput}
+                      onChange={(e) => setOffsetInput(Number(e.target.value))}
+                      min={0}
+                      max={99}
+                      placeholder="Offset"
+                      className="w-14 h-8 text-center text-sm rounded bg-gray-900 text-white border border-gray-700 focus:outline-none"
+                    />
+                    <span className="text-sm text-gray-300">
+                      {view === 'week' && `week${offsetInput !== 1 ? 's' : ''} ago`}
+                      {view === 'day' && `day${offsetInput !== 1 ? 's' : ''} ago`}
+                    </span>
+                    <button
+                      onClick={() => updateOffset(offsetInput)}
+                      className={`h-8 px-3 text-sm rounded transition-colors ${isLoadingOffset ? 'bg-blue-900 text-blue-300' : 'bg-blue-600 text-white hover:bg-blue-500'}`}
+                      disabled={isLoadingOffset}
+                    >
+                      {isLoadingOffset ? 'Loading…' : 'Go'}
+                    </button>
+                  </div>
                   <button
-                    disabled={offsetNum === 0}
-                    className={`px-3 py-2 rounded transition-colors ${offsetNum === 0
-                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
-                    onClick={() => updateOffset(0)}
-                  >
-                    Today
-                  </button>
-                  <button
-                    disabled={offsetNum === 0}
-                    className={`px-3 py-2 rounded transition-colors ${offsetNum === 0
-                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
+                    className={`px-3 py-2 rounded transition-colors bg-gray-800 text-gray-300 hover:bg-gray-700 ${offsetNum === 0 && 'hidden'}`}
                     onClick={() => updateOffset(offsetNum - 1)}
                   >
                     ➡️
