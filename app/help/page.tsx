@@ -1,6 +1,6 @@
 'use client';
 
-import { Typography, Box, Paper, Divider, Alert, AlertTitle, IconButton } from "@mui/material";
+import { Typography, Box, Paper, Divider, Alert, AlertTitle } from "@mui/material";
 import Image from 'next/image';
 import CopyButton from '@/components/CopyButton';
 import { useState } from "react";
@@ -82,7 +82,7 @@ export default function HelpPage() {
               <strong>Wallii must be a mod or VIP</strong> in your channel if you have follower-only mode enabled, or the bot will not be able to chat.
             </li>
             <li>
-              <strong>Wallii only joins your channel when you go live.</strong> This is due to Twitch's 100 channel limit. If you don't see the bot, try going live and using a command in chat.
+              <strong>Wallii only joins your channel when you go live.</strong> This is due to a 100 channel limit. If you do not see the bot, try going live and using a command in chat.
             </li>
           </ul>
         </Alert>

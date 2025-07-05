@@ -118,7 +118,7 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
     const foundEntities: string[] = [];
 
     // Find all entity matches in order of appearance, deduplicated
-    for (const [entity, imgSrc] of entityToImageMap.entries()) {
+    for (const [entity] of entityToImageMap.entries()) {
       const regex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, "i");
       if (regex.test(text) && !foundEntities.includes(entity)) {
         console.log(entity);
