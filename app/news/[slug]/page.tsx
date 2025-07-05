@@ -112,31 +112,50 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
   }
 
   // Finally, inject images after <li> items with <strong> entity references
-  const strongsInLi = Array.from(doc.querySelectorAll("li > strong, li > em")) as HTMLElement[];
-  for (const strong of strongsInLi) {
-    const entityName = strong.textContent?.replace(/[:：]$/, "").trim();
-    if (!entityName) continue;
+  const allLis = Array.from(doc.querySelectorAll("li")) as HTMLElement[];
+  for (const li of allLis) {
+    const text = li.textContent || "";
+    const foundEntities: string[] = [];
 
-    const imgSrc = entityToImageMap.get(normalizeEntityName(entityName));
-    if (!imgSrc) continue;
+    // Find all entity matches in order of appearance, deduplicated
+    for (const [entity, imgSrc] of entityToImageMap.entries()) {
+      const regex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, "i");
+      if (regex.test(text) && !foundEntities.includes(entity)) {
+        console.log(entity);
+        foundEntities.push(entity);
+      }
+    }
 
-    const parentLi = strong.closest("li");
-    if (!parentLi) continue;
+    if (foundEntities.length === 0) continue;
 
-    const hasImage = parentLi.querySelector(`img[alt="${entityName}"]`);
-    if (hasImage) continue;
+    // Remove any existing images for these entities
+    for (const entity of foundEntities) {
+      const existing = li.querySelector(`img[alt="${entity}"]`);
+      if (existing) existing.remove();
+    }
 
-    const img = doc.createElement("img");
-    img.src = imgSrc;
-    img.alt = entityName;
-    img.loading = "lazy";
-    img.decoding = "async";
-    img.className = "ml-2";
+    // Append images in order
+    for (const entity of foundEntities) {
+      const imgSrc = entityToImageMap.get(entity);
+      if (!imgSrc) continue;
+      const img = doc.createElement("img");
+      img.src = imgSrc;
+      img.alt = entity;
+      img.loading = "lazy";
+      img.decoding = "async";
+      img.className = "ml-2 block";
+      li.appendChild(img);
+      console.log(entity);
+    }
 
-    parentLi.appendChild(img);
   }
 
   return doc.body.innerHTML;
+}
+
+// Helper to escape regex special characters in entity names
+function escapeRegExp(string: string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 async function getNewsPost(slug: string): Promise<NewsPost | null> {
