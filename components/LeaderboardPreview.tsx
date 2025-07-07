@@ -6,6 +6,7 @@ import Link from 'next/link';
 import SocialIndicators from './SocialIndicators';
 import ButtonGroup from './ButtonGroup';
 import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
+import { inMemoryCache } from '@/utils/inMemoryCache';
 
 const regions = [
   { code: 'na', label: 'NA' },
@@ -71,18 +72,31 @@ export default function LeaderboardPreview() {
       setLoading(true);
       const { date: today } = await getCurrentLeaderboardDate();
 
-      const { data: lb } = await supabase
-        .from('daily_leaderboard_stats')
-        .select('player_name, rating, rank, region, game_mode')
-        .eq('day_start', today)
-        .order('rank', { ascending: true })
-        .limit(80);
+      const lbCacheKey = `preview:lb:${today}`;
+      const chCacheKey = `preview:channels:${today}`;
+      let lb = inMemoryCache.get<any[]>(lbCacheKey);
+      let channels = inMemoryCache.get<any[]>(chCacheKey);
+
+      if (!lb) {
+        const { data: lbData } = await supabase
+          .from('daily_leaderboard_stats')
+          .select('player_name, rating, rank, region, game_mode')
+          .eq('day_start', today)
+          .order('rank', { ascending: true })
+          .limit(80);
+        lb = lbData || [];
+        inMemoryCache.set(lbCacheKey, lb, 5 * 60 * 1000);
+      }
 
       const playerNames = lb?.map((p) => p.player_name) || [];
-      const { data: channels } = await supabase
-        .from('channels')
-        .select('channel, player, live, youtube')
-        .in('player', playerNames);
+      if (!channels) {
+        const { data: chData } = await supabase
+          .from('channels')
+          .select('channel, player, live, youtube')
+          .in('player', playerNames);
+        channels = chData || [];
+        inMemoryCache.set(chCacheKey, channels, 5 * 60 * 1000);
+      }
 
       setFullData(lb || []);
       setChannelData(channels || []);

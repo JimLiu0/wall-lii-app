@@ -3,6 +3,7 @@ import Link from 'next/link';
 import SocialIndicators from './SocialIndicators';
 import { unstable_noStore } from 'next/cache';
 import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
+import { inMemoryCache } from '@/utils/inMemoryCache';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -33,14 +34,19 @@ export default async function LiveStreamsTable() {
   // Prevent caching for live data
   unstable_noStore();
   
-  // Fetch all live channels
-  const { data: channelData, error: channelError } = await supabase
-    .from('channels')
-    .select('channel, player, live, youtube')
-    .eq('live', true);
-
-  if (channelError || !channelData || channelData.length === 0) {
-    return null;
+  // Fetch all live channels (cache for 5 min)
+  const channelCacheKey = 'livestreams:channels';
+  let channelData = inMemoryCache.get<any[]>(channelCacheKey);
+  if (!channelData) {
+    const { data: fetched, error } = await supabase
+      .from('channels')
+      .select('channel, player, live, youtube')
+      .eq('live', true);
+    if (error || !fetched || fetched.length === 0) {
+      return null;
+    }
+    channelData = fetched;
+    inMemoryCache.set(channelCacheKey, channelData, 5 * 60 * 1000);
   }
 
   // Get all live player names
@@ -49,15 +55,20 @@ export default async function LiveStreamsTable() {
   // Get the appropriate date for leaderboard queries (with fallback)
   const { date: today } = await getCurrentLeaderboardDate();
 
-  // Fetch today's leaderboard entries for all live players
-  const { data: leaderboardData, error: lbError } = await supabase
-    .from('daily_leaderboard_stats')
-    .select('player_name, rating, rank, region, game_mode')
-    .in('player_name', livePlayers)
-    .eq('day_start', today);
-
-  if (lbError || !leaderboardData || leaderboardData.length === 0) {
-    return null;
+  // Fetch today's leaderboard entries for all live players (cache for 5 min)
+  const lbCacheKey = `livestreams:lb:${today}`;
+  let leaderboardData = inMemoryCache.get<any[]>(lbCacheKey);
+  if (!leaderboardData) {
+    const { data: fetched, error } = await supabase
+      .from('daily_leaderboard_stats')
+      .select('player_name, rating, rank, region, game_mode')
+      .in('player_name', livePlayers)
+      .eq('day_start', today);
+    if (error || !fetched || fetched.length === 0) {
+      return null;
+    }
+    leaderboardData = fetched;
+    inMemoryCache.set(lbCacheKey, leaderboardData, 5 * 60 * 1000);
   }
 
   // For each player, pick the entry with the lowest rank (and highest rating if tie)

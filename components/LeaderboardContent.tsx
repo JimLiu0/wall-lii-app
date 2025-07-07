@@ -9,6 +9,7 @@ import ButtonGroup from './ButtonGroup';
 import SocialIndicators from './SocialIndicators';
 import { getLeaderboardDateRange } from '@/utils/dateUtils';
 import { Info, X } from 'lucide-react';
+import { inMemoryCache } from '@/utils/inMemoryCache';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -89,20 +90,25 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
 
   // Fetch channel data
   const fetchChannelData = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('channels')
-        .select('channel, player, live, youtube');
-      
-      if (error) {
+    const cacheKey = 'channels:all';
+    let data = inMemoryCache.get<any[]>(cacheKey);
+    if (!data) {
+      try {
+        const { data: fetched, error } = await supabase
+          .from('channels')
+          .select('channel, player, live, youtube');
+        if (error) {
+          console.error('Error fetching channel data:', error);
+          return;
+        }
+        data = fetched || [];
+        inMemoryCache.set(cacheKey, data, 5 * 60 * 1000);
+      } catch (error) {
         console.error('Error fetching channel data:', error);
         return;
       }
-      
-      setChannelData(data || []);
-    } catch (error) {
-      console.error('Error fetching channel data:', error);
     }
+    setChannelData(data);
   }, []);
 
   // Save preferences to localStorage when they change
@@ -130,6 +136,14 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   }, [fetchChannelData]);
 
   const fetchLeaderboard = useCallback(async (limit: number = 100) => {
+    const cacheKey = `leaderboard:${region}:${solo ? 'solo' : 'duo'}:${timeframe}:${limit}`;
+    let entries = inMemoryCache.get<LeaderboardEntry[]>(cacheKey);
+    if (entries) {
+      setLeaderboardData(entries);
+      setLoading(false);
+      setLoadingMore(false);
+      return;
+    }
     if (limit === 1000) {
       if (fullFetchedRef.current) return;
       fullFetchedRef.current = true;
@@ -137,51 +151,51 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     let data;
     try {
       setLoadingMore(true);
-      
-      // Get the appropriate date range for leaderboard queries (with fallback)
       const { currentStart, prevStart, isUsingFallback } = await getLeaderboardDateRange(timeframe);
-      
-      // Simple console log for fallback case
       if (isUsingFallback) {
         console.log('Using fallback data (yesterday) for leaderboard - today\'s data not yet available');
       }
-      
       const mode = solo ? '0' : '1';
-
       let entries: LeaderboardEntry[] = [];
-
       if (region === 'all') {
-        // Fetch top N per region, with rating_delta
         const regionsUpper = regions.map(r => r.toUpperCase());
         let combinedRaw: RawLeaderboardEntry[] = [];
         for (const reg of regionsUpper) {
-          // Fetch current stats
-          const { data: currentChunk, error: currErr } = await supabase
-            .from('daily_leaderboard_stats')
-            .select('player_name, rating, region, games_played, weekly_games_played')
-            .eq('day_start', currentStart)
-            .eq('game_mode', mode)
-            .eq('region', reg)
-            .limit(limit)
-            .order('rank', { ascending: true });
-          if (currErr) throw currErr;
-
-          // Fetch baseline stats
-          const { data: baselineChunk, error: baseErr } = await supabase
-            .from('daily_leaderboard_stats')
-            .select('player_name, rating')
-            .eq('day_start', prevStart)
-            .eq('game_mode', mode)
-            .eq('region', reg)
-            .limit(limit)
-            .order('rank', { ascending: true });
-          if (baseErr) throw baseErr;
-
+          // Cache current stats
+          const currentCacheKey = `lb-current:${reg}:${mode}:${currentStart}:${limit}`;
+          let currentChunk = inMemoryCache.get<any[]>(currentCacheKey);
+          if (!currentChunk) {
+            const { data: fetched, error } = await supabase
+              .from('daily_leaderboard_stats')
+              .select('player_name, rating, region, games_played, weekly_games_played')
+              .eq('day_start', currentStart)
+              .eq('game_mode', mode)
+              .eq('region', reg)
+              .limit(limit)
+              .order('rank', { ascending: true });
+            if (error) throw error;
+            currentChunk = fetched || [];
+            inMemoryCache.set(currentCacheKey, currentChunk, 5 * 60 * 1000);
+          }
+          // Cache baseline stats
+          const baselineCacheKey = `lb-baseline:${reg}:${mode}:${prevStart}:${limit}`;
+          let baselineChunk = inMemoryCache.get<any[]>(baselineCacheKey);
+          if (!baselineChunk) {
+            const { data: fetched, error } = await supabase
+              .from('daily_leaderboard_stats')
+              .select('player_name, rating')
+              .eq('day_start', prevStart)
+              .eq('game_mode', mode)
+              .eq('region', reg)
+              .limit(limit)
+              .order('rank', { ascending: true });
+            if (error) throw error;
+            baselineChunk = fetched || [];
+            inMemoryCache.set(baselineCacheKey, baselineChunk, 5 * 60 * 1000);
+          }
           const prevMap = Object.fromEntries(
             (baselineChunk || []).map(p => [p.player_name, p.rating])
           );
-
-          // Combine with delta
           const chunkWithDelta = (currentChunk || []).map(p => ({
             ...p,
             games_played: timeframe === 'week' ? p.weekly_games_played ?? 0 : p.games_played ?? 0,
@@ -190,11 +204,10 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           }));
           combinedRaw = combinedRaw.concat(chunkWithDelta);
         }
-        // Map to full entries and rank globally
         const mapped = combinedRaw.map(p => ({
           player_name: p.player_name,
           rating: p.rating,
-          rank: 0,            // placeholder before ranking
+          rank: 0,
           region: p.region,
           games_played: p.games_played ?? 0,
           rating_delta: p.rating_delta ?? 0,
@@ -203,37 +216,45 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         entries = processRanks(mapped).slice(0, limit);
       } else {
         // Single-region logic
-        // Fetch current period stats using currentStart in PT
-        // For week: also select weekly_games_played
-        const result = await supabase
-          .from('daily_leaderboard_stats')
-          .select('player_name, rating, rank, region, games_played, weekly_games_played')
-          .eq('region', region.toUpperCase())
-          .eq('game_mode', solo ? '0' : '1')
-          .eq('day_start', currentStart)
-          .order('rank', { ascending: true })
-          .limit(limit);
-        if (result.error) {
-          console.error('Error fetching leaderboard:', result.error);
-          throw result.error;
+        // Cache current period stats
+        const currentCacheKey = `lb-current:${region}:${mode}:${currentStart}:${limit}`;
+        let resultData = inMemoryCache.get<any[]>(currentCacheKey);
+        if (!resultData) {
+          const result = await supabase
+            .from('daily_leaderboard_stats')
+            .select('player_name, rating, rank, region, games_played, weekly_games_played')
+            .eq('region', region.toUpperCase())
+            .eq('game_mode', solo ? '0' : '1')
+            .eq('day_start', currentStart)
+            .order('rank', { ascending: true })
+            .limit(limit);
+          if (result.error) {
+            console.error('Error fetching leaderboard:', result.error);
+            throw result.error;
+          }
+          resultData = result.data || [];
+          inMemoryCache.set(currentCacheKey, resultData, 5 * 60 * 1000);
         }
-
-        const { data: baselineResults } = await supabase
-          .from('daily_leaderboard_stats')
-          .select('player_name, rating, rank')
-          .eq('region', region.toUpperCase())
-          .eq('game_mode', solo ? '0' : '1')
-          .eq('day_start', prevStart)
-          .order('rank', { ascending: true })
-          .limit(limit);
-
+        // Cache baseline stats
+        const baselineCacheKey = `lb-baseline:${region}:${mode}:${prevStart}:${limit}`;
+        let baselineResults = inMemoryCache.get<any[]>(baselineCacheKey);
+        if (!baselineResults) {
+          const { data: fetched } = await supabase
+            .from('daily_leaderboard_stats')
+            .select('player_name, rating, rank')
+            .eq('region', region.toUpperCase())
+            .eq('game_mode', solo ? '0' : '1')
+            .eq('day_start', prevStart)
+            .order('rank', { ascending: true })
+            .limit(limit);
+          baselineResults = fetched || [];
+          inMemoryCache.set(baselineCacheKey, baselineResults, 5 * 60 * 1000);
+        }
         const yesterMap = Object.fromEntries(
           (baselineResults || []).map(e => [e.player_name, e])
         );
-
-        // Build final entries
         type RawLeaderboardEntryWithWeekly = RawLeaderboardEntry & { weekly_games_played?: number };
-        data = (result.data || []).map((p: RawLeaderboardEntryWithWeekly) => {
+        data = (resultData || []).map((p: RawLeaderboardEntryWithWeekly) => {
           const y = yesterMap[p.player_name] || { rating: p.rating, rank: p.rank };
           return {
             ...p,
@@ -244,10 +265,10 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             rank_delta: y.rank - p.rank,
           } as LeaderboardEntry;
         });
-        entries = data; // where data is the LeaderboardEntry[] you build
+        entries = data;
       }
-
       setLeaderboardData(entries);
+      inMemoryCache.set(cacheKey, entries, 5 * 60 * 1000);
     } 
     catch (error) {
       console.error('Error fetching leaderboard:', error);
