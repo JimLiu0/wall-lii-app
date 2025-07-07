@@ -74,8 +74,8 @@ export default function LeaderboardPreview() {
 
       const lbCacheKey = `preview:lb:${today}`;
       const chCacheKey = `preview:channels:${today}`;
-      let lb = inMemoryCache.get<any[]>(lbCacheKey);
-      let channels = inMemoryCache.get<any[]>(chCacheKey);
+      let lb = inMemoryCache.get<LeaderboardEntry[]>(lbCacheKey);
+      let channels = inMemoryCache.get<ChannelEntry[]>(chCacheKey);
 
       if (!lb) {
         const { data: lbData } = await supabase

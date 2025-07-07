@@ -36,7 +36,7 @@ export default async function LiveStreamsTable() {
   
   // Fetch all live channels (cache for 5 min)
   const channelCacheKey = 'livestreams:channels';
-  let channelData = inMemoryCache.get<any[]>(channelCacheKey);
+  let channelData = inMemoryCache.get<ChannelEntry[]>(channelCacheKey);
   if (!channelData) {
     const { data: fetched, error } = await supabase
       .from('channels')
@@ -57,7 +57,7 @@ export default async function LiveStreamsTable() {
 
   // Fetch today's leaderboard entries for all live players (cache for 5 min)
   const lbCacheKey = `livestreams:lb:${today}`;
-  let leaderboardData = inMemoryCache.get<any[]>(lbCacheKey);
+  let leaderboardData = inMemoryCache.get<LeaderboardEntry[]>(lbCacheKey);
   if (!leaderboardData) {
     const { data: fetched, error } = await supabase
       .from('daily_leaderboard_stats')

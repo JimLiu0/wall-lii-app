@@ -54,9 +54,9 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   const view: TimeView = viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all';
   const offsetNum = offset || 0;
   const [offsetInput, setOffsetInput] = useState(offsetNum);
-  useEffect(() => {
-    setOffsetInput(offsetNum);
-  }, [searchParams]);
+useEffect(() => {
+  setOffsetInput(offsetNum);
+}, [searchParams, offsetNum]);
   const gameMode = searchParams.get('g') as GameMode || 's';
 
   // Memoize the Info icon click handler to prevent unnecessary re-renders
