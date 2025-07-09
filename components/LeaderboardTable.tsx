@@ -20,9 +20,15 @@ interface ChannelEntry {
   youtube?: string;
 }
 
+interface ChineseChannelEntry {
+  player: string;
+  url: string;
+}
+
 interface LeaderboardTableProps {
   data: LeaderboardEntry[];
   channelData: ChannelEntry[];
+  chineseStreamerData: ChineseChannelEntry[];
   loading?: boolean;
   showDeltas?: boolean;
   showGames?: boolean;
@@ -34,6 +40,7 @@ interface LeaderboardTableProps {
 export default function LeaderboardTable({
   data,
   channelData,
+  chineseStreamerData,
   loading = false,
   showDeltas = true,
   showGames = true,
@@ -87,7 +94,7 @@ export default function LeaderboardTable({
                     >
                       {entry.player_name}
                     </Link>
-                    <SocialIndicators playerName={entry.player_name} channelData={channelData} />
+                    <SocialIndicators playerName={entry.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
                   </div>
                 </td>
                 <td className={`px-4 py-3 text-left text-lg font-semibold text-white ${colClassName}`}>{entry.rating}</td>

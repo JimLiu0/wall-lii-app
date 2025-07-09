@@ -20,6 +20,11 @@ interface ChannelEntry {
   youtube?: string;
 }
 
+interface ChineseChannelEntry {
+  player: string;
+  url: string;
+}
+
 function getModeLabel(mode: string) {
   return mode === '1' ? 'Duo' : 'Solo';
 }
@@ -47,6 +52,21 @@ export default async function LiveStreamsTable() {
     }
     channelData = fetched;
     inMemoryCache.set(channelCacheKey, channelData, 5 * 60 * 1000);
+  }
+
+  // Fetch Chinese streamer data
+  const chineseCacheKey = 'livestreams:chinese';
+  let chineseStreamerData = inMemoryCache.get<ChineseChannelEntry[]>(chineseCacheKey);
+  if (!chineseStreamerData) {
+    const { data: fetched, error } = await supabase
+      .from('chinese_streamers')
+      .select('player, url');
+    if (error) {
+      chineseStreamerData = [];
+    } else {
+      chineseStreamerData = fetched || [];
+    }
+    inMemoryCache.set(chineseCacheKey, chineseStreamerData, 5 * 60 * 1000);
   }
 
   // Get all live player names
@@ -122,7 +142,7 @@ export default async function LiveStreamsTable() {
                     >
                       {entry.player_name}
                     </Link>
-                    <SocialIndicators playerName={entry.player_name} channelData={channelData} />
+                    <SocialIndicators playerName={entry.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
                   </div>
                 </td>
                 <td className="px-4 py-3 text-left text-lg font-semibold text-white">{entry.rating}</td>

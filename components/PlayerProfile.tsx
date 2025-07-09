@@ -10,6 +10,7 @@ import { dedupData } from '@/utils/getDedupData';
 import ButtonGroup from './ButtonGroup';
 import PlayerHeader from './PlayerHeader';
 import { Info } from 'lucide-react';
+
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
 
@@ -36,6 +37,11 @@ interface ChannelEntry {
   youtube?: string;
 }
 
+interface ChineseChannelEntry {
+  player: string;
+  url: string;
+}
+
 interface Props {
   player: string;
   region: string;
@@ -43,9 +49,10 @@ interface Props {
   offset: number;
   playerData: PlayerData;
   channelData: ChannelEntry[];
+  chineseStreamerData: ChineseChannelEntry[];
 }
 
-export default function PlayerProfile({ player, region, view: viewParam, offset, playerData, channelData }: Props) {
+export default function PlayerProfile({ player, region, view: viewParam, offset, playerData, channelData, chineseStreamerData }: Props) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -194,7 +201,7 @@ useEffect(() => {
             <h1 className="text-4xl sm:text-4xl font-bold text-white break-all">
               {playerData.name}
             </h1>
-            <SocialIndicators playerName={playerData.name} channelData={channelData} />
+            <SocialIndicators playerName={playerData.name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
           </div>
           <div className="flex gap-8">
             <div>

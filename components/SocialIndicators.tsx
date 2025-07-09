@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 
 interface ChannelEntry {
@@ -50,16 +51,16 @@ export default function SocialIndicators({ playerName, channelData, chineseStrea
           title={`${playerName}'s Chinese Stream`}
         >
           {chineseUrl.includes('douyin.com') && (
-            <img src="/icons/douyin.png" alt="Douyin" className="w-6 h-6" />
+            <Image src="/icons/douyin.png" alt="Douyin" width={24} height={24} className="w-6 h-6" />
           )}
           {chineseUrl.includes('huya.com') && (
-            <img src="/icons/huya.png" alt="Huya" className="w-6 h-6" />
+            <Image src="/icons/huya.png" alt="Huya" width={24} height={24} className="w-6 h-6" />
           )}
           {chineseUrl.includes('douyu.com') && (
-            <img src="/icons/douyu.png" alt="Douyu" className="w-6 h-6" />
+            <Image src="/icons/douyu.png" alt="Douyu" width={24} height={24} className="w-6 h-6" />
           )}
           {chineseUrl.includes('bilibili.com') && (
-            <img src="/icons/bilibili.png" alt="Bilibili" className="w-6 h-6" />
+            <Image src="/icons/bilibili.png" alt="Bilibili" width={24} height={24} className="w-6 h-6" />
           )}
           { chineseUrl.includes('twitch.tv') && (
             <svg className="w-6 h-6 text-purple-400 hover:text-purple-300 transition-colors" fill="currentColor" viewBox="0 0 24 24">

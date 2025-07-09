@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import SocialIndicators from './SocialIndicators';
@@ -41,6 +41,11 @@ interface ChannelEntry {
   youtube?: string;
 }
 
+interface ChineseChannelEntry {
+  player: string;
+  url: string;
+}
+
 export default function LeaderboardPreview() {
   const isClient = typeof window !== 'undefined';
   const storedRegion = isClient ? localStorage.getItem('preferredRegion') : null;
@@ -51,8 +56,20 @@ export default function LeaderboardPreview() {
   );
   const [fullData, setFullData] = useState<LeaderboardEntry[]>([]);
   const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
+  const [chineseStreamerData, setChineseStreamerData] = useState<ChineseChannelEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+
+  // Fetch Chinese streamer data
+  const fetchChineseChannelData = useCallback(async () => {
+    const { data: fetched, error } = await supabase
+      .from('chinese_streamers')
+      .select('player, url');
+    if (error) {
+      return;
+    }
+    setChineseStreamerData(fetched);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -100,10 +117,11 @@ export default function LeaderboardPreview() {
 
       setFullData(lb || []);
       setChannelData(channels || []);
+      void fetchChineseChannelData();
       setLoading(false);
     }
     fetchData();
-  }, []);
+  }, [fetchChineseChannelData]);
 
   const data = fullData.filter(
     (entry) => entry.region.toLowerCase() === selectedRegion && entry.game_mode === selectedMode
@@ -170,7 +188,7 @@ export default function LeaderboardPreview() {
                       >
                         {entry.player_name}
                       </Link>
-                      <SocialIndicators playerName={entry.player_name} channelData={channelData} />
+                      <SocialIndicators playerName={entry.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
                     </div>
                   </td>
                   <td className="px-4 py-3 text-left text-lg font-semibold text-white">{entry.rating}</td>

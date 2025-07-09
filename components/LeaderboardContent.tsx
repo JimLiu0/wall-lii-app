@@ -150,7 +150,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   useEffect(() => {
     void fetchChannelData();
     void fetchChineseChannelData();
-  }, [fetchChannelData]);
+  }, [fetchChannelData, fetchChineseChannelData]);
 
   const fetchLeaderboard = useCallback(async (limit: number = 100) => {
     const cacheKey = `leaderboard:${region}:${solo ? 'solo' : 'duo'}:${timeframe}:${limit}`;
