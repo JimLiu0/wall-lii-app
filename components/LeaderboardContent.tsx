@@ -38,6 +38,11 @@ interface ChannelEntry {
   youtube?: string;
 }
 
+interface ChineseChannelEntry {
+  player: string;
+  url: string;
+}
+
 interface Props {
   region: string;
   defaultSolo?: boolean;
@@ -60,6 +65,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const router = useRouter();
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
+  const [chineseStreamerData, setChineseStreamerData] = useState<ChineseChannelEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [renderCount, setRenderCount] = useState(25);
@@ -111,6 +117,16 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     setChannelData(data);
   }, []);
 
+  const fetchChineseChannelData = useCallback(async () => {
+    const { data: fetched, error } = await supabase
+      .from('chinese_streamers')
+      .select('player, url');
+    if (error) {
+      return;
+    }
+    setChineseStreamerData(fetched);
+  }, []);
+
   // Save preferences to localStorage when they change
   useEffect(() => {
     localStorage.setItem('preferredRegion', region);
@@ -133,6 +149,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   // Fetch channel data on component mount
   useEffect(() => {
     void fetchChannelData();
+    void fetchChineseChannelData();
   }, [fetchChannelData]);
 
   const fetchLeaderboard = useCallback(async (limit: number = 100) => {
@@ -588,7 +605,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                         >
                           {entry.player_name}
                         </Link>
-                        <SocialIndicators playerName={entry.player_name} channelData={channelData} />
+                        <SocialIndicators playerName={entry.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData}/>
                         {region === 'all' && (
                           <span className="text-sm text-gray-400">({entry.region})</span>
                         )}

@@ -9,50 +9,89 @@ interface ChannelEntry {
   youtube?: string;
 }
 
+interface ChineseChannelEntry {
+  player: string;
+  url: string;
+}
+
 interface SocialIndicatorsProps {
   playerName: string;
   channelData: ChannelEntry[];
+  chineseStreamerData: ChineseChannelEntry[];
 }
 
-export default function SocialIndicators({ playerName, channelData }: SocialIndicatorsProps) {
+export default function SocialIndicators({ playerName, channelData, chineseStreamerData }: SocialIndicatorsProps) {
   // Create a map for quick channel lookups
   const channelMap = new Map(channelData.map(channel => [channel.player.toLowerCase(), channel]));
   const channel = channelMap.get(playerName.toLowerCase());
-  
-  if (!channel) return null;
+  // Find Chinese streamer URL for this player, if any
+  const chineseEntry = chineseStreamerData ? chineseStreamerData.filter(
+    (entry: ChineseChannelEntry) => {
+      return entry.player.trim().normalize() === playerName.trim().normalize();
+    }
+  )[0] : null;
 
-  const twitchUrl = `https://twitch.tv/${channel.channel}`;
-  const youtubeUrl = channel.youtube ? `https://youtube.com/@${channel.youtube}` : null;
+  const chineseUrl: string | undefined = chineseEntry?.url;
+
+  if (!channel && !chineseUrl) return null;
+
+  const twitchUrl = `https://twitch.tv/${channel?.channel}`;
+  const youtubeUrl = channel?.youtube ? `https://youtube.com/@${channel?.youtube}` : null;
+
   
   return (
     <div className="flex items-center gap-1">
-      {channel.live ? (
-        // Live indicator with red button
+      {chineseUrl && (
         <Link
-          href={twitchUrl}
+          href={chineseUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded transition-colors"
+          className="transition-colors"
+          title={`${playerName}'s Chinese Stream`}
         >
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
-          </svg>
-          LIVE
-        </Link>
-      ) : (
-        // Regular Twitch icon
-        <Link
-          href={twitchUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-purple-400 hover:text-purple-300 transition-colors"
-          title={`${playerName}'s Twitch Channel`}
-        >
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
-          </svg>
+          {chineseUrl.includes('douyin.com') && (
+            <img src="/icons/douyin.png" alt="Douyin" className="w-6 h-6" />
+          )}
+          {chineseUrl.includes('huya.com') && (
+            <img src="/icons/huya.png" alt="Huya" className="w-6 h-6" />
+          )}
+          {chineseUrl.includes('douyu.com') && (
+            <img src="/icons/douyu.png" alt="Douyu" className="w-6 h-6" />
+          )}
+          {chineseUrl.includes('bilibili.com') && (
+            <img src="/icons/bilibili.png" alt="Bilibili" className="w-6 h-6" />
+          )}
         </Link>
       )}
+      { channel && (
+        channel.live ? (
+          // Live indicator with red button
+          <Link
+            href={twitchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded transition-colors"
+          >
+            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+            </svg>
+            LIVE
+          </Link>
+        ) : (
+          // Regular Twitch icon
+          <Link
+            href={twitchUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-purple-400 hover:text-purple-300 transition-colors"
+            title={`${playerName}'s Twitch Channel`}
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+            </svg>
+          </Link>
+        )
+      ) }
       
       {/* YouTube icon */}
       {youtubeUrl && (
