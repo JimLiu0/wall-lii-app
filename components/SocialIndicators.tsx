@@ -61,6 +61,11 @@ export default function SocialIndicators({ playerName, channelData, chineseStrea
           {chineseUrl.includes('bilibili.com') && (
             <img src="/icons/bilibili.png" alt="Bilibili" className="w-6 h-6" />
           )}
+          { chineseUrl.includes('twitch.tv') && (
+            <svg className="w-6 h-6 text-purple-400 hover:text-purple-300 transition-colors" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+            </svg>
+          )}
         </Link>
       )}
       { channel && (
