@@ -5,6 +5,7 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { PostgrestError } from '@supabase/supabase-js';
 import PlayerNotFound from '@/components/PlayerNotFound';
+import { inMemoryCache } from '@/utils/inMemoryCache';
 
 interface PageParams {
   player: string;
@@ -27,6 +28,11 @@ interface ChannelEntry {
   player: string;
   live: boolean;
   youtube?: string;
+}
+
+interface ChineseChannelEntry {
+  player: string;
+  url: string;
 }
 
 const regionNames = {
@@ -104,21 +110,38 @@ export default async function PlayerPage({
   const requestedOffset = parseInt(resolvedSearchParams.o || '0', 10);
   const requestedGameMode = resolvedSearchParams.g || 's';
 
-  // Fetch channel data for the player
-  let channelData: ChannelEntry[] = [];
-  try {
-    const { data: channelResult, error: channelError } = await supabase
+  // Fetch channel data
+  const channelCacheKey = `player:channels:${player}`;
+  let channelData = inMemoryCache.get<ChannelEntry[]>(channelCacheKey);
+  if (!channelData) {
+    const { data: fetched, error } = await supabase
       .from('channels')
       .select('channel, player, live, youtube')
       .eq('player', player);
-    
-    if (channelError) {
-      console.error('Error fetching channel data:', channelError);
+    if (error) {
+      console.error('Error fetching channel data:', error);
+      channelData = [];
     } else {
-      channelData = channelResult || [];
+      channelData = fetched || [];
     }
-  } catch (error) {
-    console.error('Error fetching channel data:', error);
+    inMemoryCache.set(channelCacheKey, channelData, 5 * 60 * 1000);
+  }
+
+  // Fetch Chinese streamer data
+  const chineseCacheKey = `player:chinese:${player}`;
+  let chineseStreamerData = inMemoryCache.get<ChineseChannelEntry[]>(chineseCacheKey);
+  if (!chineseStreamerData) {
+    const { data: fetched, error } = await supabase
+      .from('chinese_streamers')
+      .select('player, url')
+      .eq('player', player);
+    if (error) {
+      console.error('Error fetching Chinese streamer data:', error);
+      chineseStreamerData = [];
+    } else {
+      chineseStreamerData = fetched || [];
+    }
+    inMemoryCache.set(chineseCacheKey, chineseStreamerData, 5 * 60 * 1000);
   }
 
   // Fetch all data for the player using pagination to avoid Supabase limits
@@ -315,6 +338,7 @@ export default async function PlayerPage({
         offset={requestedOffset}
         playerData={playerData}
         channelData={channelData}
+        chineseStreamerData={chineseStreamerData}
       />
     </Suspense>
   );
