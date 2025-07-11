@@ -152,15 +152,12 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
       for (const li of lis) {
         const text = li.textContent || "";
         const foundEntities: string[] = [];
-
         // Find all entity matches in order of appearance, deduplicated
         for (const [entity] of entityToImageMap.entries()) {
           let isMatch = false;
-          
           // First try direct word boundary match
           const directRegex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, "i");
           isMatch = directRegex.test(text);
-          
           // If no direct match, try normalized text for entities that might have been normalized
           if (!isMatch) {
             const normalizedText = normalizeEntityName(text);
@@ -170,20 +167,61 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
               isMatch = normalizedText.includes(entity);
             }
           }
-          
           const isProcessed = processedEntities.has(entity);
           const isAlreadyFound = foundEntities.includes(entity);
-          
           if (isMatch && !isAlreadyFound && !isProcessed) {
             foundEntities.push(entity);
           }
         }
-
+        // Underline matched entity words in the li text
+        if (foundEntities.length > 0) {
+          let newLiText = text;
+          for (const entity of foundEntities) {
+            // Try direct match first
+            const regex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, 'gi');
+            if (regex.test(newLiText)) {
+              newLiText = newLiText.replace(regex, (match) => `<u>${match}</u>`);
+            } else if (entity.length > 8) {
+              // If not direct, try normalized matching for long entities
+              // Find the substring in the original text that corresponds to the normalized entity
+              // We'll do a best-effort match for the first occurrence
+              const normalizedText = normalizeEntityName(newLiText);
+              const idx = normalizedText.indexOf(entity);
+              if (idx !== -1) {
+                // Map back to the original substring
+                // This is best-effort: we iterate through the original text to match the normalized chunk
+                let start = 0, j = 0;
+                while (j < idx && start < newLiText.length) {
+                  if (/[a-zA-Z0-9]/.test(newLiText[start])) {
+                    j++;
+                  }
+                  start++;
+                }
+                // Adjust start to point to the first matching alphanumeric character
+                while (start < newLiText.length && !/[a-zA-Z0-9]/.test(newLiText[start])) {
+                  start++;
+                }
+                let end = start;
+                let k = 0;
+                while (k < entity.length && end < newLiText.length) {
+                  if (/[a-zA-Z0-9]/.test(newLiText[end])) {
+                    k++;
+                  }
+                  end++;
+                }
+                const originalSub = newLiText.slice(start, end);
+                if (originalSub) {
+                  newLiText = newLiText.slice(0, start) + `<u>${originalSub}</u>` + newLiText.slice(end);
+                }
+              }
+            }
+          }
+          li.innerHTML = newLiText;
+        }
         // Add images for found entities
         for (const entity of foundEntities) {
           const imgSrc = entityToImageMap.get(entity);
           if (!imgSrc) continue;
-          
           const img = doc.createElement("img");
           img.src = imgSrc;
           img.alt = entity;
@@ -191,7 +229,6 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
           img.decoding = "async";
           img.className = "w-64 h-auto object-contain rounded";
           allImages.push(img);
-          
           // Mark as processed
           processedEntities.add(entity);
         }
@@ -221,18 +258,14 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
     if (parentUl && parentUl.previousElementSibling?.tagName === "H3") {
       continue;
     }
-    
     const text = li.textContent || "";
     const foundEntities: string[] = [];
-
     // Find all entity matches in order of appearance, deduplicated
     for (const [entity] of entityToImageMap.entries()) {
       let isMatch = false;
-      
       // First try direct word boundary match
       const directRegex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, "i");
       isMatch = directRegex.test(text);
-      
       // If no direct match, try normalized text for entities that might have been normalized
       if (!isMatch) {
         const normalizedText = normalizeEntityName(text);
@@ -242,28 +275,67 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
           isMatch = normalizedText.includes(entity);
         }
       }
-      
       const isProcessed = processedEntities.has(entity);
       const isAlreadyFound = foundEntities.includes(entity);
-      
       if (isMatch && !isAlreadyFound && !isProcessed) {
         foundEntities.push(entity);
       }
     }
-
     if (foundEntities.length === 0) continue;
-
+    // Underline matched entity words in the li text
+    if (foundEntities.length > 0) {
+      let newLiText = text;
+      for (const entity of foundEntities) {
+        // Try direct match first
+        const regex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, 'gi');
+        if (regex.test(newLiText)) {
+          newLiText = newLiText.replace(regex, (match) => `<u>${match}</u>`);
+        } else if (entity.length > 8) {
+          // If not direct, try normalized matching for long entities
+          // Find the substring in the original text that corresponds to the normalized entity
+          // We'll do a best-effort match for the first occurrence
+          const normalizedText = normalizeEntityName(newLiText);
+          const idx = normalizedText.indexOf(entity);
+          if (idx !== -1) {
+            // Map back to the original substring
+            // This is best-effort: we iterate through the original text to match the normalized chunk
+            let start = 0, j = 0;
+            while (j < idx && start < newLiText.length) {
+              if (/[a-zA-Z0-9]/.test(newLiText[start])) {
+                j++;
+              }
+              start++;
+            }
+            // Adjust start to point to the first matching alphanumeric character
+            while (start < newLiText.length && !/[a-zA-Z0-9]/.test(newLiText[start])) {
+              start++;
+            }
+            let end = start;
+            let k = 0;
+            while (k < entity.length && end < newLiText.length) {
+              if (/[a-zA-Z0-9]/.test(newLiText[end])) {
+                k++;
+              }
+              end++;
+            }
+            const originalSub = newLiText.slice(start, end);
+            if (originalSub) {
+              newLiText = newLiText.slice(0, start) + `<u>${originalSub}</u>` + newLiText.slice(end);
+            }
+          }
+        }
+      }
+      li.innerHTML = newLiText;
+    }
     // Remove any existing images for these entities
     for (const entity of foundEntities) {
       const existing = li.querySelector(`img[alt="${entity}"]`);
       if (existing) existing.remove();
     }
-
     // Create a container for images with consistent spacing
     if (foundEntities.length > 0) {
       const imageContainer = doc.createElement("div");
       imageContainer.className = "flex flex-wrap gap-6 mt-2";
-      
       for (const entity of foundEntities) {
         const imgSrc = entityToImageMap.get(entity);
         if (!imgSrc) continue;
@@ -276,10 +348,8 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
         imageContainer.appendChild(img);
         console.log(entity);
       }
-      
       li.appendChild(imageContainer);
     }
-
   }
 
   return doc.body.innerHTML;
