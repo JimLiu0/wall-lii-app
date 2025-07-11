@@ -1,4 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
+import { EntityToggleContent } from "@/components/EntityToggleContent";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -133,7 +134,7 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
       // This handles cases like "Amalgam and Mishmash" where they exist as separate entities
       const words = entityName.split(/\s+and\s+/i);
       if (words.length > 1) {
-        let matchedWords: string[] = [];
+        const matchedWords: string[] = [];
         for (const word of words) {
           const trimmedWord = word.trim();
           const normalizedWord = normalizeEntityName(trimmedWord);
@@ -544,35 +545,9 @@ export default async function NewsPostPage({
             </div>
 
             {/* Content */}
-            <div 
-              className="prose prose-lg prose-invert max-w-none flex-image
-              [&>p]:block
-              sm:[&>p:has(img)]:grid
-              sm:[&>p:has(img)]:grid-cols-2
-              [&>p>img]:w-48
-              [&>p>img]:sm:w-64
-              [&>p>img]:mx-auto
-              [&>p>img]:h-auto
-              [&>.card-grid]:grid
-              [&>.card-grid]:gap-6
-              [&>.card-grid]:grid-cols-1
-              sm:[&>.card-grid]:grid-cols-2
-              md:[&>.card-grid]:grid-cols-3
-              [&_.card-grid-placeholder]:bg-gray-800
-              [&_.card-grid-placeholder]:text-white
-              [&_.card-grid-placeholder]:rounded
-              [&_.card-grid-placeholder]:p-4
-              [&_.card-grid-placeholder]:text-center
-              [&_.card-grid-placeholder]:font-semibold
-              [&_.card-grid-placeholder]:text-lg
-              [&_.card-grid-placeholder]:border
-              [&_.card-grid-placeholder]:border-gray-700
-              [&_.card-grid-placeholder]:shadow
-              [&_.card-grid-item:has(.card-grid-placeholder)]:flex
-              [&_.card-grid-item:has(.card-grid-placeholder)]:flex-col
-              [&_.card-grid-item:has(.card-grid-placeholder)]:items-center
-              [&_.card-grid-item:has(.card-grid-placeholder)]:justify-center" 
-              dangerouslySetInnerHTML={{ __html: processedContentWithLinks }}
+            <EntityToggleContent
+              rawHtml={post.content}
+              processedHtml={processedContentWithLinks}
             />
             
             {/* Footer metadata */}
