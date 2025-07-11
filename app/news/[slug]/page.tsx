@@ -49,6 +49,27 @@ function normalizeEntityName(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "").replace(/[^a-zA-Z0-9()]/gi, "");
 }
 
+function underlineMatchInText(text: string, normalizedTarget: string): string {
+  const normalizedText = text.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+  const idx = normalizedText.indexOf(normalizedTarget);
+  if (idx === -1) return text;
+
+  let start = 0, j = 0;
+  while (j < idx && start < text.length) {
+    if (/[a-zA-Z0-9]/.test(text[start])) j++;
+    start++;
+  }
+  while (start < text.length && !/[a-zA-Z0-9]/.test(text[start])) start++;
+
+  let end = start, k = 0;
+  while (k < normalizedTarget.length && end < text.length) {
+    if (/[a-zA-Z0-9]/.test(text[end])) k++;
+    end++;
+  }
+
+  return text.slice(0, start) + '<u>' + text.slice(start, end) + '</u>' + text.slice(end);
+}
+
 function injectEntityImages(html: string, entityToImageMap: Map<string, string>): string {
   const dom = new JSDOM(html);
   const doc = dom.window.document;
@@ -183,37 +204,7 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
               newLiText = newLiText.replace(regex, (match) => `<u>${match}</u>`);
             } else if (entity.length > 8) {
               // If not direct, try normalized matching for long entities
-              // Find the substring in the original text that corresponds to the normalized entity
-              // We'll do a best-effort match for the first occurrence
-              const normalizedText = normalizeEntityName(newLiText);
-              const idx = normalizedText.indexOf(entity);
-              if (idx !== -1) {
-                // Map back to the original substring
-                // This is best-effort: we iterate through the original text to match the normalized chunk
-                let start = 0, j = 0;
-                while (j < idx && start < newLiText.length) {
-                  if (/[a-zA-Z0-9]/.test(newLiText[start])) {
-                    j++;
-                  }
-                  start++;
-                }
-                // Adjust start to point to the first matching alphanumeric character
-                while (start < newLiText.length && !/[a-zA-Z0-9]/.test(newLiText[start])) {
-                  start++;
-                }
-                let end = start;
-                let k = 0;
-                while (k < entity.length && end < newLiText.length) {
-                  if (/[a-zA-Z0-9]/.test(newLiText[end])) {
-                    k++;
-                  }
-                  end++;
-                }
-                const originalSub = newLiText.slice(start, end);
-                if (originalSub) {
-                  newLiText = newLiText.slice(0, start) + `<u>${originalSub}</u>` + newLiText.slice(end);
-                }
-              }
+              newLiText = underlineMatchInText(newLiText, entity);
             }
           }
           li.innerHTML = newLiText;
@@ -292,37 +283,7 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
           newLiText = newLiText.replace(regex, (match) => `<u>${match}</u>`);
         } else if (entity.length > 8) {
           // If not direct, try normalized matching for long entities
-          // Find the substring in the original text that corresponds to the normalized entity
-          // We'll do a best-effort match for the first occurrence
-          const normalizedText = normalizeEntityName(newLiText);
-          const idx = normalizedText.indexOf(entity);
-          if (idx !== -1) {
-            // Map back to the original substring
-            // This is best-effort: we iterate through the original text to match the normalized chunk
-            let start = 0, j = 0;
-            while (j < idx && start < newLiText.length) {
-              if (/[a-zA-Z0-9]/.test(newLiText[start])) {
-                j++;
-              }
-              start++;
-            }
-            // Adjust start to point to the first matching alphanumeric character
-            while (start < newLiText.length && !/[a-zA-Z0-9]/.test(newLiText[start])) {
-              start++;
-            }
-            let end = start;
-            let k = 0;
-            while (k < entity.length && end < newLiText.length) {
-              if (/[a-zA-Z0-9]/.test(newLiText[end])) {
-                k++;
-              }
-              end++;
-            }
-            const originalSub = newLiText.slice(start, end);
-            if (originalSub) {
-              newLiText = newLiText.slice(0, start) + `<u>${originalSub}</u>` + newLiText.slice(end);
-            }
-          }
+          newLiText = underlineMatchInText(newLiText, entity);
         }
       }
       li.innerHTML = newLiText;
