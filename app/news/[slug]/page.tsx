@@ -51,6 +51,7 @@ function normalizeEntityName(name: string): string {
 function injectEntityImages(html: string, entityToImageMap: Map<string, string>): string {
   const dom = new JSDOM(html);
   const doc = dom.window.document;
+  const processedEntities = new Set<string>(); // Track processed entities globally
 
   // First handle card-grid-placeholders
   const placeholders = Array.from(doc.querySelectorAll(".card-grid-placeholder")) as HTMLElement[];
@@ -109,6 +110,9 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
     newImgPara.appendChild(img);
 
     insertAfter.insertAdjacentElement("afterend", newImgPara);
+    
+    // Mark this entity as processed
+    processedEntities.add(normalizeEntityName(entityName));
   }
 
   // Finally, inject images after <li> items with <strong> entity references
@@ -119,9 +123,31 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
 
     // Find all entity matches in order of appearance, deduplicated
     for (const [entity] of entityToImageMap.entries()) {
-      const regex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, "i");
-      if (regex.test(text) && !foundEntities.includes(entity)) {
-        console.log(entity);
+      let isMatch = false;
+      
+      // First try direct word boundary match
+      const directRegex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, "i");
+      isMatch = directRegex.test(text);
+      
+      // If no direct match, try normalized text for entities that might have been normalized
+      if (!isMatch) {
+        const normalizedText = normalizeEntityName(text);
+        // Only use normalized matching for entities that are likely multi-word (longer than 8 chars)
+        // This prevents short entities like "rat" from being matched in normalized text
+        if (entity.length > 8) {
+          isMatch = normalizedText.includes(entity);
+        }
+      }
+      
+      const isProcessed = processedEntities.has(entity);
+      const isAlreadyFound = foundEntities.includes(entity);
+      
+      // Debug specific entities
+      if (entity === "felementalportrait") {
+        console.log(`Checking "felementalportrait": isMatch=${isMatch}, text="${text}"`);
+      }
+      
+      if (isMatch && !isAlreadyFound && !isProcessed) {
         foundEntities.push(entity);
       }
     }
