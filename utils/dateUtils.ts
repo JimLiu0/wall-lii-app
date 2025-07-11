@@ -11,9 +11,9 @@ export interface DateRange {
  * Gets the appropriate date range for leaderboard queries, with fallback to previous day
  * if today's data isn't available yet (edge case around midnight PT).
  */
-export async function getLeaderboardDateRange(timeframe: 'day' | 'week' = 'day'): Promise<DateRange> {
+export async function getLeaderboardDateRange(timeframe: 'day' | 'week' = 'day', dayOffset: number): Promise<DateRange> {
   const ptNow = DateTime.now().setZone('America/Los_Angeles');
-  const today = ptNow.startOf('day');
+  const today = ptNow.minus({ days: dayOffset }).startOf('day');
   const todayStr = today.toISODate() || '';
 
   // First, try to get today's data to see if it exists

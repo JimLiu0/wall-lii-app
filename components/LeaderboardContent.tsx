@@ -7,9 +7,11 @@ import { useRouter } from 'next/navigation';
 
 import ButtonGroup from './ButtonGroup';
 import SocialIndicators from './SocialIndicators';
+import DatePicker from './DatePicker';
 import { getLeaderboardDateRange } from '@/utils/dateUtils';
 import { Info, X } from 'lucide-react';
 import { inMemoryCache } from '@/utils/inMemoryCache';
+import { DateTime } from 'luxon';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -63,6 +65,7 @@ function processRanks(data: LeaderboardEntry[]): LeaderboardEntry[] {
 
 export default function LeaderboardContent({ region, defaultSolo = true, searchParams }: Props) {
   const router = useRouter();
+  const ptNow = DateTime.now().setZone('America/Los_Angeles').startOf('day');
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
   const [chineseStreamerData, setChineseStreamerData] = useState<ChineseChannelEntry[]>([]);
@@ -89,10 +92,29 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const fullFetchedRef = useRef(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
+  const [dateOffset, setDateOffset] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<DateTime>(ptNow);
+  const [minDate, setMinDate] = useState<DateTime>(DateTime.now().minus({ days: 30 }));
+
   // Memoize the Info icon click handler to prevent unnecessary re-renders
   const handleInfoClick = useCallback(() => {
     setShowInfoModal(prev => !prev);
   }, []);
+
+  // Calculate offset based on selected date
+  const calculateDateOffset = useCallback((date: DateTime) => {
+    const today = ptNow.startOf('day');
+    const selectedDay = date.startOf('day');
+    const diff = today.diff(selectedDay, 'days').days;
+    return Math.round(diff);
+  }, [ptNow]);
+
+  // Handle date change
+  const handleDateChange = useCallback((date: DateTime) => {
+    setSelectedDate(date);
+    const offset = calculateDateOffset(date);
+    setDateOffset(offset);
+  }, [calculateDateOffset]);
 
   // Fetch channel data
   const fetchChannelData = useCallback(async () => {
@@ -153,7 +175,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   }, [fetchChannelData, fetchChineseChannelData]);
 
   const fetchLeaderboard = useCallback(async (limit: number = 100) => {
-    const cacheKey = `leaderboard:${region}:${solo ? 'solo' : 'duo'}:${timeframe}:${limit}`;
+    const cacheKey = `leaderboard:${region}:${solo ? 'solo' : 'duo'}:${timeframe}:${dateOffset}:${limit}`;
     const entries = inMemoryCache.get<LeaderboardEntry[]>(cacheKey);
     if (entries) {
       setLeaderboardData(entries);
@@ -168,7 +190,27 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     let data;
     try {
       setLoadingMore(true);
-      const { currentStart, prevStart, isUsingFallback } = await getLeaderboardDateRange(timeframe);
+
+      const { currentStart, prevStart, isUsingFallback } = await getLeaderboardDateRange(timeframe, dateOffset);
+
+      let query = supabase
+        .from('daily_leaderboard_stats')
+        .select('day_start')
+        .eq('game_mode', solo ? '0': '1');
+        
+      if (region !== 'all') {
+        query = query.eq('region', region.toUpperCase());
+      }
+        
+      const { data: fetched, error } = await query
+        .order('day_start', { ascending: true })
+        .limit(1);
+
+      if (fetched && Array.isArray(fetched) && fetched.length > 0 && fetched[0]?.day_start) {
+        const minDateFromDB = DateTime.fromISO(fetched[0].day_start).setZone('America/Los_Angeles');
+        setMinDate(minDateFromDB);
+      }
+
       if (isUsingFallback) {
         console.log('Using fallback data (yesterday) for leaderboard - today\'s data not yet available');
       }
@@ -179,7 +221,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         let combinedRaw: RawLeaderboardEntry[] = [];
         for (const reg of regionsUpper) {
           // Cache current stats
-          const currentCacheKey = `lb-current:${reg}:${mode}:${currentStart}:${limit}`;
+          const currentCacheKey = `lb-current:${reg}:${mode}:${currentStart}:${dateOffset}:${limit}`;
           let currentChunk = inMemoryCache.get<RawLeaderboardEntry[]>(currentCacheKey);
           if (!currentChunk) {
             const { data: fetched, error } = await supabase
@@ -202,7 +244,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             inMemoryCache.set(currentCacheKey, currentChunk, 5 * 60 * 1000);
           }
           // Cache baseline stats
-          const baselineCacheKey = `lb-baseline:${reg}:${mode}:${prevStart}:${limit}`;
+          const baselineCacheKey = `lb-baseline:${reg}:${mode}:${prevStart}:${dateOffset}:${limit}`;
           let baselineChunk = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
           if (!baselineChunk) {
             const { data: fetched, error } = await supabase
@@ -254,7 +296,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       } else {
         // Single-region logic
         // Cache current period stats
-        const currentCacheKey = `lb-current:${region}:${mode}:${currentStart}:${limit}`;
+        const currentCacheKey = `lb-current:${region}:${mode}:${currentStart}:${dateOffset}:${limit}`;
         let resultData = inMemoryCache.get<RawLeaderboardEntry[]>(currentCacheKey);
         if (!resultData) {
           const result = await supabase
@@ -280,7 +322,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           inMemoryCache.set(currentCacheKey, resultData, 5 * 60 * 1000);
         }
         // Cache baseline stats
-        const baselineCacheKey = `lb-baseline:${region}:${mode}:${prevStart}:${limit}`;
+        const baselineCacheKey = `lb-baseline:${region}:${mode}:${prevStart}:${dateOffset}:${limit}`;
         let baselineResults = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
         if (!baselineResults) {
           const { data: fetched } = await supabase
@@ -332,7 +374,15 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [region, solo, timeframe]);
+  }, [region, solo, timeframe, dateOffset]);
+
+  // Refresh data when date offset changes
+  useEffect(() => {
+    setLoading(true);
+    setRenderCount(25);
+    fullFetchedRef.current = false;
+    void fetchLeaderboard(100);
+  }, [dateOffset, timeframe, fetchLeaderboard]);
 
   // Initial fetch
   useEffect(() => {
@@ -430,6 +480,12 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         <div className="flex items-center justify-center mb-2 text-center">
           <h1 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-2 flex-wrap justify-center">
             {regionName} Leaderboard
+            <DatePicker
+              selectedDate={selectedDate}
+              onDateChange={handleDateChange}
+              maxDate={ptNow.endOf('day')}
+              minDate={minDate}
+            />
             <Info onClick={handleInfoClick} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
           </h1>
         </div>
