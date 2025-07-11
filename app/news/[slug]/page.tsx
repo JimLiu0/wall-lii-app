@@ -88,8 +88,10 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
     const allEntities: string[] = [];
     const allImages: HTMLImageElement[] = [];
     
-    // Add h3 entity if it matches
-    const h3ImgSrc = entityToImageMap.get(normalizeEntityName(entityName));
+    // Add h3 entity if it matches (check both direct and normalized)
+    const normalizedEntityName = normalizeEntityName(entityName);
+    const h3ImgSrc = entityToImageMap.get(normalizedEntityName);
+    
     if (h3ImgSrc) {
       allEntities.push(entityName);
       const h3Img = doc.createElement("img");
@@ -101,7 +103,47 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
       allImages.push(h3Img);
       
       // Mark h3 entity as processed
-      processedEntities.add(normalizeEntityName(entityName));
+      processedEntities.add(normalizedEntityName);
+      
+      // Make the h3 text underlined to show it was matched
+      h3.innerHTML = `<u>${entityName}</u>`;
+    } else {
+      // If the h3 doesn't match as a single entity, try to split it and look for individual entities
+      // This handles cases like "Amalgam and Mishmash" where they exist as separate entities
+      const words = entityName.split(/\s+and\s+/i);
+      if (words.length > 1) {
+        let matchedWords: string[] = [];
+        for (const word of words) {
+          const trimmedWord = word.trim();
+          const normalizedWord = normalizeEntityName(trimmedWord);
+          const wordImgSrc = entityToImageMap.get(normalizedWord);
+          
+          if (wordImgSrc && !processedEntities.has(normalizedWord)) {
+            allEntities.push(trimmedWord);
+            const wordImg = doc.createElement("img");
+            wordImg.src = wordImgSrc;
+            wordImg.alt = trimmedWord;
+            wordImg.loading = "lazy";
+            wordImg.decoding = "async";
+            wordImg.className = "w-64 h-auto object-contain rounded";
+            allImages.push(wordImg);
+            
+            // Mark as processed
+            processedEntities.add(normalizedWord);
+            matchedWords.push(trimmedWord);
+          }
+        }
+        
+        // Make matched words underlined in the h3 text
+        if (matchedWords.length > 0) {
+          let newH3Text = entityName;
+          for (const matchedWord of matchedWords) {
+            const regex = new RegExp(`\\b${escapeRegExp(matchedWord)}\\b`, 'gi');
+            newH3Text = newH3Text.replace(regex, `<u>${matchedWord}</u>`);
+          }
+          h3.innerHTML = newH3Text;
+        }
+      }
     }
     
     // Process adjacent ul if it exists (regardless of h3 match)
