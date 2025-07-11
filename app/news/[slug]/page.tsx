@@ -1,4 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
+import { EntityToggleContent } from "@/components/EntityToggleContent";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -49,6 +50,27 @@ function normalizeEntityName(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "").replace(/[^a-zA-Z0-9()]/gi, "");
 }
 
+function underlineMatchInText(text: string, normalizedTarget: string): string {
+  const normalizedText = text.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+  const idx = normalizedText.indexOf(normalizedTarget);
+  if (idx === -1) return text;
+
+  let start = 0, j = 0;
+  while (j < idx && start < text.length) {
+    if (/[a-zA-Z0-9]/.test(text[start])) j++;
+    start++;
+  }
+  while (start < text.length && !/[a-zA-Z0-9]/.test(text[start])) start++;
+
+  let end = start, k = 0;
+  while (k < normalizedTarget.length && end < text.length) {
+    if (/[a-zA-Z0-9]/.test(text[end])) k++;
+    end++;
+  }
+
+  return text.slice(0, start) + '<u>' + text.slice(start, end) + '</u>' + text.slice(end);
+}
+
 function injectEntityImages(html: string, entityToImageMap: Map<string, string>): string {
   const dom = new JSDOM(html);
   const doc = dom.window.document;
@@ -88,8 +110,10 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
     const allEntities: string[] = [];
     const allImages: HTMLImageElement[] = [];
     
-    // Add h3 entity if it matches
-    const h3ImgSrc = entityToImageMap.get(normalizeEntityName(entityName));
+    // Add h3 entity if it matches (check both direct and normalized)
+    const normalizedEntityName = normalizeEntityName(entityName);
+    const h3ImgSrc = entityToImageMap.get(normalizedEntityName);
+    
     if (h3ImgSrc) {
       allEntities.push(entityName);
       const h3Img = doc.createElement("img");
@@ -101,7 +125,47 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
       allImages.push(h3Img);
       
       // Mark h3 entity as processed
-      processedEntities.add(normalizeEntityName(entityName));
+      processedEntities.add(normalizedEntityName);
+      
+      // Make the h3 text underlined to show it was matched
+      h3.innerHTML = `<u>${entityName}</u>`;
+    } else {
+      // If the h3 doesn't match as a single entity, try to split it and look for individual entities
+      // This handles cases like "Amalgam and Mishmash" where they exist as separate entities
+      const words = entityName.split(/\s+and\s+/i);
+      if (words.length > 1) {
+        const matchedWords: string[] = [];
+        for (const word of words) {
+          const trimmedWord = word.trim();
+          const normalizedWord = normalizeEntityName(trimmedWord);
+          const wordImgSrc = entityToImageMap.get(normalizedWord);
+          
+          if (wordImgSrc && !processedEntities.has(normalizedWord)) {
+            allEntities.push(trimmedWord);
+            const wordImg = doc.createElement("img");
+            wordImg.src = wordImgSrc;
+            wordImg.alt = trimmedWord;
+            wordImg.loading = "lazy";
+            wordImg.decoding = "async";
+            wordImg.className = "w-64 h-auto object-contain rounded";
+            allImages.push(wordImg);
+            
+            // Mark as processed
+            processedEntities.add(normalizedWord);
+            matchedWords.push(trimmedWord);
+          }
+        }
+        
+        // Make matched words underlined in the h3 text
+        if (matchedWords.length > 0) {
+          let newH3Text = entityName;
+          for (const matchedWord of matchedWords) {
+            const regex = new RegExp(`\\b${escapeRegExp(matchedWord)}\\b`, 'gi');
+            newH3Text = newH3Text.replace(regex, `<u>${matchedWord}</u>`);
+          }
+          h3.innerHTML = newH3Text;
+        }
+      }
     }
     
     // Process adjacent ul if it exists (regardless of h3 match)
@@ -110,15 +174,12 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
       for (const li of lis) {
         const text = li.textContent || "";
         const foundEntities: string[] = [];
-
         // Find all entity matches in order of appearance, deduplicated
         for (const [entity] of entityToImageMap.entries()) {
           let isMatch = false;
-          
           // First try direct word boundary match
           const directRegex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, "i");
           isMatch = directRegex.test(text);
-          
           // If no direct match, try normalized text for entities that might have been normalized
           if (!isMatch) {
             const normalizedText = normalizeEntityName(text);
@@ -128,20 +189,31 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
               isMatch = normalizedText.includes(entity);
             }
           }
-          
           const isProcessed = processedEntities.has(entity);
           const isAlreadyFound = foundEntities.includes(entity);
-          
           if (isMatch && !isAlreadyFound && !isProcessed) {
             foundEntities.push(entity);
           }
         }
-
+        // Underline matched entity words in the li text
+        if (foundEntities.length > 0) {
+          let newLiText = text;
+          for (const entity of foundEntities) {
+            // Try direct match first
+            const regex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, 'gi');
+            if (regex.test(newLiText)) {
+              newLiText = newLiText.replace(regex, (match) => `<u>${match}</u>`);
+            } else if (entity.length > 8) {
+              // If not direct, try normalized matching for long entities
+              newLiText = underlineMatchInText(newLiText, entity);
+            }
+          }
+          li.innerHTML = newLiText;
+        }
         // Add images for found entities
         for (const entity of foundEntities) {
           const imgSrc = entityToImageMap.get(entity);
           if (!imgSrc) continue;
-          
           const img = doc.createElement("img");
           img.src = imgSrc;
           img.alt = entity;
@@ -149,7 +221,6 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
           img.decoding = "async";
           img.className = "w-64 h-auto object-contain rounded";
           allImages.push(img);
-          
           // Mark as processed
           processedEntities.add(entity);
         }
@@ -179,18 +250,14 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
     if (parentUl && parentUl.previousElementSibling?.tagName === "H3") {
       continue;
     }
-    
     const text = li.textContent || "";
     const foundEntities: string[] = [];
-
     // Find all entity matches in order of appearance, deduplicated
     for (const [entity] of entityToImageMap.entries()) {
       let isMatch = false;
-      
       // First try direct word boundary match
       const directRegex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, "i");
       isMatch = directRegex.test(text);
-      
       // If no direct match, try normalized text for entities that might have been normalized
       if (!isMatch) {
         const normalizedText = normalizeEntityName(text);
@@ -200,28 +267,37 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
           isMatch = normalizedText.includes(entity);
         }
       }
-      
       const isProcessed = processedEntities.has(entity);
       const isAlreadyFound = foundEntities.includes(entity);
-      
       if (isMatch && !isAlreadyFound && !isProcessed) {
         foundEntities.push(entity);
       }
     }
-
     if (foundEntities.length === 0) continue;
-
+    // Underline matched entity words in the li text
+    if (foundEntities.length > 0) {
+      let newLiText = text;
+      for (const entity of foundEntities) {
+        // Try direct match first
+        const regex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, 'gi');
+        if (regex.test(newLiText)) {
+          newLiText = newLiText.replace(regex, (match) => `<u>${match}</u>`);
+        } else if (entity.length > 8) {
+          // If not direct, try normalized matching for long entities
+          newLiText = underlineMatchInText(newLiText, entity);
+        }
+      }
+      li.innerHTML = newLiText;
+    }
     // Remove any existing images for these entities
     for (const entity of foundEntities) {
       const existing = li.querySelector(`img[alt="${entity}"]`);
       if (existing) existing.remove();
     }
-
     // Create a container for images with consistent spacing
     if (foundEntities.length > 0) {
       const imageContainer = doc.createElement("div");
       imageContainer.className = "flex flex-wrap gap-6 mt-2";
-      
       for (const entity of foundEntities) {
         const imgSrc = entityToImageMap.get(entity);
         if (!imgSrc) continue;
@@ -234,10 +310,8 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
         imageContainer.appendChild(img);
         console.log(entity);
       }
-      
       li.appendChild(imageContainer);
     }
-
   }
 
   return doc.body.innerHTML;
@@ -471,35 +545,9 @@ export default async function NewsPostPage({
             </div>
 
             {/* Content */}
-            <div 
-              className="prose prose-lg prose-invert max-w-none flex-image
-              [&>p]:block
-              sm:[&>p:has(img)]:grid
-              sm:[&>p:has(img)]:grid-cols-2
-              [&>p>img]:w-48
-              [&>p>img]:sm:w-64
-              [&>p>img]:mx-auto
-              [&>p>img]:h-auto
-              [&>.card-grid]:grid
-              [&>.card-grid]:gap-6
-              [&>.card-grid]:grid-cols-1
-              sm:[&>.card-grid]:grid-cols-2
-              md:[&>.card-grid]:grid-cols-3
-              [&_.card-grid-placeholder]:bg-gray-800
-              [&_.card-grid-placeholder]:text-white
-              [&_.card-grid-placeholder]:rounded
-              [&_.card-grid-placeholder]:p-4
-              [&_.card-grid-placeholder]:text-center
-              [&_.card-grid-placeholder]:font-semibold
-              [&_.card-grid-placeholder]:text-lg
-              [&_.card-grid-placeholder]:border
-              [&_.card-grid-placeholder]:border-gray-700
-              [&_.card-grid-placeholder]:shadow
-              [&_.card-grid-item:has(.card-grid-placeholder)]:flex
-              [&_.card-grid-item:has(.card-grid-placeholder)]:flex-col
-              [&_.card-grid-item:has(.card-grid-placeholder)]:items-center
-              [&_.card-grid-item:has(.card-grid-placeholder)]:justify-center" 
-              dangerouslySetInnerHTML={{ __html: processedContentWithLinks }}
+            <EntityToggleContent
+              rawHtml={post.content}
+              processedHtml={processedContentWithLinks}
             />
             
             {/* Footer metadata */}
