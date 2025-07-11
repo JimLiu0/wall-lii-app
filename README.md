@@ -35,16 +35,7 @@ To run the app locally:
 
 Contributions are welcome! Here’s how to get started:
 
-- Make sure `.env.local` is set up using `.env.example`
 - You only need the public Supabase `anon` key and URL to develop
-- Tests live in `/tests` and are run with:
-
-  ```bash
-  python3.10 -m pytest
-  ```
-
-- Mock data lives in `tests/mock_data/` for testing leaderboard queries
-
 If you're working on a feature, feel free to open a draft PR and ask questions!
 
 ---
