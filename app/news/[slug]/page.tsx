@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { JSDOM } from "jsdom";
+import { inMemoryCache } from "@/utils/inMemoryCache";
 
 export const revalidate = 3600; // Revalidate every hour
 
@@ -248,6 +249,13 @@ function escapeRegExp(string: string) {
 }
 
 async function getNewsPost(slug: string): Promise<NewsPost | null> {
+  // Check cache first
+  const cacheKey = `news-post:${slug}`;
+  const cachedPost = inMemoryCache.get<NewsPost>(cacheKey);
+  if (cachedPost) {
+    return cachedPost;
+  }
+
   const { data, error } = await supabase
     .from("news_posts")
     .select("*")
@@ -260,6 +268,8 @@ async function getNewsPost(slug: string): Promise<NewsPost | null> {
     return null;
   }
 
+  // Cache for 24 hours (86400000 ms) since news posts don't change frequently
+  inMemoryCache.set(cacheKey, data, 24 * 60 * 60 * 1000);
   return data;
 }
 
