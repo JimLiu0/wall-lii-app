@@ -277,9 +277,31 @@ export async function generateMetadata({
     };
   }
 
+  const ogImageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/og?slug=${resolvedParams.slug}`;
+
   return {
     title: post.title,
     description: post.summary,
+    openGraph: {
+      title: post.title,
+      description: post.summary,
+      type: 'article',
+      url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/news/${resolvedParams.slug}`,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.summary,
+      images: [ogImageUrl],
+    },
   };
 }
 
