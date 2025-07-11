@@ -202,14 +202,21 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         query = query.eq('region', region.toUpperCase());
       }
         
-      const { data: fetched, error } = await query
-        .order('day_start', { ascending: true })
-        .limit(1);
+              const { data: fetched, error } = await query
+          .order('day_start', { ascending: true })
+          .limit(1);
 
-      if (fetched && Array.isArray(fetched) && fetched.length > 0 && fetched[0]?.day_start) {
-        const minDateFromDB = DateTime.fromISO(fetched[0].day_start).setZone('America/Los_Angeles');
-        setMinDate(minDateFromDB);
-      }
+        if (error) {
+          console.error('Error fetching min date:', error);
+          // Fall back to default min date (30 days ago)
+          setMinDate(DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }));
+        } else if (fetched && Array.isArray(fetched) && fetched.length > 0 && fetched[0]?.day_start) {
+          const minDateFromDB = DateTime.fromISO(fetched[0].day_start).setZone('America/Los_Angeles');
+          setMinDate(minDateFromDB);
+        } else {
+          // No data found, fall back to default min date
+          setMinDate(DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }));
+        }
 
       if (isUsingFallback) {
         console.log('Using fallback data (yesterday) for leaderboard - today\'s data not yet available');
