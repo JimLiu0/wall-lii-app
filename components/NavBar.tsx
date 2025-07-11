@@ -171,6 +171,35 @@ export default function NavBar() {
                     </svg>
                     Discord
                   </a>
+                  <a
+                    href="https://x.com/lii_hs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center px-4 py-2 text-gray-300 hover:bg-blue-700 hover:text-white transition-colors"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-5 h-5 mr-2"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path
+                        d="M4.25 3h5.516l3.7 5.03L17.5 3h2.73l-6.08 7.34L21 21h-5.516l-4.038-5.487L7.5 21H4.75l6.4-7.742L4.25 3z"
+                      />
+                    </svg>
+                    X
+                  </a>
+                  <a
+                    href="https://github.com/JimLiu0/wall-lii-app"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center px-4 py-2 text-gray-300 hover:bg-blue-700 hover:text-white transition-colors"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.38 7.84 10.9.57.1.78-.25.78-.55v-1.94c-3.19.69-3.87-1.54-3.87-1.54-.52-1.31-1.27-1.66-1.27-1.66-1.04-.71.08-.7.08-.7 1.15.08 1.75 1.19 1.75 1.19 1.02 1.75 2.68 1.24 3.34.94.1-.74.4-1.24.72-1.52-2.55-.3-5.23-1.27-5.23-5.64 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.03 0 0 .97-.31 3.19 1.17a11.04 11.04 0 0 1 5.8 0c2.22-1.48 3.18-1.17 3.18-1.17.63 1.58.24 2.74.12 3.03.74.8 1.18 1.82 1.18 3.07 0 4.39-2.69 5.34-5.25 5.63.42.36.77 1.06.77 2.14v3.17c0 .31.2.66.79.55A10.52 10.52 0 0 0 23.5 12c0-6.35-5.15-11.5-11.5-11.5z"/>
+                    </svg>
+                    GitHub
+                  </a>
                 </div>
               )}
             </div>
