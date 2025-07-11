@@ -72,52 +72,113 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
     placeholder.replaceWith(img);
   }
 
-  // Then handle h3 elements as before
+  // Then handle h3 elements and adjacent ul elements together
   const h3s = Array.from(doc.querySelectorAll("h3")) as HTMLHeadingElement[];
 
   for (const h3 of h3s) {
     const entityName = h3.textContent?.trim();
     if (!entityName) continue;
     
-    const imgSrc = entityToImageMap.get(normalizeEntityName(entityName));
-    if (!imgSrc) continue;
-
-    let foundImage = false;
-    let node = h3.nextElementSibling;
-    let insertAfter: HTMLElement = h3;
-
-    while (node && ["UL", "P"].includes(node.tagName)) {
-      if (
-        node.tagName === "P" &&
-        node.querySelector(`img[alt="${entityName}"]`)
-      ) {
-        foundImage = true;
-        break;
-      }
-      insertAfter = node as HTMLElement;
-      node = node.nextElementSibling;
-    }
-
-    if (foundImage) continue;
-
-    // Create new <p><img /></p>
-    const newImgPara = doc.createElement("p");
-    const img = doc.createElement("img");
-    img.src = imgSrc;
-    img.alt = entityName;
-    img.loading = "lazy";
-    img.decoding = "async";
-    newImgPara.appendChild(img);
-
-    insertAfter.insertAdjacentElement("afterend", newImgPara);
+    // Check if there's an adjacent ul element
+    const nextSibling = h3.nextElementSibling;
+    const adjacentUl = nextSibling?.tagName === "UL" ? nextSibling as HTMLUListElement : null;
     
-    // Mark this entity as processed
-    processedEntities.add(normalizeEntityName(entityName));
+    // Collect all entities from h3 and adjacent ul
+    const allEntities: string[] = [];
+    const allImages: HTMLImageElement[] = [];
+    
+    // Add h3 entity if it matches
+    const h3ImgSrc = entityToImageMap.get(normalizeEntityName(entityName));
+    if (h3ImgSrc) {
+      allEntities.push(entityName);
+      const h3Img = doc.createElement("img");
+      h3Img.src = h3ImgSrc;
+      h3Img.alt = entityName;
+      h3Img.loading = "lazy";
+      h3Img.decoding = "async";
+      h3Img.className = "w-64 h-auto object-contain rounded";
+      allImages.push(h3Img);
+      
+      // Mark h3 entity as processed
+      processedEntities.add(normalizeEntityName(entityName));
+    }
+    
+    // Process adjacent ul if it exists (regardless of h3 match)
+    if (adjacentUl) {
+      const lis = Array.from(adjacentUl.querySelectorAll("li")) as HTMLElement[];
+      for (const li of lis) {
+        const text = li.textContent || "";
+        const foundEntities: string[] = [];
+
+        // Find all entity matches in order of appearance, deduplicated
+        for (const [entity] of entityToImageMap.entries()) {
+          let isMatch = false;
+          
+          // First try direct word boundary match
+          const directRegex = new RegExp(`\\b${escapeRegExp(entity)}\\b`, "i");
+          isMatch = directRegex.test(text);
+          
+          // If no direct match, try normalized text for entities that might have been normalized
+          if (!isMatch) {
+            const normalizedText = normalizeEntityName(text);
+            // Only use normalized matching for entities that are likely multi-word (longer than 8 chars)
+            // This prevents short entities like "rat" from being matched in normalized text
+            if (entity.length > 8) {
+              isMatch = normalizedText.includes(entity);
+            }
+          }
+          
+          const isProcessed = processedEntities.has(entity);
+          const isAlreadyFound = foundEntities.includes(entity);
+          
+          if (isMatch && !isAlreadyFound && !isProcessed) {
+            foundEntities.push(entity);
+          }
+        }
+
+        // Add images for found entities
+        for (const entity of foundEntities) {
+          const imgSrc = entityToImageMap.get(entity);
+          if (!imgSrc) continue;
+          
+          const img = doc.createElement("img");
+          img.src = imgSrc;
+          img.alt = entity;
+          img.loading = "lazy";
+          img.decoding = "async";
+          img.className = "w-64 h-auto object-contain rounded";
+          allImages.push(img);
+          
+          // Mark as processed
+          processedEntities.add(entity);
+        }
+      }
+    }
+    
+    // Create a container for all images with horizontal layout
+    if (allImages.length > 0) {
+      const imageContainer = doc.createElement("div");
+      imageContainer.className = "flex flex-wrap gap-6 mb-4";
+      
+      for (const img of allImages) {
+        imageContainer.appendChild(img);
+      }
+      
+      // Insert after the ul (or h3 if no ul)
+      const insertAfter = adjacentUl || h3;
+      insertAfter.insertAdjacentElement("afterend", imageContainer);
+    }
   }
 
-  // Finally, inject images after <li> items with <strong> entity references
+  // Finally, inject images after <li> items that are NOT part of adjacent ul elements
   const allLis = Array.from(doc.querySelectorAll("li")) as HTMLElement[];
   for (const li of allLis) {
+    // Skip if this li is part of a ul that's adjacent to an h3 (already processed)
+    const parentUl = li.closest("ul");
+    if (parentUl && parentUl.previousElementSibling?.tagName === "H3") {
+      continue;
+    }
+    
     const text = li.textContent || "";
     const foundEntities: string[] = [];
 
@@ -142,11 +203,6 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
       const isProcessed = processedEntities.has(entity);
       const isAlreadyFound = foundEntities.includes(entity);
       
-      // Debug specific entities
-      if (entity === "felementalportrait") {
-        console.log(`Checking "felementalportrait": isMatch=${isMatch}, text="${text}"`);
-      }
-      
       if (isMatch && !isAlreadyFound && !isProcessed) {
         foundEntities.push(entity);
       }
@@ -160,18 +216,25 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
       if (existing) existing.remove();
     }
 
-    // Append images in order
-    for (const entity of foundEntities) {
-      const imgSrc = entityToImageMap.get(entity);
-      if (!imgSrc) continue;
-      const img = doc.createElement("img");
-      img.src = imgSrc;
-      img.alt = entity;
-      img.loading = "lazy";
-      img.decoding = "async";
-      img.className = "ml-2 block";
-      li.appendChild(img);
-      console.log(entity);
+    // Create a container for images with consistent spacing
+    if (foundEntities.length > 0) {
+      const imageContainer = doc.createElement("div");
+      imageContainer.className = "flex flex-wrap gap-6 mt-2";
+      
+      for (const entity of foundEntities) {
+        const imgSrc = entityToImageMap.get(entity);
+        if (!imgSrc) continue;
+        const img = doc.createElement("img");
+        img.src = imgSrc;
+        img.alt = entity;
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.className = "w-64 h-auto object-contain rounded";
+        imageContainer.appendChild(img);
+        console.log(entity);
+      }
+      
+      li.appendChild(imageContainer);
     }
 
   }
