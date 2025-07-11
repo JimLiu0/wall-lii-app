@@ -89,7 +89,7 @@ Stores an MMR snapshot of each player+region+game_mode combo. Updated every 5 mi
 
 ### `bg_entities`
 
-Tracks Battlegrounds-specific entities (minions, heroes, anomalies, etc.), scraped from hearthstone.wiki.gg.
+Tracks Battlegrounds-specific entities (minions, heroes, anomalies, etc.), scraped from [hearthstone.wiki.gg](https://hearthstone.wiki.gg).
 
 | Column        | Type   | Description                                      |
 |---------------|--------|--------------------------------------------------|
@@ -244,7 +244,7 @@ Tracks when rating milestones are hit. Snapshots and milestone checks are taken 
 
 
 ### `news_posts`
-OpenAI-processed news posts used for /news display. See lambda function for generation details.
+OpenAI-processed news posts used for /news display. See [this lambda function](https://github.com/HS-Tools/Wall_Lii/tree/main/lambda-functions/fetch_news) for generation details.
 
 ```json
 [
@@ -253,6 +253,7 @@ OpenAI-processed news posts used for /news display. See lambda function for gene
     "title": "Announcing Battlegrounds Season 10 – Second Nature!",
     "slug": "announcing-battlegrounds-season-10-second-nature",
     "type": "patch",
+    "content": "......",
     "summary": "Battlegrounds Season 10 introduces a massive minion refresh with over 75 new and returning minions, the return of Trinkets with over 100 new offerings, and two new heroes, Forest Lord Cenarius and Buttons.",
     "image_url": "https://bnetcmsus-a.akamaihd.net/cms/blog_thumbnail/u5/U591LX2YCBFT1744661735540.jpg",
     "author": "Blizzard Entertainment",
@@ -267,6 +268,7 @@ OpenAI-processed news posts used for /news display. See lambda function for gene
     "title": "Upcoming Features Schedule Update",
     "slug": "upcoming-features-schedule-update",
     "type": "patch",
+    "content": "......",
     "summary": "I'm sorry, but the provided text does not contain any specific gameplay changes for Hearthstone Battlegrounds. Please provide the detailed patch notes or blog post that includes the actual gameplay up...",
     "image_url": "https://bnetcmsus-a.akamaihd.net/cms/blog_thumbnail/78/78OUSG2EOJK71721947059321.jpg",
     "author": "Nathan Lyons-Smith, Executive Producer",
