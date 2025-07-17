@@ -231,14 +231,20 @@ function injectEntityImages(html: string, entityToImageMap: Map<string, string>)
     if (allImages.length > 0) {
       const imageContainer = doc.createElement("div");
       imageContainer.className = "flex flex-wrap gap-6 mb-4";
-      
+
       for (const img of allImages) {
         imageContainer.appendChild(img);
       }
-      
-      // Insert after the ul (or h3 if no ul)
+
+      // Insert after the ul (or h3 if no ul), but only if not already present
       const insertAfter = adjacentUl || h3;
-      insertAfter.insertAdjacentElement("afterend", imageContainer);
+      const alreadyHasImageBlock =
+        insertAfter.nextElementSibling?.classList.contains("flex") &&
+        insertAfter.nextElementSibling.querySelector("img");
+
+      if (!alreadyHasImageBlock) {
+        insertAfter.insertAdjacentElement("afterend", imageContainer);
+      }
     }
   }
 
