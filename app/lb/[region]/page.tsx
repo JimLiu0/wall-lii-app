@@ -1,5 +1,6 @@
 import LeaderboardContent from '@/components/LeaderboardContent';
 import NewsBanner from '@/components/NewsBanner';
+import SeasonResetBanner from '@/components/SeasonResetBanner';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -53,6 +54,7 @@ export default async function Page({ params, searchParams }: PageProps) {
     <div className="min-h-screen">
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          <SeasonResetBanner />
           <NewsBanner />
           <LeaderboardContent region={region} searchParams={resolvedSearchParams} />
         </div>

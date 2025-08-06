@@ -48,7 +48,17 @@ export default async function LiveStreamsTable() {
       .select('channel, player, live, youtube')
       .eq('live', true);
     if (error || !fetched || fetched.length === 0) {
-      return null;
+      return (
+        <div className="bg-gray-900 rounded-lg p-6 mt-6">
+          <h2 className="text-center text-xl font-bold text-white mb-4">
+            Top Ranked Livestreams
+          </h2>
+          <div className="text-center text-gray-400 py-8">
+            <p className="text-lg">No streamers currently live who are on the leaderboard</p>
+            <p className="text-sm mt-2">Check back later for live streams from top players</p>
+          </div>
+        </div>
+      );
     }
     channelData = fetched;
     inMemoryCache.set(channelCacheKey, channelData, 5 * 60 * 1000);
@@ -85,7 +95,17 @@ export default async function LiveStreamsTable() {
       .in('player_name', livePlayers)
       .eq('day_start', today);
     if (error || !fetched || fetched.length === 0) {
-      return null;
+      return (
+        <div className="bg-gray-900 rounded-lg p-6 mt-6">
+          <h2 className="text-center text-xl font-bold text-white mb-4">
+            Top Ranked Livestreams
+          </h2>
+          <div className="text-center text-gray-400 py-8">
+            <p className="text-lg">No streamers currently live who are on the leaderboard</p>
+            <p className="text-sm mt-2">Check back later for live streams from top players</p>
+          </div>
+        </div>
+      );
     }
     leaderboardData = fetched;
     inMemoryCache.set(lbCacheKey, leaderboardData, 5 * 60 * 1000);

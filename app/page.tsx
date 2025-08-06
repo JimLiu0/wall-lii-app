@@ -1,4 +1,5 @@
 import NewsBanner from '@/components/NewsBanner';
+import SeasonResetBanner from '@/components/SeasonResetBanner';
 import LiveStreamsTable from '@/components/LiveStreamsTable';
 import LeaderboardPreview from '@/components/LeaderboardPreview';
 import PlayerSearch from '@/components/PlayerSearch';
@@ -11,6 +12,7 @@ export const metadata = {
 export default function HomePage() {
   return (
     <div className="container mx-auto p-4 max-w-7xl">
+      <SeasonResetBanner />
       <NewsBanner />
       <div className="bg-zinc-800 px-4 py-3 rounded-lg text-center text-zinc-300 mb-6">
         Track Hearthstone Battlegrounds leaderboards, player stats, livestreams, and stay updated with the latest patch notes.
