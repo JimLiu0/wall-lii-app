@@ -24,8 +24,8 @@ export default function SeasonResetBanner() {
               Season 11 Database Reset
             </h3>
             <p className="text-orange-100 text-sm leading-relaxed">
-              Season 11 of Battlegrounds has started, so Wallii's database has been reset. 
-              If you'd like to see previous season data, consider{' '}
+              Season 11 of Battlegrounds has started, so Wallii&apos;s database has been reset. 
+              If you&apos;d like to see previous season data, consider{' '}
               <Link 
                 href="https://www.paypal.com/donate/?hosted_button_id=TBGLAGYRPHLEY" 
                 target="_blank"
