@@ -52,6 +52,7 @@ interface Props {
 }
 
 const regions = ['na', 'eu', 'ap', 'cn'] as const;
+const non_cn_regions = ['na', 'eu', 'ap'] as const;
 
 function processRanks(data: LeaderboardEntry[]): LeaderboardEntry[] {
   // Sort by rating in descending order
@@ -202,7 +203,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         query = query.eq('region', region.toUpperCase());
       }
         
-              const { data: fetched, error } = await query
+        const { data: fetched, error } = await query
           .order('day_start', { ascending: true })
           .limit(1);
 
@@ -224,7 +225,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       const mode = solo ? '0' : '1';
       let entries: LeaderboardEntry[] = [];
       if (region === 'all') {
-        const regionsUpper = regions.map(r => r.toUpperCase());
+        const regionsUpper = non_cn_regions.map(r => r.toUpperCase());
         let combinedRaw: RawLeaderboardEntry[] = [];
         for (const reg of regionsUpper) {
           // Cache current stats
@@ -486,7 +487,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         {/* Info row */}
         <div className="flex items-center justify-center mb-2 text-center">
           <h1 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-2 flex-wrap justify-center">
-            {regionName} Leaderboard
+            {regionName} {regionName == 'Global' && '(No CN)'} Leaderboard
             <DatePicker
               selectedDate={selectedDate}
               onDateChange={handleDateChange}
