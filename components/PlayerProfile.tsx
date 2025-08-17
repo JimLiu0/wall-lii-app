@@ -1,6 +1,6 @@
 'use client';
 import SocialIndicators from './SocialIndicators';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
 import PlayerGraph from '@/components/PlayerGraph';
@@ -54,17 +54,19 @@ interface Props {
 
 export default function PlayerProfile({ player, region, view: viewParam, offset, playerData, channelData, chineseStreamerData }: Props) {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [isLoadingOffset, setIsLoadingOffset] = useState(false);
 
-  const view: TimeView = viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all';
-  const offsetNum = offset || 0;
-  const [offsetInput, setOffsetInput] = useState(offsetNum);
-useEffect(() => {
-  setOffsetInput(offsetNum);
-}, [searchParams, offsetNum]);
-  const gameMode = searchParams.get('g') as GameMode || 's';
+  const [gameMode, setGameMode] = useState<GameMode>((searchParams.get('g') as GameMode) || 's');
+  const [currentRegion, setCurrentRegion] = useState<string>(region);
+  const [currentView, setCurrentView] = useState<TimeView>(viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all');
+  const [offsetNumState, setOffsetNumState] = useState<number>(offset || 0);
+
+  const [offsetInput, setOffsetInput] = useState(offsetNumState);
+  useEffect(() => {
+    setOffsetInput(offsetNumState);
+  }, [offsetNumState]);
+  // const gameMode = searchParams.get('g') as GameMode || 's';
 
   // Memoize the Info icon click handler to prevent unnecessary re-renders
   const handleInfoClick = useCallback(() => {
@@ -74,25 +76,25 @@ useEffect(() => {
   // Generate back button URL based on current region and game mode
   const getBackUrl = () => {
     const gameModeParam = gameMode === 'd' ? 'duo' : 'solo';
-    if (region === 'all') {
+    if (currentRegion === 'all') {
       return `/lb/all?mode=${gameModeParam}`;
     }
-    return `/lb/${region}?mode=${gameModeParam}`;
+    return `/lb/${currentRegion}?mode=${gameModeParam}`;
   };
 
   let filteredData = useMemo(() => {
     let filtered = playerData.data;
 
-    if (view !== 'all') {
+    if (currentView !== 'all') {
       const now = DateTime.now().setZone('America/Los_Angeles');
       let startTime: DateTime;
       let endTime: DateTime;
 
-      if (view === 'week') {
-        startTime = now.minus({ weeks: offsetNum }).startOf('week').startOf('day');
+      if (currentView === 'week') {
+        startTime = now.minus({ weeks: offsetNumState }).startOf('week').startOf('day');
         endTime = startTime.plus({ weeks: 1 });
       } else {
-        startTime = now.minus({ days: offsetNum }).startOf('day');
+        startTime = now.minus({ days: offsetNumState }).startOf('day');
         endTime = startTime.plus({ days: 1 });
       }
 
@@ -144,36 +146,47 @@ useEffect(() => {
     }
 
     return filtered;
-  }, [playerData.data, view, offsetNum]);
+  }, [playerData.data, currentView, offsetNumState]);
 
   filteredData = dedupData(filteredData);
 
+  const replaceUrlWithoutNavigation = (params: URLSearchParams) => {
+    const url = `/stats/${player}?${params.toString()}`;
+    window.history.replaceState(null, '', url);
+  };
+
   const updateView = (newView: TimeView) => {
+    setCurrentView(newView);
+    setOffsetNumState(0);
     const periodMap = { all: 's', week: 'w', day: 'd' };
     const params = new URLSearchParams(searchParams);
     params.set('v', periodMap[newView]);
     params.set('o', '0');
-    router.push(`/stats/${player}?${params.toString()}`);
+    replaceUrlWithoutNavigation(params);
   };
 
-  const updateOffset = async (newOffset: number) => {
+  const updateOffset = (newOffset: number) => {
     setIsLoadingOffset(true);
+    setOffsetNumState(newOffset);
+    setOffsetInput(newOffset);
     const params = new URLSearchParams(searchParams);
     params.set('o', newOffset.toString());
-    await router.push(`/stats/${player}?${params.toString()}`);
+    replaceUrlWithoutNavigation(params);
     setIsLoadingOffset(false);
   };
 
   const updateGameMode = (newGameMode: GameMode) => {
+    setGameMode(newGameMode);
     const params = new URLSearchParams(searchParams);
     params.set('g', newGameMode);
-    router.push(`/stats/${player}?${params.toString()}`);
+    replaceUrlWithoutNavigation(params);
   };
 
   const updateRegion = (newRegion: string) => {
+    setCurrentRegion(newRegion.toLowerCase());
     const params = new URLSearchParams(searchParams);
     params.set('r', newRegion.toLowerCase());
-    router.push(`/stats/${player}?${params.toString()}`);
+    replaceUrlWithoutNavigation(params);
   };
 
   const { availableModes } = playerData;
@@ -184,11 +197,29 @@ useEffect(() => {
     availableCombos.includes(`${r.toLowerCase()}-${gm === 'd' ? '1' : '0'}`);
 
   // Determine which buttons to show
-  const showSoloButton = hasCombo(region, 's');
-  const showDuoButton = hasCombo(region, 'd');
+  const showSoloButton = hasCombo(currentRegion, 's');
+  const showDuoButton = hasCombo(currentRegion, 'd');
   const showRegionButtons = availableModes.regions.filter(r =>
     hasCombo(r, gameMode)  // Only show regions that have data for the current game mode
   );
+
+  useEffect(() => {
+    const onPopState = () => {
+      const sp = new URLSearchParams(window.location.search);
+      const g = (sp.get('g') as GameMode) || 's';
+      const r = (sp.get('r') || currentRegion).toLowerCase();
+      const vParam = sp.get('v');
+      const v: TimeView = vParam === 'w' ? 'week' : vParam === 'd' ? 'day' : 'all';
+      const o = Number(sp.get('o') || 0);
+      setGameMode(g);
+      setCurrentRegion(r);
+      setCurrentView(v);
+      setOffsetNumState(Number.isFinite(o) ? o : 0);
+      setOffsetInput(Number.isFinite(o) ? o : 0);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [currentRegion]);
 
   return (
     <div className="container mx-auto p-4">
@@ -233,7 +264,7 @@ useEffect(() => {
                 />
                 <ButtonGroup
                   options={showRegionButtons.map(r => ({ label: r.toUpperCase(), value: r }))}
-                  selected={region}
+                  selected={currentRegion}
                   onChange={updateRegion}
                 />
               </div>
@@ -244,16 +275,16 @@ useEffect(() => {
                     label: v === 'all' ? 'Season' : v.charAt(0).toUpperCase() + v.slice(1),
                     value: v as TimeView
                   }))}
-                  selected={view}
+                  selected={currentView}
                   onChange={updateView}
                 />
                 <Info onClick={handleInfoClick} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
               </div>
 
-              {view !== 'all' && (
+              {currentView !== 'all' && (
                 <div className="flex gap-2 mt-4">
                   <button
-                    onClick={() => updateOffset(offsetNum + 1)}
+                    onClick={() => updateOffset(offsetNumState + 1)}
                     className="px-3 py-2 rounded transition-colors bg-gray-800 text-gray-300 hover:bg-gray-700"
                   >
                     ⬅️
@@ -269,8 +300,8 @@ useEffect(() => {
                       className="w-14 h-8 text-center text-sm rounded bg-gray-900 text-white border border-gray-700 focus:outline-none"
                     />
                     <span className="text-sm text-gray-300">
-                      {view === 'week' && `week${offsetInput !== 1 ? 's' : ''} ago`}
-                      {view === 'day' && `day${offsetInput !== 1 ? 's' : ''} ago`}
+                      {currentView === 'week' && `week${offsetInput !== 1 ? 's' : ''} ago`}
+                      {currentView === 'day' && `day${offsetInput !== 1 ? 's' : ''} ago`}
                     </span>
                     <button
                       onClick={() => updateOffset(offsetInput)}
@@ -281,8 +312,8 @@ useEffect(() => {
                     </button>
                   </div>
                   <button
-                    className={`px-3 py-2 rounded transition-colors bg-gray-800 text-gray-300 hover:bg-gray-700 ${offsetNum === 0 && 'hidden'}`}
-                    onClick={() => updateOffset(offsetNum - 1)}
+                    className={`px-3 py-2 rounded transition-colors bg-gray-800 text-gray-300 hover:bg-gray-700 ${offsetNumState === 0 && 'hidden'}`}
+                    onClick={() => updateOffset(offsetNumState - 1)}
                   >
                     ➡️
                   </button>
@@ -294,9 +325,9 @@ useEffect(() => {
               )}
 
               <div className="text-xl font-bold text-white mt-4">
-                {view === 'all'
+                {currentView === 'all'
                   ? 'Season Rating Record'
-                  : `${view === 'week' ? 'Week' : 'Day'} - ${getPeriodLabel(view, offsetNum)}`}
+                  : `${currentView === 'week' ? 'Week' : 'Day'} - ${getPeriodLabel(currentView, offsetNumState)}`}
               </div>
             </div>
 
