@@ -51,13 +51,6 @@ interface PlayerData {
   };
 }
 
-const regionNames = {
-  na: 'North America',
-  eu: 'Europe',
-  ap: 'Asia Pacific',
-  cn: 'China'
-};
-
 // Shared data fetching function to avoid double fetching
 async function fetchPlayerData(player: string) {
   // Fetch channel data
@@ -154,11 +147,8 @@ export async function generateStaticParams() {
 export const revalidate = 300;
 
 export async function generateMetadata({ params, searchParams }: { params: Promise<PageParams>, searchParams: Promise<SearchParams> }): Promise<Metadata> {
-  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  const [resolvedParams] = await Promise.all([params, searchParams]);
   const decodedPlayer = decodeURIComponent(resolvedParams.player.toLowerCase());
-  const region = resolvedSearchParams.r || 'all';
-  const regionName = regionNames[region as keyof typeof regionNames] || region.toUpperCase();
-  const gameMode = resolvedSearchParams.g === 'd' ? 'Duo' : 'Solo';
 
   // Fetch minimal data for metadata
   const { allData } = await fetchPlayerData(decodedPlayer);
@@ -171,12 +161,12 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   }
 
   return {
-    title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
-    description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode. Track rating changes, peak ratings, and performance over time.`,
+    title: `${decodedPlayer} - Player Profile`,
+    description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history. Track rating changes, peak ratings, and performance over time.`,
     openGraph: {
-      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
-      description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
-      url: `https://wallii.gg/stats/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`,
+      title: `${decodedPlayer} - Player Profile`,
+      description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history.`,
+      url: `https://wallii.gg/stats/${encodeURIComponent(decodedPlayer)}`,
       type: 'profile',
       images: [
         {
@@ -189,12 +179,12 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
-      description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
+      title: `${decodedPlayer} - Player Profile`,
+      description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history.`,
       images: ['/og-image.jpg']
     },
     alternates: {
-      canonical: `https://wallii.gg/stats/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`
+      canonical: `https://wallii.gg/stats/${encodeURIComponent(decodedPlayer)}`
     }
   };
 }
