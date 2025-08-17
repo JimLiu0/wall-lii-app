@@ -158,6 +158,7 @@ export default async function LiveStreamsTable() {
                     <Link
                       href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
                       className="text-blue-300 font-semibold hover:underline"
+                      prefetch={false}
                       target="_blank"
                     >
                       {entry.player_name}

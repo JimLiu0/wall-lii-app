@@ -12,6 +12,7 @@ export default function PlayerHeader({ backUrl }: PlayerHeaderProps) {
     <div className="flex flex-col sm:flex-row items-start gap-2">
       <Link
         href={backUrl}
+        prefetch={false}
         className="inline-flex items-center justify-center mt-1 text-blue-400 hover:text-blue-300 transition-colors px-3 py-2 rounded-lg hover:bg-gray-800 whitespace-nowrap"
       >
         <svg

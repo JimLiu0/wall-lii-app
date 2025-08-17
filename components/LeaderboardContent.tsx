@@ -674,6 +674,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                         <Link
                           href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
                           target="_blank"
+                          prefetch={false}
                           className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
                         >
                           {entry.player_name}
