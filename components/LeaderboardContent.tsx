@@ -79,9 +79,12 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     if (urlGameMode === 'solo' || urlGameMode === 'duo') {
       return urlGameMode === 'solo';
     }
-    // Fall back to localStorage or default
-    const storedGameMode = localStorage.getItem('preferredGameMode');
-    return storedGameMode ? storedGameMode === 'solo' : defaultSolo;
+    // Fall back to localStorage or default (only in browser)
+    if (typeof window !== 'undefined') {
+      const storedGameMode = localStorage.getItem('preferredGameMode');
+      return storedGameMode ? storedGameMode === 'solo' : defaultSolo;
+    }
+    return defaultSolo;
   });
   const [searchQuery, setSearchQuery] = useState('');
   const observerTarget = useRef<HTMLDivElement>(null);
@@ -152,11 +155,13 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
 
   // Save preferences to localStorage when they change
   useEffect(() => {
-    localStorage.setItem('preferredRegion', region);
-    localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
-    
-    // Dispatch custom event to notify other components in the same tab
-    window.dispatchEvent(new Event('localStorageChange'));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('preferredRegion', region);
+      localStorage.setItem('preferredGameMode', solo ? 'solo' : 'duo');
+      
+      // Dispatch custom event to notify other components in the same tab
+      window.dispatchEvent(new Event('localStorageChange'));
+    }
   }, [region, solo]);
 
   useEffect(() => {
@@ -405,7 +410,9 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   // Handle region button clicks
   const handleRegionChange = (newRegion: string) => {
     if (region !== newRegion) {
-      localStorage.setItem('preferredRegion', newRegion);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('preferredRegion', newRegion);
+      }
       // Preserve the current game mode in the URL
       const gameMode = solo ? 'solo' : 'duo';
       const url = newRegion === 'all' ? `/lb/all?mode=${gameMode}` : `/lb/${newRegion}?mode=${gameMode}`;
@@ -416,7 +423,9 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   // Handle game mode changes
   const handleGameModeChange = (isSolo: boolean) => {
     setSolo(isSolo);
-    localStorage.setItem('preferredGameMode', isSolo ? 'solo' : 'duo');
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('preferredGameMode', isSolo ? 'solo' : 'duo');
+    }
     // Update URL with current game mode
     const gameMode = isSolo ? 'solo' : 'duo';
     const url = region === 'all' ? `lb/all?mode=${gameMode}` : `/lb/${region}?mode=${gameMode}`;
