@@ -35,57 +35,6 @@ interface ChineseChannelEntry {
   url: string;
 }
 
-const regionNames = {
-  na: 'North America',
-  eu: 'Europe',
-  ap: 'Asia Pacific',
-  cn: 'China'
-};
-
-export async function generateMetadata({ params, searchParams }: { params: Promise<PageParams>, searchParams: Promise<SearchParams> }): Promise<Metadata> {
-  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
-  const decodedPlayer = decodeURIComponent(resolvedParams.player.toLowerCase());
-  const region = resolvedSearchParams.r || 'all';
-  const regionName = regionNames[region as keyof typeof regionNames] || region.toUpperCase();
-  const gameMode = resolvedSearchParams.g === 'd' ? 'Duo' : 'Solo';
-
-  return {
-    title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
-    description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode. Track rating changes, peak ratings, and performance over time.`,
-    openGraph: {
-      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
-      description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
-      url: `https://wallii.gg/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`,
-      type: 'profile',
-      images: [
-        {
-          url: '/og-image.jpg',
-          width: 1200,
-          height: 630,
-          alt: `${decodedPlayer}'s Hearthstone Battlegrounds Profile`
-        }
-      ]
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
-      description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
-      images: ['/og-image.jpg']
-    },
-    alternates: {
-      canonical: `https://wallii.gg/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`
-    }
-  };
-}
-
-interface PlayerModes {
-  regions: string[];
-  gameModes: string[];
-  defaultRegion: string;
-  defaultGameMode: string;
-  availableCombos: string[]; // e.g. ['na-0', 'na-1', 'cn-0']
-}
-
 interface PlayerData {
   name: string;
   rank: number;
@@ -93,23 +42,24 @@ interface PlayerData {
   peak: number;
   region: string;
   data: { snapshot_time: string; rating: number }[];
-  availableModes: PlayerModes;
+  availableModes: {
+    regions: string[];
+    gameModes: string[];
+    defaultRegion: string;
+    defaultGameMode: string;
+    availableCombos: string[];
+  };
 }
 
-export default async function PlayerPage({
-  params,
-  searchParams,
-}: PageProps) {
-  const [resolvedParams, resolvedSearchParams] = await Promise.all([
-    params,
-    searchParams
-  ]);
-  const player = decodeURIComponent(resolvedParams.player.toLowerCase());
-  const requestedRegion = resolvedSearchParams.r || 'all';
-  const requestedView = resolvedSearchParams.v;
-  const requestedOffset = parseInt(resolvedSearchParams.o || '0', 10);
-  const requestedGameMode = resolvedSearchParams.g || 's';
+const regionNames = {
+  na: 'North America',
+  eu: 'Europe',
+  ap: 'Asia Pacific',
+  cn: 'China'
+};
 
+// Shared data fetching function to avoid double fetching
+async function fetchPlayerData(player: string) {
   // Fetch channel data
   const channelCacheKey = `player:channels:${player}`;
   let channelData = inMemoryCache.get<ChannelEntry[]>(channelCacheKey);
@@ -156,6 +106,7 @@ export default async function PlayerPage({
   }> = [];
   let from = 0;
   let error: PostgrestError | null = null;
+  
   while (true) {
     const { data: chunk, error: chunkError } = await supabase
       .from('leaderboard_snapshots')
@@ -174,18 +125,107 @@ export default async function PlayerPage({
     }
     from += pageSize;
   }
-  const data = allData;
 
-  if (error || !data || data.length === 0) {
+  return {
+    channelData,
+    chineseStreamerData,
+    allData,
+    error
+  };
+}
+
+// ISR: Generate static params for popular players
+export async function generateStaticParams() {
+  // Fetch top players to pre-generate their pages
+  const { data: topPlayers } = await supabase
+    .from('daily_leaderboard_stats')
+    .select('player_name')
+    .eq('day_start', new Date().toISOString().split('T')[0])
+    .limit(100);
+
+  if (!topPlayers) return [];
+
+  return topPlayers.map((player) => ({
+    player: player.player_name.toLowerCase(),
+  }));
+}
+
+// ISR: Revalidate every 5 minutes
+export const revalidate = 300;
+
+export async function generateMetadata({ params, searchParams }: { params: Promise<PageParams>, searchParams: Promise<SearchParams> }): Promise<Metadata> {
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
+  const decodedPlayer = decodeURIComponent(resolvedParams.player.toLowerCase());
+  const region = resolvedSearchParams.r || 'all';
+  const regionName = regionNames[region as keyof typeof regionNames] || region.toUpperCase();
+  const gameMode = resolvedSearchParams.g === 'd' ? 'Duo' : 'Solo';
+
+  // Fetch minimal data for metadata
+  const { allData } = await fetchPlayerData(decodedPlayer);
+  
+  if (!allData || allData.length === 0) {
+    return {
+      title: 'Player Not Found | Wallii',
+      description: 'This player could not be found in our database.'
+    };
+  }
+
+  return {
+    title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
+    description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode. Track rating changes, peak ratings, and performance over time.`,
+    openGraph: {
+      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
+      description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
+      url: `https://wallii.gg/stats/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`,
+      type: 'profile',
+      images: [
+        {
+          url: '/og-image.jpg',
+          width: 1200,
+          height: 630,
+          alt: `${decodedPlayer}'s Hearthstone Battlegrounds Profile`
+        }
+      ]
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${decodedPlayer} - ${regionName} ${gameMode} Player Profile`,
+      description: `View ${decodedPlayer}'s Hearthstone Battlegrounds player profile, statistics, and MMR history for ${regionName} ${gameMode} mode.`,
+      images: ['/og-image.jpg']
+    },
+    alternates: {
+      canonical: `https://wallii.gg/stats/${encodeURIComponent(decodedPlayer)}?r=${region}&g=${gameMode.toLowerCase()}`
+    }
+  };
+}
+
+export default async function PlayerPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([
+    params,
+    searchParams
+  ]);
+  const player = decodeURIComponent(resolvedParams.player.toLowerCase());
+  const requestedRegion = resolvedSearchParams.r || 'all';
+  const requestedView = resolvedSearchParams.v;
+  const requestedOffset = parseInt(resolvedSearchParams.o || '0', 10);
+  const requestedGameMode = resolvedSearchParams.g || 's';
+
+  // Use shared data fetching function
+  const { channelData, chineseStreamerData, allData, error } = await fetchPlayerData(player);
+
+  if (error || !allData || allData.length === 0) {
     return <PlayerNotFound player={player} />;
   }
 
   // Get unique regions and game modes for this player
-  const regions = [...new Set(data.map(item => item.region.toLowerCase()))];
-  const gameModes = [...new Set(data.map(item => item.game_mode))];
+  const regions = [...new Set(allData.map(item => item.region.toLowerCase()))];
+  const gameModes = [...new Set(allData.map(item => item.game_mode))];
   
   // Create all possible combinations that exist in the data
-  const availableCombos = data.reduce((acc, item) => {
+  const availableCombos = allData.reduce((acc, item) => {
     const combo = `${item.region.toLowerCase()}-${item.game_mode}`;
     if (!acc.includes(combo)) {
       acc.push(combo);
@@ -194,14 +234,14 @@ export default async function PlayerPage({
   }, [] as string[]);
 
   // Group data by region and game mode
-  const groupedData = data.reduce((acc, item) => {
+  const groupedData = allData.reduce((acc, item) => {
     const key = `${item.region.toLowerCase()}-${item.game_mode}`;
     if (!acc[key]) {
       acc[key] = [];
     }
     acc[key].push(item);
     return acc;
-  }, {} as Record<string, typeof data>);
+  }, {} as Record<string, typeof allData>);
 
   // Find the most recent rating change across all combinations
   let mostRecentChange = null;
@@ -233,7 +273,7 @@ export default async function PlayerPage({
 
   // If no rating changes found, just use the most recent entry overall
   if (!mostRecentChange) {
-    mostRecentChange = data.reduce((latest, current) => {
+    mostRecentChange = allData.reduce((latest, current) => {
       return new Date(current.snapshot_time) > new Date(latest.snapshot_time) ? current : latest;
     });
   }
@@ -298,7 +338,7 @@ export default async function PlayerPage({
   }
 
   // Filter data for the current region and game mode
-  const filteredData = data.filter(
+  const filteredData = allData.filter(
     item =>
       item.region.toLowerCase() === requestedRegion &&
       item.game_mode === (requestedGameMode === 'd' ? '1' : '0')
