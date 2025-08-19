@@ -9,6 +9,7 @@ import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
 import { inMemoryCache } from '@/utils/inMemoryCache';
 
 const regions = [
+  { code: 'all', label: 'ALL'},
   { code: 'na', label: 'NA' },
   { code: 'eu', label: 'EU' },
   { code: 'ap', label: 'AP' },
@@ -50,7 +51,7 @@ export default function LeaderboardPreview() {
   const isClient = typeof window !== 'undefined';
   const storedRegion = isClient ? localStorage.getItem('preferredRegion') : null;
   const storedGameMode = isClient ? localStorage.getItem('preferredGameMode') : null;
-  const [selectedRegion, setSelectedRegion] = useState(storedRegion || 'na');
+  const [selectedRegion, setSelectedRegion] = useState(storedRegion || 'all');
   const [selectedMode, setSelectedMode] = useState<'0' | '1'>(
     storedGameMode === 'duo' ? '1' : '0'
   );
@@ -115,7 +116,25 @@ export default function LeaderboardPreview() {
         inMemoryCache.set(chCacheKey, channels, 5 * 60 * 1000);
       }
 
-      setFullData(lb || []);
+      // Build an augmented list without mutating the cached array to avoid duplication
+      const baseLB = [...(lb || [])];
+      const allAdditions: LeaderboardEntry[] = [];
+      for (const obj of gameModes) {
+        const mode = obj.value;
+        const top10Global = baseLB
+          .filter(a => a.region !== 'CN' && a.game_mode === mode)
+          .toSorted((a, b) => b.rating - a.rating)
+          .slice(0, 10)
+          .map((item, index) => ({
+            ...item,
+            rank: index + 1,
+            region: 'ALL',
+          }));
+        allAdditions.push(...top10Global);
+      }
+
+      const lbAugmented = baseLB.concat(allAdditions);
+      setFullData(lbAugmented);
       setChannelData(channels || []);
       void fetchChineseChannelData();
       setLoading(false);
