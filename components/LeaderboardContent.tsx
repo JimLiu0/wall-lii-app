@@ -208,21 +208,21 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         query = query.eq('region', region.toUpperCase());
       }
         
-        const { data: fetched, error } = await query
-          .order('day_start', { ascending: true })
-          .limit(1);
+      const { data: fetched, error } = await query
+        .order('day_start', { ascending: true })
+        .limit(1);
 
-        if (error) {
-          console.error('Error fetching min date:', error);
-          // Fall back to default min date (30 days ago)
-          setMinDate(DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }));
-        } else if (fetched && Array.isArray(fetched) && fetched.length > 0 && fetched[0]?.day_start) {
-          const minDateFromDB = DateTime.fromISO(fetched[0].day_start).setZone('America/Los_Angeles');
-          setMinDate(minDateFromDB);
-        } else {
-          // No data found, fall back to default min date
-          setMinDate(DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }));
-        }
+      if (error) {
+        console.error('Error fetching min date:', error);
+        // Fall back to default min date (30 days ago)
+        setMinDate(DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }));
+      } else if (fetched && Array.isArray(fetched) && fetched.length > 0 && fetched[0]?.day_start) {
+        const minDateFromDB = DateTime.fromISO(fetched[0].day_start).setZone('America/Los_Angeles');
+        setMinDate(minDateFromDB);
+      } else {
+        // No data found, fall back to default min date
+        setMinDate(DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }));
+      }
 
       if (isUsingFallback) {
         console.log('Using fallback data (yesterday) for leaderboard - today\'s data not yet available');
@@ -230,82 +230,73 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       const mode = solo ? '0' : '1';
       let entries: LeaderboardEntry[] = [];
       if (region === 'all') {
-        const regionsUpper = non_cn_regions.map(r => r.toUpperCase());
-        let combinedRaw: RawLeaderboardEntry[] = [];
-        for (const reg of regionsUpper) {
-          // Cache current stats
-          const currentCacheKey = `lb-current:${reg}:${mode}:${currentStart}:${dateOffset}:${limit}`;
-          let currentChunk = inMemoryCache.get<RawLeaderboardEntry[]>(currentCacheKey);
-          if (!currentChunk) {
-            const { data: fetched, error } = await supabase
-              .from('daily_leaderboard_stats')
-              .select('player_name, rating, rank, region, games_played, weekly_games_played')
-              .eq('day_start', currentStart)
-              .eq('game_mode', mode)
-              .eq('region', reg)
-              .limit(limit)
-              .order('rank', { ascending: true });
-            if (error) throw error;
-            currentChunk = (fetched || []).map((row) => ({
-              player_name: row.player_name,
-              rating: typeof row.rating === 'number' ? row.rating : 0,
-              rank: typeof row.rank === 'number' ? row.rank : 0,
-              region: row.region ?? reg,
-              games_played: typeof row.games_played === 'number' ? row.games_played : 0,
-              weekly_games_played: typeof row.weekly_games_played === 'number' ? row.weekly_games_played : 0,
-            }));
-            inMemoryCache.set(currentCacheKey, currentChunk, 5 * 60 * 1000);
-          }
-          // Cache baseline stats
-          const baselineCacheKey = `lb-baseline:${reg}:${mode}:${prevStart}:${dateOffset}:${limit}`;
-          let baselineChunk = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
-          if (!baselineChunk) {
-            const { data: fetched, error } = await supabase
-              .from('daily_leaderboard_stats')
-              .select('player_name, rating, rank, region')
-              .eq('day_start', prevStart)
-              .eq('game_mode', mode)
-              .eq('region', reg)
-              .limit(limit)
-              .order('rank', { ascending: true });
-            if (error) throw error;
-            baselineChunk = (fetched || []).map((row) => ({
-              player_name: row.player_name,
-              rating: row.rating,
-              rank: typeof row.rank === 'number' ? row.rank : 0,
-              region: row.region ?? reg,
-              games_played: 0,
-              weekly_games_played: 0,
-            }));
-            inMemoryCache.set(baselineCacheKey, baselineChunk, 5 * 60 * 1000);
-          }
-          const prevMap = Object.fromEntries(
-            (baselineChunk || []).map(p => [p.player_name, typeof p.rating === 'number' ? p.rating : 0])
-          );
-          const chunkWithDelta = (currentChunk || []).map(p => ({
-            player_name: p.player_name,
-            rating: typeof p.rating === 'number' ? p.rating : 0,
-            rank: typeof p.rank === 'number' ? p.rank : 0,
-            region: p.region ?? reg,
-            games_played: timeframe === 'week' ? (typeof p.weekly_games_played === 'number' ? p.weekly_games_played : 0) : (typeof p.games_played === 'number' ? p.games_played : 0),
-            weekly_games_played: typeof p.weekly_games_played === 'number' ? p.weekly_games_played : 0,
-            rating_delta: typeof prevMap[p.player_name] === 'number'
-              ? (typeof p.rating === 'number' ? p.rating - prevMap[p.player_name] : 0)
-              : 0,
+        // Optimized global leaderboard - single query without region filter
+        const currentCacheKey = `lb-current:all:${mode}:${currentStart}:${dateOffset}:${limit}`;
+        let currentData = inMemoryCache.get<RawLeaderboardEntry[]>(currentCacheKey);
+        if (!currentData) {
+          const { data: fetched, error } = await supabase
+            .from('daily_leaderboard_stats')
+            .select('player_name, rating, region, games_played, weekly_games_played')
+            .eq('day_start', currentStart)
+            .eq('game_mode', mode)
+            .not('region', 'eq', 'CN') // Exclude China region for global view
+            .order('rating', { ascending: false })
+            .limit(limit);
+          if (error) throw error;
+          currentData = (fetched || []).map((row, index) => ({
+            player_name: row.player_name,
+            rating: typeof row.rating === 'number' ? row.rating : 0,
+            rank: index + 1, // Assign rank based on query order
+            region: row.region,
+            games_played: typeof row.games_played === 'number' ? row.games_played : 0,
+            weekly_games_played: typeof row.weekly_games_played === 'number' ? row.weekly_games_played : 0,
           }));
-          combinedRaw = combinedRaw.concat(chunkWithDelta);
+          inMemoryCache.set(currentCacheKey, currentData, 5 * 60 * 1000);
         }
-        const mapped = combinedRaw.map(p => ({
+
+        // Cache baseline stats
+        const baselineCacheKey = `lb-baseline:all:${mode}:${prevStart}:${dateOffset}:${limit}`;
+        let baselineData = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
+        if (!baselineData) {
+          const { data: fetched, error } = await supabase
+            .from('daily_leaderboard_stats')
+            .select('player_name, rating, region')
+            .eq('day_start', prevStart)
+            .eq('game_mode', mode)
+            .not('region', 'eq', 'CN') // Exclude China region for global view
+            .order('rating', { ascending: false })
+            .limit(limit);
+          if (error) throw error;
+          baselineData = (fetched || []).map((row, index) => ({
+            player_name: row.player_name,
+            rating: row.rating,
+            rank: index + 1, // Assign rank based on query order
+            region: row.region,
+            games_played: 0,
+            weekly_games_played: 0,
+          }));
+          inMemoryCache.set(baselineCacheKey, baselineData, 5 * 60 * 1000);
+        }
+
+        // Calculate deltas
+        const prevMap = Object.fromEntries(
+          (baselineData || []).map(p => [p.player_name, typeof p.rating === 'number' ? p.rating : 0])
+        );
+        
+        const dataWithDelta = (currentData || []).map(p => ({
           player_name: p.player_name,
           rating: typeof p.rating === 'number' ? p.rating : 0,
           rank: typeof p.rank === 'number' ? p.rank : 0,
           region: p.region,
-          games_played: typeof p.games_played === 'number' ? p.games_played : 0,
+          games_played: timeframe === 'week' ? (typeof p.weekly_games_played === 'number' ? p.weekly_games_played : 0) : (typeof p.games_played === 'number' ? p.games_played : 0),
           weekly_games_played: typeof p.weekly_games_played === 'number' ? p.weekly_games_played : 0,
-          rating_delta: typeof p.rating_delta === 'number' ? p.rating_delta : 0,
-          rank_delta: 0,
+          rating_delta: typeof prevMap[p.player_name] === 'number'
+            ? (typeof p.rating === 'number' ? p.rating - prevMap[p.player_name] : 0)
+            : 0,
+          rank_delta: 0, // Global view doesn't have rank deltas since ranks are recalculated
         }));
-        entries = processRanks(mapped).slice(0, limit);
+
+        entries = dataWithDelta;
       } else {
         // Single-region logic
         // Cache current period stats
