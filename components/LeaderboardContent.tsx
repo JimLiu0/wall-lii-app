@@ -52,17 +52,6 @@ interface Props {
 }
 
 const regions = ['na', 'eu', 'ap', 'cn'] as const;
-const non_cn_regions = ['na', 'eu', 'ap'] as const;
-
-function processRanks(data: LeaderboardEntry[]): LeaderboardEntry[] {
-  // Sort by rating in descending order
-  return [...data]
-    .sort((a, b) => b.rating - a.rating)
-    .map((entry, index) => ({
-      ...entry,
-      rank: index + 1
-    }));
-}
 
 export default function LeaderboardContent({ region, defaultSolo = true, searchParams }: Props) {
   const router = useRouter();
