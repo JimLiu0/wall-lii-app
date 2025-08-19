@@ -33,6 +33,7 @@ interface LeaderboardEntry {
   rank: number;
   region: string;
   game_mode: string;
+  original_region?: string; // Make it optional since it's not in DB
 }
 
 interface ChannelEntry {
@@ -102,7 +103,7 @@ export default function LeaderboardPreview() {
           .eq('day_start', today)
           .order('rank', { ascending: true })
           .limit(80);
-        lb = lbData || [];
+        lb = (lbData || [])
         inMemoryCache.set(lbCacheKey, lb, 5 * 60 * 1000);
       }
 
@@ -128,6 +129,7 @@ export default function LeaderboardPreview() {
           .map((item, index) => ({
             ...item,
             rank: index + 1,
+            original_region: item.region,
             region: 'ALL',
           }));
         allAdditions.push(...top10Global);
@@ -206,7 +208,7 @@ export default function LeaderboardPreview() {
                         prefetch={false}
                         target="_blank"
                       >
-                        {entry.player_name}
+                        {entry.player_name} {entry.original_region && <span className="text-sm text-gray-400">({entry.original_region})</span>}
                       </Link>
                       <SocialIndicators playerName={entry.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
                     </div>
