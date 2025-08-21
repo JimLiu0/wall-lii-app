@@ -152,8 +152,8 @@ export default function LeaderboardPreview() {
     <div className="bg-gray-900 rounded-lg p-6 mt-6">
       {/* Desktop / md and up */}
       <div className="flex flex-col items-center mb-2">
-        <h2 className="flex items-center text-xl font-bold text-white">
-          Leaderboard Preview
+        <h2 className="flex items-center text-xl font-bold text-white text-center">
+          { selectedRegion === 'all' ? 'Global (No CN)' : selectedRegion.toUpperCase()} Leaderboard Preview
         </h2>
         {/* Mount guard to prevent hydration mismatch from localStorage defaults */}
         {mounted && (
