@@ -1,31 +1,10 @@
+import { supabase } from "@/utils/supabaseClient";
 import { EntityToggleContent } from "@/components/EntityToggleContent";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { JSDOM } from "jsdom";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-const sbHeaders = {
-  apikey: supabaseKey,
-  Authorization: `Bearer ${supabaseKey}`,
-  Accept: 'application/json',
-} as const;
-
-async function fetchJSON<T>(url: string, init?: RequestInit & { next?: { revalidate?: number } }) {
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      ...sbHeaders,
-      ...(init?.headers || {}),
-    },
-    next: { revalidate: 3600, ...(init?.next || {}) },
-  });
-  if (!res.ok) throw new Error(`Request failed ${res.status}: ${await res.text()}`);
-  return (await res.json()) as T;
-}
 
 export const revalidate = 3600; // Revalidate every hour
 export const dynamic = 'force-static';
@@ -350,14 +329,19 @@ function escapeRegExp(string: string) {
 }
 
 async function getNewsPost(slug: string): Promise<NewsPost | null> {
-  try {
-    const url = `${supabaseUrl}/rest/v1/news_posts?slug=eq.${encodeURIComponent(slug)}&is_published=eq.true&select=*`;
-    const rows = await fetchJSON<NewsPost[]>(url);
-    return rows?.[0] ?? null;
-  } catch (err) {
-    console.error('Error fetching news post (REST):', err);
+  const { data, error } = await supabase
+    .from("news_posts")
+    .select("*")
+    .eq("slug", slug)
+    .eq("is_published", true)
+    .single();
+
+  if (error || !data) {
+    console.error("Error fetching news post:", error);
     return null;
   }
+
+  return data;
 }
 
 export async function generateMetadata({
@@ -419,17 +403,36 @@ export default async function NewsPostPage({
     { entity_name: string; image_url: string }[]
   > {
     const chunkSize = 1000;
-    const all: { entity_name: string; image_url: string }[] = [];
-    let offset = 0;
+    const allEntities: { entity_name: string; image_url: string }[] = [];
+    let from = 0;
+    let to = chunkSize - 1;
+
     while (true) {
-      const url = `${supabaseUrl}/rest/v1/bg_entities?select=entity_name,image_url&order=entity_name.asc&limit=${chunkSize}&offset=${offset}`;
-      const data = await fetchJSON<{ entity_name: string; image_url: string }[]>(url);
-      if (!data || data.length === 0) break;
-      all.push(...data);
-      if (data.length < chunkSize) break;
-      offset += chunkSize;
+      const { data, error } = await supabase
+        .from("bg_entities")
+        .select("entity_name, image_url")
+        .range(from, to);
+
+      if (error) {
+        console.error("Error fetching bg_entities:", error);
+        break;
+      }
+
+      if (!data || data.length === 0) {
+        break;
+      }
+
+      allEntities.push(...data);
+
+      if (data.length < chunkSize) {
+        break; // final chunk
+      }
+
+      from += chunkSize;
+      to += chunkSize;
     }
-    return all;
+
+    return allEntities;
   }
 
   const entities = await fetchAllEntities();
