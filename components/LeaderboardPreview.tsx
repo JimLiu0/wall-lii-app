@@ -98,12 +98,27 @@ export default function LeaderboardPreview() {
 
       if (!lb) {
         const { data: lbData } = await supabase
-          .from('daily_leaderboard_stats')
-          .select('player_name, rating, rank, region, game_mode')
+          .from('daily_leaderboard_stats_test')
+          .select(`
+            player_id,
+            rating, 
+            rank, 
+            region, 
+            game_mode,
+            players!inner(player_name)
+          `)
           .eq('day_start', today)
           .order('rank', { ascending: true })
           .limit(80);
-        lb = (lbData || [])
+        
+        // Transform the data to match the expected format
+        lb = (lbData || []).map((entry: any) => ({
+          player_name: entry.players.player_name,
+          rating: entry.rating,
+          rank: entry.rank,
+          region: entry.region,
+          game_mode: entry.game_mode,
+        }));
         inMemoryCache.set(lbCacheKey, lb, 5 * 60 * 1000);
       }
 

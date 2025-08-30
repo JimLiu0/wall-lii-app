@@ -105,15 +105,18 @@ async function fetchPlayerData(player: string) {
 export async function generateStaticParams() {
   // Fetch top players to pre-generate their pages
   const { data: topPlayers } = await supabase
-    .from('daily_leaderboard_stats')
-    .select('player_name')
+    .from('daily_leaderboard_stats_test')
+    .select(`
+      player_id,
+      players!inner(player_name)
+    `)
     .eq('day_start', new Date().toISOString().split('T')[0])
     .limit(100);
 
   if (!topPlayers) return [];
 
-  return topPlayers.map((player) => ({
-    player: player.player_name.toLowerCase(),
+  return topPlayers.map((player: any) => ({
+    player: player.players.player_name.toLowerCase(),
   }));
 }
 
