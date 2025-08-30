@@ -44,9 +44,12 @@ export default function PlayerSearch() {
   const checkPlayerExists = async (playerName: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase
-        .from('leaderboard_snapshots')
-        .select('player_name')
-        .eq('player_name', playerName)
+        .from('leaderboard_snapshots_test')
+        .select(`
+          player_id,
+          players!inner(player_name)
+        `)
+        .eq('players.player_name', playerName)
         .limit(1);
 
       if (error) {

@@ -27,7 +27,7 @@ interface PageProps {
 
 interface PlayerData {
   name: string;
-  rank: number;
+  rank: number; // Now required since we fetch it from daily_leaderboard_stats_test
   rating: number;
   peak: number;
   region: string;
@@ -68,7 +68,6 @@ async function fetchPlayerData(player: string) {
     rating: number;
     snapshot_time: string;
     region: string;
-    rank: number;
     game_mode: string;
   }> = [];
   let from = 0;
@@ -76,16 +75,31 @@ async function fetchPlayerData(player: string) {
   
   while (true) {
     const { data: chunk, error: chunkError } = await supabase
-      .from('leaderboard_snapshots')
-      .select('player_name, rating, snapshot_time, region, rank, game_mode')
-      .eq('player_name', player)
+      .from('leaderboard_snapshots_test')
+      .select(`
+        player_id,
+        rating, 
+        snapshot_time, 
+        region, 
+        game_mode,
+        players!inner(player_name)
+      `)
+      .eq('players.player_name', player)
       .order('snapshot_time', { ascending: true })
       .range(from, from + pageSize - 1);
     if (chunkError) {
       error = chunkError;
       break;
     }
-    allData = allData.concat(chunk || []);
+    // Transform the data to match expected format
+    const transformedChunk = (chunk || []).map((entry: any) => ({
+      player_name: entry.players.player_name,
+      rating: entry.rating,
+      snapshot_time: entry.snapshot_time,
+      region: entry.region,
+      game_mode: entry.game_mode,
+    }));
+    allData = allData.concat(transformedChunk);
     if (!chunk || chunk.length < pageSize) {
       // No more rows
       break;
@@ -311,9 +325,27 @@ export default async function PlayerPage({
       item.game_mode === (requestedGameMode === 'd' ? '1' : '0')
   );
 
+  // Fetch latest rank from daily_leaderboard_stats_test using player_name
+  let playerRank: number | undefined;
+  if (allData.length > 0) {
+    const { data: rankData } = await supabase
+      .from('daily_leaderboard_stats_test')
+      .select(`
+        rank,
+        players!inner(player_name)
+      `)
+      .eq('players.player_name', player)
+      .order('day_start', { ascending: false })
+      .limit(1);
+    
+    if (rankData && rankData.length > 0) {
+      playerRank = rankData[0].rank;
+    }
+  }
+
   const playerData: PlayerData = {
     name: player,
-    rank: filteredData[filteredData.length - 1]?.rank,
+    rank: playerRank ?? 0, // Use fetched rank or default to 0
     rating: filteredData[filteredData.length - 1]?.rating,
     peak: filteredData.reduce((max, item) => Math.max(max, item.rating), 0),
     region: requestedRegion,

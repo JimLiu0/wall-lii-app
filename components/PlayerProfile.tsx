@@ -237,7 +237,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
           <div className="flex gap-8">
             <div>
               <div className="text-gray-400 text-sm">Rank</div>
-              <div className="text-2xl text-white">{playerData.rank}</div>
+              <div className="text-2xl text-white">{playerData.rank || 'N/A'}</div>
             </div>
             <div>
               <div className="text-gray-400 text-sm">Rating</div>
