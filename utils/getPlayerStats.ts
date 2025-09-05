@@ -1,4 +1,3 @@
-import { dedupData } from './getDedupData';
 import { supabase } from './supabaseClient';
 import { DateTime } from 'luxon';
 
@@ -13,8 +12,14 @@ export async function fetchWeeklySnapshots(playerName: string, region: string, o
 
   const { data, error } = await supabase
     .from('leaderboard_snapshots')
-    .select('player_name, rating, snapshot_time, region')
-    .eq('player_name', playerName)
+    .select(`
+      player_id,
+      rating, 
+      snapshot_time, 
+      region,
+      players!inner(player_name)
+    `)
+    .eq('players.player_name', playerName)
     .eq('region', region.toUpperCase())
     .gte('snapshot_time', startOfWeek.toISO())
     .lt('snapshot_time', endOfWeek.toISO())
@@ -25,10 +30,16 @@ export async function fetchWeeklySnapshots(playerName: string, region: string, o
     return [];
   }
 
-  // Remove consecutive duplicate ratings
-  const filtered = dedupData(data);
+  // Transform data to match expected format
+  const transformed = (data || []).map((entry: any) => ({
+    player_name: entry.players.player_name,
+    rating: entry.rating,
+    snapshot_time: entry.snapshot_time,
+    region: entry.region,
+  }));
 
-  return filtered;
+  // No need for dedup logic since the new table doesn't have consecutive duplicate ratings
+  return transformed;
 }
 
 export async function fetchDailySnapshots(playerName: string, region: string, offset: number) {
@@ -41,8 +52,14 @@ export async function fetchDailySnapshots(playerName: string, region: string, of
 
   const { data, error } = await supabase
     .from('leaderboard_snapshots')
-    .select('player_name, rating, snapshot_time, region')
-    .eq('player_name', playerName)
+    .select(`
+      player_id,
+      rating, 
+      snapshot_time, 
+      region,
+      players!inner(player_name)
+    `)
+    .eq('players.player_name', playerName)
     .eq('region', region.toUpperCase())
     .gte('snapshot_time', startOfDay.toISO())
     .lt('snapshot_time', endOfDay.toISO())
@@ -53,10 +70,14 @@ export async function fetchDailySnapshots(playerName: string, region: string, of
     return [];
   }
 
-  const filtered = data.filter((entry, index, arr) => {
-    if (index === 0) return true;
-    return entry.rating !== arr[index - 1].rating;
-  });
+  // Transform data to match expected format
+  const transformed = (data || []).map((entry: any) => ({
+    player_name: entry.players.player_name,
+    rating: entry.rating,
+    snapshot_time: entry.snapshot_time,
+    region: entry.region,
+  }));
 
-  return filtered;
+  // No need for dedup logic since the new table doesn't have consecutive duplicate ratings
+  return transformed;
 }

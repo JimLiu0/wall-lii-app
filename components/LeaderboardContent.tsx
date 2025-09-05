@@ -33,6 +33,8 @@ interface RawLeaderboardEntry {
   rating_delta?: number;
 }
 
+
+
 interface ChannelEntry {
   channel: string;
   player: string;
@@ -225,15 +227,23 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         if (!currentData) {
           const { data: fetched, error } = await supabase
             .from('daily_leaderboard_stats')
-            .select('player_name, rating, region, games_played, weekly_games_played')
+            .select(`
+              player_id,
+              rating, 
+              region, 
+              games_played, 
+              weekly_games_played,
+              players!inner(player_name)
+            `)
             .eq('day_start', currentStart)
             .eq('game_mode', mode)
             .not('region', 'eq', 'CN') // Exclude China region for global view
             .order('rating', { ascending: false })
             .limit(limit);
           if (error) throw error;
-          currentData = (fetched || []).map((row, index) => ({
-            player_name: row.player_name,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          currentData = (fetched || []).map((row: any, index) => ({
+            player_name: row.players.player_name,
             rating: typeof row.rating === 'number' ? row.rating : 0,
             rank: index + 1, // Assign rank based on query order
             region: row.region,
@@ -249,15 +259,21 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         if (!baselineData) {
           const { data: fetched, error } = await supabase
             .from('daily_leaderboard_stats')
-            .select('player_name, rating, region')
+            .select(`
+              player_id,
+              rating, 
+              region,
+              players!inner(player_name)
+            `)
             .eq('day_start', prevStart)
             .eq('game_mode', mode)
             .not('region', 'eq', 'CN') // Exclude China region for global view
             .order('rating', { ascending: false })
             .limit(limit);
           if (error) throw error;
-          baselineData = (fetched || []).map((row, index) => ({
-            player_name: row.player_name,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          baselineData = (fetched || []).map((row: any, index) => ({
+            player_name: row.players.player_name,
             rating: row.rating,
             rank: index + 1, // Assign rank based on query order
             region: row.region,
@@ -294,7 +310,15 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         if (!resultData) {
           const result = await supabase
             .from('daily_leaderboard_stats')
-            .select('player_name, rating, rank, region, games_played, weekly_games_played')
+            .select(`
+              player_id,
+              rating, 
+              rank, 
+              region, 
+              games_played, 
+              weekly_games_played,
+              players!inner(player_name)
+            `)
             .eq('region', region.toUpperCase())
             .eq('game_mode', solo ? '0' : '1')
             .eq('day_start', currentStart)
@@ -304,8 +328,9 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             console.error('Error fetching leaderboard:', result.error);
             throw result.error;
           }
-          resultData = (result.data || []).map((row) => ({
-            player_name: row.player_name,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          resultData = (result.data || []).map((row: any) => ({
+            player_name: row.players.player_name,
             rating: row.rating,
             rank: typeof row.rank === 'number' ? row.rank : 0,
             region: row.region ?? region.toUpperCase(),
@@ -320,14 +345,21 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         if (!baselineResults) {
           const { data: fetched } = await supabase
             .from('daily_leaderboard_stats')
-            .select('player_name, rating, rank, region')
+            .select(`
+              player_id,
+              rating, 
+              rank, 
+              region,
+              players!inner(player_name)
+            `)
             .eq('region', region.toUpperCase())
             .eq('game_mode', solo ? '0' : '1')
             .eq('day_start', prevStart)
             .order('rank', { ascending: true })
             .limit(limit);
-          baselineResults = (fetched || []).map((row) => ({
-            player_name: row.player_name,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          baselineResults = (fetched || []).map((row: any) => ({
+            player_name: row.players.player_name,
             rating: row.rating,
             rank: typeof row.rank === 'number' ? row.rank : 0,
             region: row.region ?? region.toUpperCase(),

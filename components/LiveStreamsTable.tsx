@@ -13,6 +13,8 @@ interface LeaderboardEntry {
   game_mode: string; // '0' for solo, '1' for duo
 }
 
+
+
 interface ChannelEntry {
   channel: string;
   player: string;
@@ -91,8 +93,15 @@ export default async function LiveStreamsTable() {
   if (!leaderboardData) {
     const { data: fetched, error } = await supabase
       .from('daily_leaderboard_stats')
-      .select('player_name, rating, rank, region, game_mode')
-      .in('player_name', livePlayers)
+      .select(`
+        player_id,
+        rating, 
+        rank, 
+        region, 
+        game_mode,
+        players!inner(player_name)
+      `)
+      .in('players.player_name', livePlayers)
       .eq('day_start', today);
     if (error || !fetched || fetched.length === 0) {
       return (
@@ -107,7 +116,15 @@ export default async function LiveStreamsTable() {
         </div>
       );
     }
-    leaderboardData = fetched;
+    // Transform the data to match the expected format
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    leaderboardData = (fetched || []).map((entry: any) => ({
+      player_name: entry.players.player_name,
+      rating: entry.rating,
+      rank: entry.rank,
+      region: entry.region,
+      game_mode: entry.game_mode,
+    }));
     inMemoryCache.set(lbCacheKey, leaderboardData, 5 * 60 * 1000);
   }
 

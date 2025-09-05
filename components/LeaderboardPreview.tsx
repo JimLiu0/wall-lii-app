@@ -36,6 +36,8 @@ interface LeaderboardEntry {
   original_region?: string; // Make it optional since it's not in DB
 }
 
+
+
 interface ChannelEntry {
   channel: string;
   player: string;
@@ -99,11 +101,27 @@ export default function LeaderboardPreview() {
       if (!lb) {
         const { data: lbData } = await supabase
           .from('daily_leaderboard_stats')
-          .select('player_name, rating, rank, region, game_mode')
+          .select(`
+            player_id,
+            rating, 
+            rank, 
+            region, 
+            game_mode,
+            players!inner(player_name)
+          `)
           .eq('day_start', today)
           .order('rank', { ascending: true })
           .limit(80);
-        lb = (lbData || [])
+        
+        // Transform the data to match the expected format
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        lb = (lbData || []).map((entry: any) => ({
+          player_name: entry.players.player_name,
+          rating: entry.rating,
+          rank: entry.rank,
+          region: entry.region,
+          game_mode: entry.game_mode,
+        }));
         inMemoryCache.set(lbCacheKey, lb, 5 * 60 * 1000);
       }
 
@@ -153,7 +171,11 @@ export default function LeaderboardPreview() {
       {/* Desktop / md and up */}
       <div className="flex flex-col items-center mb-2">
         <h2 className="flex items-center text-xl font-bold text-white text-center">
-          { selectedRegion === 'all' ? 'Global (No CN)' : selectedRegion.toUpperCase()} Leaderboard Preview
+          {mounted ? (
+            selectedRegion === 'all' ? 'Global (No CN)' : selectedRegion.toUpperCase()
+          ) : (
+            'Leaderboard Preview'
+          )} Leaderboard Preview
         </h2>
         {/* Mount guard to prevent hydration mismatch from localStorage defaults */}
         {mounted && (
