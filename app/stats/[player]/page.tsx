@@ -121,13 +121,14 @@ async function fetchPlayerData(player: string) {
 // ISR: Generate static params for popular players
 export async function generateStaticParams() {
   // Fetch top players to pre-generate their pages
+  // Use a fixed date or remove the date filter to avoid dynamic behavior
   const { data: topPlayers } = await supabase
     .from('daily_leaderboard_stats')
     .select(`
       player_id,
       players!inner(player_name)
     `)
-    .eq('day_start', new Date().toISOString().split('T')[0])
+    .order('day_start', { ascending: false })
     .limit(100);
 
   if (!topPlayers) return [];
