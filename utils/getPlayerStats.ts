@@ -11,7 +11,7 @@ export async function fetchWeeklySnapshots(playerName: string, region: string, o
   const endOfWeek = startOfWeek.plus({ days: 7 });
 
   const { data, error } = await supabase
-    .from('leaderboard_snapshots_test')
+    .from('leaderboard_snapshots')
     .select(`
       player_id,
       rating, 
@@ -51,7 +51,7 @@ export async function fetchDailySnapshots(playerName: string, region: string, of
   const endOfDay = startOfDay.plus({ days: 1 });
 
   const { data, error } = await supabase
-    .from('leaderboard_snapshots_test')
+    .from('leaderboard_snapshots')
     .select(`
       player_id,
       rating, 

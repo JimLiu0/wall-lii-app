@@ -18,7 +18,7 @@ export async function getLeaderboardDateRange(timeframe: 'day' | 'week' = 'day',
 
   // First, try to get today's data to see if it exists
   const { data: todayData, error } = await supabase
-    .from('daily_leaderboard_stats_test')
+    .from('daily_leaderboard_stats')
     .select('day_start')
     .eq('day_start', todayStr)
     .limit(1);
@@ -80,7 +80,7 @@ export async function getCurrentLeaderboardDate(): Promise<{ date: string; isUsi
 
   // Check if today's data exists
   const { data: todayData, error } = await supabase
-    .from('daily_leaderboard_stats_test')
+    .from('daily_leaderboard_stats')
     .select('day_start')
     .eq('day_start', todayStr)
     .limit(1);

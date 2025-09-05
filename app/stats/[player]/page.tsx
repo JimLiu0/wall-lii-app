@@ -27,7 +27,7 @@ interface PageProps {
 
 interface PlayerData {
   name: string;
-  rank: number; // Now required since we fetch it from daily_leaderboard_stats_test
+  rank: number; // Now required since we fetch it from daily_leaderboard_stats
   rating: number;
   peak: number;
   region: string;
@@ -40,6 +40,8 @@ interface PlayerData {
     availableCombos: string[];
   };
 }
+
+
 
 // Shared data fetching function to avoid double fetching
 async function fetchPlayerData(player: string) {
@@ -75,7 +77,7 @@ async function fetchPlayerData(player: string) {
   
   while (true) {
     const { data: chunk, error: chunkError } = await supabase
-      .from('leaderboard_snapshots_test')
+      .from('leaderboard_snapshots')
       .select(`
         player_id,
         rating, 
@@ -92,6 +94,7 @@ async function fetchPlayerData(player: string) {
       break;
     }
     // Transform the data to match expected format
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const transformedChunk = (chunk || []).map((entry: any) => ({
       player_name: entry.players.player_name,
       rating: entry.rating,
@@ -119,7 +122,7 @@ async function fetchPlayerData(player: string) {
 export async function generateStaticParams() {
   // Fetch top players to pre-generate their pages
   const { data: topPlayers } = await supabase
-    .from('daily_leaderboard_stats_test')
+    .from('daily_leaderboard_stats')
     .select(`
       player_id,
       players!inner(player_name)
@@ -129,6 +132,7 @@ export async function generateStaticParams() {
 
   if (!topPlayers) return [];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return topPlayers.map((player: any) => ({
     player: player.players.player_name.toLowerCase(),
   }));
@@ -325,11 +329,11 @@ export default async function PlayerPage({
       item.game_mode === (requestedGameMode === 'd' ? '1' : '0')
   );
 
-  // Fetch latest rank from daily_leaderboard_stats_test using player_name
+  // Fetch latest rank from daily_leaderboard_stats using player_name
   let playerRank: number | undefined;
   if (allData.length > 0) {
     const { data: rankData } = await supabase
-      .from('daily_leaderboard_stats_test')
+      .from('daily_leaderboard_stats')
       .select(`
         rank,
         players!inner(player_name)

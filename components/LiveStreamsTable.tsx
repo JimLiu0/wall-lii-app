@@ -13,6 +13,8 @@ interface LeaderboardEntry {
   game_mode: string; // '0' for solo, '1' for duo
 }
 
+
+
 interface ChannelEntry {
   channel: string;
   player: string;
@@ -90,7 +92,7 @@ export default async function LiveStreamsTable() {
   let leaderboardData = inMemoryCache.get<LeaderboardEntry[]>(lbCacheKey);
   if (!leaderboardData) {
     const { data: fetched, error } = await supabase
-      .from('daily_leaderboard_stats_test')
+      .from('daily_leaderboard_stats')
       .select(`
         player_id,
         rating, 
@@ -115,6 +117,7 @@ export default async function LiveStreamsTable() {
       );
     }
     // Transform the data to match the expected format
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     leaderboardData = (fetched || []).map((entry: any) => ({
       player_name: entry.players.player_name,
       rating: entry.rating,

@@ -33,6 +33,8 @@ interface RawLeaderboardEntry {
   rating_delta?: number;
 }
 
+
+
 interface ChannelEntry {
   channel: string;
   player: string;
@@ -189,7 +191,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       const { currentStart, prevStart, isUsingFallback } = await getLeaderboardDateRange(timeframe, dateOffset);
 
       let query = supabase
-        .from('daily_leaderboard_stats_test')
+        .from('daily_leaderboard_stats')
         .select('day_start')
         .eq('game_mode', solo ? '0': '1');
         
@@ -224,7 +226,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         let currentData = inMemoryCache.get<RawLeaderboardEntry[]>(currentCacheKey);
         if (!currentData) {
           const { data: fetched, error } = await supabase
-            .from('daily_leaderboard_stats_test')
+            .from('daily_leaderboard_stats')
             .select(`
               player_id,
               rating, 
@@ -239,6 +241,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .order('rating', { ascending: false })
             .limit(limit);
           if (error) throw error;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           currentData = (fetched || []).map((row: any, index) => ({
             player_name: row.players.player_name,
             rating: typeof row.rating === 'number' ? row.rating : 0,
@@ -255,7 +258,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         let baselineData = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
         if (!baselineData) {
           const { data: fetched, error } = await supabase
-            .from('daily_leaderboard_stats_test')
+            .from('daily_leaderboard_stats')
             .select(`
               player_id,
               rating, 
@@ -268,6 +271,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .order('rating', { ascending: false })
             .limit(limit);
           if (error) throw error;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           baselineData = (fetched || []).map((row: any, index) => ({
             player_name: row.players.player_name,
             rating: row.rating,
@@ -305,7 +309,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         let resultData = inMemoryCache.get<RawLeaderboardEntry[]>(currentCacheKey);
         if (!resultData) {
           const result = await supabase
-            .from('daily_leaderboard_stats_test')
+            .from('daily_leaderboard_stats')
             .select(`
               player_id,
               rating, 
@@ -324,6 +328,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             console.error('Error fetching leaderboard:', result.error);
             throw result.error;
           }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           resultData = (result.data || []).map((row: any) => ({
             player_name: row.players.player_name,
             rating: row.rating,
@@ -339,7 +344,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         let baselineResults = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
         if (!baselineResults) {
           const { data: fetched } = await supabase
-            .from('daily_leaderboard_stats_test')
+            .from('daily_leaderboard_stats')
             .select(`
               player_id,
               rating, 
@@ -352,6 +357,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .eq('day_start', prevStart)
             .order('rank', { ascending: true })
             .limit(limit);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           baselineResults = (fetched || []).map((row: any) => ({
             player_name: row.players.player_name,
             rating: row.rating,
