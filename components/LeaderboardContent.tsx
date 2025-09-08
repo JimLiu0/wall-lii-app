@@ -63,7 +63,8 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [chineseStreamerData, setChineseStreamerData] = useState<ChineseChannelEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [renderCount, setRenderCount] = useState(25);
+  const [currentOffset, setCurrentOffset] = useState(0);
+  const [hasMoreData, setHasMoreData] = useState(true);
   const [solo, setSolo] = useState(() => {
     // Initialize from URL params if available
     const urlGameMode = searchParams?.mode;
@@ -84,7 +85,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [sortColumn, setSortColumn] = useState<'rank' | 'rank_delta' | 'rating' | 'rating_delta' | 'games_played' | 'player_name'>('rank');
   const [sortAsc, setSortAsc] = useState(true);
   const [timeframe, setTimeframe] = useState<'day' | 'week'>('day');
-  const fullFetchedRef = useRef(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
 
   const [dateOffset, setDateOffset] = useState(0);
@@ -171,25 +171,32 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     void fetchChineseChannelData();
   }, [fetchChannelData, fetchChineseChannelData]);
 
-  const fetchLeaderboard = useCallback(async (limit: number = 100) => {
-    const cacheKey = `leaderboard:${region}:${solo ? 'solo' : 'duo'}:${timeframe}:${dateOffset}:${limit}`;
-    const entries = inMemoryCache.get<LeaderboardEntry[]>(cacheKey);
-    if (entries) {
-      setLeaderboardData(entries);
+  const fetchLeaderboard = useCallback(async (offset: number = 0, limit: number = 100, append: boolean = false) => {
+    const cacheKey = `leaderboard:${region}:${solo ? 'solo' : 'duo'}:${timeframe}:${dateOffset}:${offset}:${limit}`;
+    const cachedEntries = inMemoryCache.get<LeaderboardEntry[]>(cacheKey);
+    
+    if (cachedEntries) {
+      if (append) {
+        setLeaderboardData(prev => [...prev, ...cachedEntries]);
+      } else {
+        setLeaderboardData(cachedEntries);
+      }
       setLoading(false);
       setLoadingMore(false);
+      setHasMoreData(cachedEntries.length === limit);
       return;
     }
-    if (limit === 1000) {
-      if (fullFetchedRef.current) return;
-      fullFetchedRef.current = true;
-    }
-    let data;
+
     try {
-      setLoadingMore(true);
+      if (offset === 0) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
 
       const { currentStart, prevStart, isUsingFallback } = await getLeaderboardDateRange(timeframe, dateOffset);
 
+      // Set min date for date picker
       let query = supabase
         .from('daily_leaderboard_stats')
         .select('day_start')
@@ -205,25 +212,26 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
 
       if (error) {
         console.error('Error fetching min date:', error);
-        // Fall back to default min date (30 days ago)
         setMinDate(DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }));
       } else if (fetched && Array.isArray(fetched) && fetched.length > 0 && fetched[0]?.day_start) {
         const minDateFromDB = DateTime.fromISO(fetched[0].day_start).setZone('America/Los_Angeles');
         setMinDate(minDateFromDB);
       } else {
-        // No data found, fall back to default min date
         setMinDate(DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }));
       }
 
       if (isUsingFallback) {
         console.log('Using fallback data (yesterday) for leaderboard - today\'s data not yet available');
       }
+
       const mode = solo ? '0' : '1';
       let entries: LeaderboardEntry[] = [];
+
       if (region === 'all') {
-        // Optimized global leaderboard - single query without region filter
-        const currentCacheKey = `lb-current:all:${mode}:${currentStart}:${dateOffset}:${limit}`;
+        // Global leaderboard logic
+        const currentCacheKey = `lb-current:all:${mode}:${currentStart}:${dateOffset}:${offset}:${limit}`;
         let currentData = inMemoryCache.get<RawLeaderboardEntry[]>(currentCacheKey);
+        
         if (!currentData) {
           const { data: fetched, error } = await supabase
             .from('daily_leaderboard_stats')
@@ -237,15 +245,16 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             `)
             .eq('day_start', currentStart)
             .eq('game_mode', mode)
-            .not('region', 'eq', 'CN') // Exclude China region for global view
+            .not('region', 'eq', 'CN')
             .order('rating', { ascending: false })
-            .limit(limit);
+            .range(offset, offset + limit - 1);
+          
           if (error) throw error;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           currentData = (fetched || []).map((row: any, index) => ({
             player_name: row.players.player_name,
             rating: typeof row.rating === 'number' ? row.rating : 0,
-            rank: index + 1, // Assign rank based on query order
+            rank: offset + index + 1,
             region: row.region,
             games_played: typeof row.games_played === 'number' ? row.games_played : 0,
             weekly_games_played: typeof row.weekly_games_played === 'number' ? row.weekly_games_played : 0,
@@ -253,9 +262,10 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           inMemoryCache.set(currentCacheKey, currentData, 5 * 60 * 1000);
         }
 
-        // Cache baseline stats
-        const baselineCacheKey = `lb-baseline:all:${mode}:${prevStart}:${dateOffset}:${limit}`;
+        // Get baseline data for deltas (we need all baseline data for proper delta calculation)
+        const baselineCacheKey = `lb-baseline:all:${mode}:${prevStart}:${dateOffset}`;
         let baselineData = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
+        
         if (!baselineData) {
           const { data: fetched, error } = await supabase
             .from('daily_leaderboard_stats')
@@ -267,15 +277,16 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             `)
             .eq('day_start', prevStart)
             .eq('game_mode', mode)
-            .not('region', 'eq', 'CN') // Exclude China region for global view
+            .not('region', 'eq', 'CN')
             .order('rating', { ascending: false })
-            .limit(limit);
+            .limit(1000); // Get all baseline data for delta calculation
+          
           if (error) throw error;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           baselineData = (fetched || []).map((row: any, index) => ({
             player_name: row.players.player_name,
             rating: row.rating,
-            rank: index + 1, // Assign rank based on query order
+            rank: index + 1,
             region: row.region,
             games_played: 0,
             weekly_games_played: 0,
@@ -285,28 +296,27 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
 
         // Calculate deltas
         const prevMap = Object.fromEntries(
-          (baselineData || []).map(p => [p.player_name, typeof p.rating === 'number' ? p.rating : 0])
+          baselineData.map(p => [p.player_name, typeof p.rating === 'number' ? p.rating : 0])
         );
         
-        const dataWithDelta = (currentData || []).map(p => ({
+        const dataWithDelta = currentData.map(p => ({
           player_name: p.player_name,
           rating: typeof p.rating === 'number' ? p.rating : 0,
           rank: typeof p.rank === 'number' ? p.rank : 0,
           region: p.region,
           games_played: timeframe === 'week' ? (typeof p.weekly_games_played === 'number' ? p.weekly_games_played : 0) : (typeof p.games_played === 'number' ? p.games_played : 0),
-          weekly_games_played: typeof p.weekly_games_played === 'number' ? p.weekly_games_played : 0,
           rating_delta: typeof prevMap[p.player_name] === 'number'
             ? (typeof p.rating === 'number' ? p.rating - prevMap[p.player_name] : 0)
             : 0,
-          rank_delta: 0, // Global view doesn't have rank deltas since ranks are recalculated
+          rank_delta: 0,
         }));
 
         entries = dataWithDelta;
       } else {
         // Single-region logic
-        // Cache current period stats
-        const currentCacheKey = `lb-current:${region}:${mode}:${currentStart}:${dateOffset}:${limit}`;
+        const currentCacheKey = `lb-current:${region}:${mode}:${currentStart}:${dateOffset}:${offset}:${limit}`;
         let resultData = inMemoryCache.get<RawLeaderboardEntry[]>(currentCacheKey);
+        
         if (!resultData) {
           const result = await supabase
             .from('daily_leaderboard_stats')
@@ -323,7 +333,8 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .eq('game_mode', solo ? '0' : '1')
             .eq('day_start', currentStart)
             .order('rank', { ascending: true })
-            .limit(limit);
+            .range(offset, offset + limit - 1);
+          
           if (result.error) {
             console.error('Error fetching leaderboard:', result.error);
             throw result.error;
@@ -339,9 +350,11 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           }));
           inMemoryCache.set(currentCacheKey, resultData, 5 * 60 * 1000);
         }
-        // Cache baseline stats
-        const baselineCacheKey = `lb-baseline:${region}:${mode}:${prevStart}:${dateOffset}:${limit}`;
+
+        // Get baseline data for deltas
+        const baselineCacheKey = `lb-baseline:${region}:${mode}:${prevStart}:${dateOffset}`;
         let baselineResults = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
+        
         if (!baselineResults) {
           const { data: fetched } = await supabase
             .from('daily_leaderboard_stats')
@@ -356,7 +369,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .eq('game_mode', solo ? '0' : '1')
             .eq('day_start', prevStart)
             .order('rank', { ascending: true })
-            .limit(limit);
+            .limit(1000);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           baselineResults = (fetched || []).map((row: any) => ({
             player_name: row.players.player_name,
@@ -368,11 +381,13 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           }));
           inMemoryCache.set(baselineCacheKey, baselineResults, 5 * 60 * 1000);
         }
+
         const yesterMap = Object.fromEntries(
-          (baselineResults || []).map(e => [e.player_name, e])
+          baselineResults.map(e => [e.player_name, e])
         );
+        
         type RawLeaderboardEntryWithWeekly = RawLeaderboardEntry & { weekly_games_played?: number };
-        data = (resultData || []).map((p: RawLeaderboardEntryWithWeekly) => {
+        entries = resultData.map((p: RawLeaderboardEntryWithWeekly) => {
           const y = yesterMap[p.player_name] || { rating: p.rating, rank: p.rank };
           return {
             ...p,
@@ -387,10 +402,16 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
               : 0,
           } as LeaderboardEntry;
         });
-        entries = data;
       }
-      setLeaderboardData(entries);
+
+      if (append) {
+        setLeaderboardData(prev => [...prev, ...entries]);
+      } else {
+        setLeaderboardData(entries);
+      }
+      
       inMemoryCache.set(cacheKey, entries, 5 * 60 * 1000);
+      setHasMoreData(entries.length === limit);
     } 
     catch (error) {
       console.error('Error fetching leaderboard:', error);
@@ -404,19 +425,20 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   // Refresh data when date offset changes
   useEffect(() => {
     setLoading(true);
-    setRenderCount(25);
-    fullFetchedRef.current = false;
-    void fetchLeaderboard(100);
+    setCurrentOffset(0);
+    setHasMoreData(true);
+    setLeaderboardData([]);
+    void fetchLeaderboard(0, 100, false);
   }, [dateOffset, timeframe, fetchLeaderboard]);
 
   // Initial fetch
   useEffect(() => {
     // Reset previous data and fetch state when toggles change
-    fullFetchedRef.current = false;
     setLeaderboardData([]);
-    setRenderCount(50);
+    setCurrentOffset(0);
+    setHasMoreData(true);
     setLoading(true);
-    void fetchLeaderboard(1000);
+    void fetchLeaderboard(0, 100, false);
   }, [region, solo, timeframe, fetchLeaderboard]);
 
   // Handle region button clicks
@@ -444,6 +466,15 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     router.push(url);
   };
 
+  // Load more data function
+  const loadMoreData = useCallback(async () => {
+    if (loadingMore || !hasMoreData) return;
+    
+    const nextOffset = currentOffset + 100;
+    setCurrentOffset(nextOffset);
+    await fetchLeaderboard(nextOffset, 100, true);
+  }, [loadingMore, hasMoreData, currentOffset, fetchLeaderboard]);
+
   const sortedData = useMemo(() => {
     const dataCopy = [...leaderboardData];
     dataCopy.sort((a, b) => {
@@ -465,7 +496,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     );
   }, [sortedData, searchQuery]);
 
-  // Infinite scroll observer (incremental rendering)
+  // Infinite scroll observer (load more data)
   useEffect(() => {
     if (loading) return;
 
@@ -474,9 +505,9 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         if (
           entries[0].isIntersecting &&
           !loadingMore &&
-          renderCount < filteredData.length
+          hasMoreData
         ) {
-          setRenderCount(prev => Math.min(prev + 25, filteredData.length));
+          void loadMoreData();
         }
       },
       { threshold: 0.1 }
@@ -487,7 +518,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     }
 
     return () => observer.disconnect();
-  }, [loading, loadingMore, renderCount, filteredData.length]);
+  }, [loading, loadingMore, hasMoreData, loadMoreData]);
 
   // Info content for modal
   const regionNames = {
@@ -570,7 +601,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             type="text"
             placeholder="Filter by player name or rank..."
             value={searchQuery}
-            onClick={() => void fetchLeaderboard(1000)}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:border-blue-500 transition-colors"
             ref={searchInputRef}
@@ -613,7 +643,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       onClick={() => {
                         if (sortColumn === 'rank') setSortAsc(!sortAsc);
                         else { setSortColumn('rank'); setSortAsc(true); }
-                        void fetchLeaderboard(1000);
                       }}>
                     Rank{sortColumn === 'rank' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
@@ -622,7 +651,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                         onClick={() => {
                           if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
                           else { setSortColumn('rank_delta'); setSortAsc(false); }
-                          void fetchLeaderboard(1000);
                         }}>
                       ΔRank{sortColumn === 'rank_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                     </th>
@@ -631,7 +659,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       onClick={() => {
                         if (sortColumn === 'player_name') setSortAsc(!sortAsc);
                         else { setSortColumn('player_name'); setSortAsc(true); }
-                        void fetchLeaderboard(1000);
                       }}>
                     Player{sortColumn === 'player_name' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
@@ -639,7 +666,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       onClick={() => {
                         if (sortColumn === 'rating') setSortAsc(!sortAsc);
                         else { setSortColumn('rating'); setSortAsc(true); }
-                        void fetchLeaderboard(1000);
                       }}>
                     Rating{sortColumn === 'rating' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
@@ -647,7 +673,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       onClick={() => {
                         if (sortColumn === 'rating_delta') setSortAsc(!sortAsc);
                         else { setSortColumn('rating_delta'); setSortAsc(false); }
-                        void fetchLeaderboard(1000);
                       }}>
                     ΔRating{sortColumn === 'rating_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
@@ -655,14 +680,13 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       onClick={() => {
                         if (sortColumn === 'games_played') setSortAsc(!sortAsc);
                         else { setSortColumn('games_played'); setSortAsc(false); }
-                        void fetchLeaderboard(1000);
                       }}>
                     Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {filteredData.slice(0, renderCount).map((entry) => (
+                {filteredData.map((entry) => (
                   <tr
                     key={entry.player_name + entry.region}
                     className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
@@ -716,7 +740,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                 ))}
               </tbody>
             </table>
-            {renderCount < filteredData.length && (
+            {hasMoreData && (
               <div
                 ref={observerTarget}
                 className="py-8 text-center text-sm font-medium text-zinc-400"
@@ -724,7 +748,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                 {loadingMore ? (
                   'Loading more players...'
                 ) : (
-                  "If you're seeing this, automatic loading is not working. Please refresh the page."
+                  'Scroll to load more players...'
                 )}
               </div>
             )}

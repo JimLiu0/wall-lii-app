@@ -62,3 +62,4 @@ Wall_Lii uses the following stack:
 - Prompt-generated code should prefer modular components (e.g. `<StatCard>`, `<TabSwitcher>`, `<RegionSelector>`)
 - Avoid hardcoded Tailwind utility strings repeated in multiple files
 - Use `cn` from `lib/utils` for conditional classNames and dynamic styling
+- Do not remove comments unnecessarily
