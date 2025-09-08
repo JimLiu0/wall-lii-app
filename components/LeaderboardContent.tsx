@@ -53,6 +53,8 @@ interface Props {
   searchParams?: { mode?: string };
 }
 
+
+const MAX_ROWS = 1000; // hard cap; we only ever surface top 1000
 const regions = ['na', 'eu', 'ap', 'cn'] as const;
 
 export default function LeaderboardContent({ region, defaultSolo = true, searchParams }: Props) {
@@ -184,7 +186,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       }
       setLoading(false);
       setLoadingMore(false);
-      setHasMoreData(cachedEntries.length === limit);
+      setHasMoreData(cachedEntries.length === limit && (offset + cachedEntries.length) < MAX_ROWS);
       return;
     }
 
@@ -416,7 +418,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       }
       
       inMemoryCache.set(cacheKey, entries, 5 * 60 * 1000);
-      setHasMoreData(entries.length === limit);
+      setHasMoreData(entries.length === limit && (offset + entries.length) < MAX_ROWS);
     } 
     catch (error) {
       console.error('Error fetching leaderboard:', error);
@@ -465,25 +467,40 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   // Load more data function
   const loadMoreData = useCallback(async () => {
     if (loadingMore || !hasMoreData) return;
-    
+
+    // next page start
     const nextOffset = currentOffset + 100;
+    if (nextOffset >= MAX_ROWS) {
+      setHasMoreData(false);
+      return;
+    }
+
     setCurrentOffset(nextOffset);
-    await fetchLeaderboard(nextOffset, 100, true);
+    const remaining = Math.min(100, MAX_ROWS - nextOffset);
+    await fetchLeaderboard(nextOffset, remaining, true);
   }, [loadingMore, hasMoreData, currentOffset, fetchLeaderboard]);
 
   // Load all remaining data function
   const loadAllData = useCallback(async () => {
     if (isLoadingAll || !hasMoreData) return;
-    
+
+    const nextOffset = currentOffset + 100;
+    const remaining = Math.max(0, MAX_ROWS - nextOffset);
+    if (remaining === 0) {
+      setHasMoreData(false);
+      return;
+    }
+
     setIsLoadingAll(true);
     try {
-      let offset = currentOffset + 100;
-      await fetchLeaderboard(offset, 1000 - offset, true);
-      setCurrentOffset(offset - 100);
+      await fetchLeaderboard(nextOffset, remaining, true);
+      setCurrentOffset(nextOffset);
+      // If we asked for all remaining up to MAX_ROWS, we're done regardless of server page size.
+      setHasMoreData(false);
     } finally {
       setIsLoadingAll(false);
     }
-  }, [isLoadingAll, hasMoreData, currentOffset, fetchLeaderboard, leaderboardData.length]);
+  }, [isLoadingAll, hasMoreData, currentOffset, fetchLeaderboard]);
 
   const sortedData = useMemo(() => {
     const dataCopy = [...leaderboardData];
@@ -516,6 +533,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         if (
           entries[0].isIntersecting &&
           !loadingMore &&
+          !searchQuery &&
           hasMoreData
         ) {
           void loadMoreData();
@@ -532,7 +550,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     }
 
     return () => observer.disconnect();
-  }, [loading, loadingMore, hasMoreData, loadMoreData]);
+  }, [loading, loadingMore, hasMoreData, searchQuery, loadMoreData]);
 
   // Info content for modal
   const regionNames = {
@@ -646,10 +664,10 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             <div className="flex items-center gap-2">
               <span>Showing {leaderboardData.length} players</span>
               {hasMoreData && (
-                <span className="text-gray-500">(up to 1000 available)</span>
+                <span className="text-gray-500">(up to {MAX_ROWS} available)</span>
               )}
             </div>
-            {hasMoreData && (
+            {hasMoreData && leaderboardData.length < MAX_ROWS && (
               <button
                 onClick={loadAllData}
                 disabled={isLoadingAll}
@@ -775,7 +793,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                 ))}
               </tbody>
             </table>
-            {hasMoreData && (
+            {hasMoreData && !searchQuery && (
               <div
                 ref={observerTarget}
                 className="py-8 text-center text-sm font-medium text-zinc-400"
