@@ -427,24 +427,15 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     }
   }, [region, solo, timeframe, dateOffset]);
 
-  // Refresh data when date offset changes
+  // Fetch data when any relevant parameter changes
   useEffect(() => {
-    setLoading(true);
-    setCurrentOffset(0);
-    setHasMoreData(true);
-    setLeaderboardData([]);
-    void fetchLeaderboard(0, 100, false);
-  }, [dateOffset, timeframe, fetchLeaderboard]);
-
-  // Initial fetch
-  useEffect(() => {
-    // Reset previous data and fetch state when toggles change
+    // Reset previous data and fetch state when parameters change
     setLeaderboardData([]);
     setCurrentOffset(0);
     setHasMoreData(true);
     setLoading(true);
     void fetchLeaderboard(0, 100, false);
-  }, [region, solo, timeframe, fetchLeaderboard]);
+  }, [region, solo, timeframe, dateOffset]);
 
   // Handle region button clicks
   const handleRegionChange = (newRegion: string) => {
