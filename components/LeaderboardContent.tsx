@@ -328,11 +328,13 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
               region, 
               games_played, 
               weekly_games_played,
+              updated_at,
               players!inner(player_name)
             `)
             .eq('region', region.toUpperCase())
             .eq('game_mode', solo ? '0' : '1')
             .eq('day_start', currentStart)
+            .order('updated_at', { ascending: false })
             .order('rank', { ascending: true })
             .range(offset, offset + limit - 1);
           
@@ -364,11 +366,13 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
               rating, 
               rank, 
               region,
+              updated_at,
               players!inner(player_name)
             `)
             .eq('region', region.toUpperCase())
             .eq('game_mode', solo ? '0' : '1')
             .eq('day_start', prevStart)
+            .order('updated_at', { ascending: false })
             .order('rank', { ascending: true })
             .limit(1000);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -515,6 +519,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   useEffect(() => {
     if (loading) return;
 
+    // Use rootMargin to trigger preloading before the sentinel enters the viewport
     const observer = new IntersectionObserver(
       (entries) => {
         if (
@@ -525,7 +530,10 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           void loadMoreData();
         }
       },
-      { threshold: 0.1 }
+      {
+        threshold: 0,
+        rootMargin: '0px 0px 1200px 0px',
+      }
     );
 
     if (observerTarget.current) {
