@@ -65,6 +65,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentOffset, setCurrentOffset] = useState(0);
   const [hasMoreData, setHasMoreData] = useState(true);
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [solo, setSolo] = useState(() => {
     // Initialize from URL params if available
     const urlGameMode = searchParams?.mode;
@@ -475,6 +476,20 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     await fetchLeaderboard(nextOffset, 100, true);
   }, [loadingMore, hasMoreData, currentOffset, fetchLeaderboard]);
 
+  // Load all remaining data function
+  const loadAllData = useCallback(async () => {
+    if (isLoadingAll || !hasMoreData) return;
+    
+    setIsLoadingAll(true);
+    try {
+      let offset = currentOffset + 100;
+      await fetchLeaderboard(offset, 1000 - offset, true);
+      setCurrentOffset(offset - 100);
+    } finally {
+      setIsLoadingAll(false);
+    }
+  }, [isLoadingAll, hasMoreData, currentOffset, fetchLeaderboard, leaderboardData.length]);
+
   const sortedData = useMemo(() => {
     const dataCopy = [...leaderboardData];
     dataCopy.sort((a, b) => {
@@ -625,6 +640,27 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             </div>
           )}
         </div>
+
+        {/* Data loading status and controls */}
+        {!loading && leaderboardData.length > 0 && (
+          <div className="mb-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-gray-400">
+            <div className="flex items-center gap-2">
+              <span>Showing {leaderboardData.length} players</span>
+              {hasMoreData && (
+                <span className="text-gray-500">(up to 1000 available)</span>
+              )}
+            </div>
+            {hasMoreData && (
+              <button
+                onClick={loadAllData}
+                disabled={isLoadingAll}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors text-sm font-medium"
+              >
+                {isLoadingAll ? 'Loading All...' : 'Load All Players'}
+              </button>
+            )}
+          </div>
+        )}
 
         { loading && <div className="text-2xl font-bold text-white mb-4 text-center">
           Loading...
