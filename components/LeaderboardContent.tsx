@@ -263,8 +263,8 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           inMemoryCache.set(currentCacheKey, currentData, 5 * 60 * 1000);
         }
 
-        // Get baseline data for deltas (we need all baseline data for proper delta calculation)
-        const baselineCacheKey = `lb-baseline:all:${mode}:${prevStart}:${dateOffset}`;
+        // Get baseline data for deltas (matching current data pagination)
+        const baselineCacheKey = `lb-baseline:all:${mode}:${prevStart}:${dateOffset}:${offset}:${limit}`;
         let baselineData = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
         
         if (!baselineData) {
@@ -280,7 +280,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .eq('game_mode', mode)
             .not('region', 'eq', 'CN')
             .order('rating', { ascending: false })
-            .limit(1000); // Get all baseline data for delta calculation
+            .range(offset, offset + limit - 1);
           
           if (error) throw error;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -354,8 +354,8 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           inMemoryCache.set(currentCacheKey, resultData, 5 * 60 * 1000);
         }
 
-        // Get baseline data for deltas
-        const baselineCacheKey = `lb-baseline:${region}:${mode}:${prevStart}:${dateOffset}`;
+        // Get baseline data for deltas (matching current data pagination)
+        const baselineCacheKey = `lb-baseline:${region}:${mode}:${prevStart}:${dateOffset}:${offset}:${limit}`;
         let baselineResults = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
         
         if (!baselineResults) {
@@ -374,7 +374,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .eq('day_start', prevStart)
             .order('updated_at', { ascending: false })
             .order('rank', { ascending: true })
-            .limit(1000);
+            .range(offset, offset + limit - 1);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           baselineResults = (fetched || []).map((row: any) => ({
             player_name: row.players.player_name,
