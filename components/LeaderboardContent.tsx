@@ -700,7 +700,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                     Rank{sortColumn === 'rank' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
                   {region !== 'all' && (
-                    <th className="px-4 py-2 text-left cursor-pointer"
+                    <th className="px-4 py-2 text-left cursor-pointer hidden sm:table-cell"
                         onClick={() => {
                           if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
                           else { setSortColumn('rank_delta'); setSortAsc(false); }
@@ -722,6 +722,15 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       }}>
                     Rating{sortColumn === 'rating' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
+                  {region !== 'all' && (
+                    <th className="px-4 py-2 text-left cursor-pointer table-cell sm:hidden"
+                        onClick={() => {
+                          if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
+                          else { setSortColumn('rank_delta'); setSortAsc(false); }
+                        }}>
+                      ΔRank{sortColumn === 'rank_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                    </th>
+                  )}
                   <th className="px-4 py-2 text-left cursor-pointer"
                       onClick={() => {
                         if (sortColumn === 'rating_delta') setSortAsc(!sortAsc);
@@ -748,7 +757,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                       #{entry.rank}
                     </td>
                     {region !== 'all' && (
-                      <td className="px-4 py-3 text-sm font-medium text-zinc-400">
+                      <td className="px-4 py-3 text-sm font-medium text-zinc-400 hidden sm:table-cell">
                         {entry.rank_delta > 0 ? (
                           <span className="text-green-400">+{entry.rank_delta}</span>
                         ) : entry.rank_delta < 0 ? (
@@ -777,6 +786,17 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
                     <td className="px-4 py-3 text-left text-lg font-semibold text-white">
                       {entry.rating}
                     </td>
+                    {region !== 'all' && (
+                      <td className="px-4 py-3 text-sm font-medium text-zinc-400 table-cell sm:hidden">
+                        {entry.rank_delta > 0 ? (
+                          <span className="text-green-400">+{entry.rank_delta}</span>
+                        ) : entry.rank_delta < 0 ? (
+                          <span className="text-red-400">{entry.rank_delta}</span>
+                        ) : (
+                          <span className="text-zinc-400">—</span>
+                        )}
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-left">
                       {entry.rating_delta > 0 ? (
                         <span className="text-green-400">+{entry.rating_delta}</span>
