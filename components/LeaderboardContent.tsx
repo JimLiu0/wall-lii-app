@@ -114,39 +114,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     setDateOffset(offset);
   }, [calculateDateOffset]);
 
-  // Fetch channel data
-  const fetchChannelData = useCallback(async () => {
-    const cacheKey = 'channels:all';
-    let data = inMemoryCache.get<ChannelEntry[]>(cacheKey);
-    if (!data) {
-      try {
-        const { data: fetched, error } = await supabase
-          .from('channels')
-          .select('channel, player, live, youtube');
-        if (error) {
-          console.error('Error fetching channel data:', error);
-          return;
-        }
-        data = fetched || [];
-        inMemoryCache.set(cacheKey, data, 5 * 60 * 1000);
-      } catch (error) {
-        console.error('Error fetching channel data:', error);
-        return;
-      }
-    }
-    setChannelData(data);
-  }, []);
-
-  const fetchChineseChannelData = useCallback(async () => {
-    const { data: fetched, error } = await supabase
-      .from('chinese_streamers')
-      .select('player, url');
-    if (error) {
-      return;
-    }
-    setChineseStreamerData(fetched);
-  }, []);
-
   // Save preferences to localStorage when they change
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -168,11 +135,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     }
   }, [region, solo, searchParams, router]);
 
-  // Fetch channel data on component mount
-  useEffect(() => {
-    void fetchChannelData();
-    void fetchChineseChannelData();
-  }, [fetchChannelData, fetchChineseChannelData]);
 
   const fetchLeaderboard = useCallback(async (offset: number = 0, limit: number = 100, append: boolean = false) => {
     const cacheKey = `leaderboard:${region}:${solo ? 'solo' : 'duo'}:${timeframe}:${dateOffset}:${offset}:${limit}`;
@@ -411,6 +373,41 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         });
       }
 
+      // Fetch channels matching just these players (client-side join by name)
+      try {
+        const names = Array.from(new Set(entries.map(e => e.player_name)));
+        if (names.length > 0) {
+          const { data: channelsForPage, error: chErr } = await supabase
+            .from('channels')
+            .select('player, channel, youtube, live')
+            .in('player', names);
+          if (!chErr && channelsForPage) {
+            setChannelData(channelsForPage as ChannelEntry[]);
+          }
+        } else {
+          setChannelData([]);
+        }
+      } catch (e) {
+        // Non-fatal: if channel lookup fails, we still render leaderboard
+        console.warn('Channel join lookup failed:', e);
+      }
+      // Fetch Chinese streamers matching these players (client-side join by name)
+      try {
+        const names = Array.from(new Set(entries.map(e => e.player_name)));
+        if (names.length > 0) {
+          const { data: cnForPage, error: cnErr } = await supabase
+            .from('chinese_streamers')
+            .select('player, url')
+            .in('player', names);
+          if (!cnErr && cnForPage) {
+            setChineseStreamerData(cnForPage as ChineseChannelEntry[]);
+          }
+        } else {
+          setChineseStreamerData([]);
+        }
+      } catch (e) {
+        console.warn('Chinese streamer join lookup failed:', e);
+      }
       if (append) {
         setLeaderboardData(prev => [...prev, ...entries]);
       } else {

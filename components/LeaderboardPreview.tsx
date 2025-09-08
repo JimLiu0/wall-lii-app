@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import SocialIndicators from './SocialIndicators';
@@ -64,16 +64,6 @@ export default function LeaderboardPreview() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
 
-  // Fetch Chinese streamer data
-  const fetchChineseChannelData = useCallback(async () => {
-    const { data: fetched, error } = await supabase
-      .from('chinese_streamers')
-      .select('player, url');
-    if (error) {
-      return;
-    }
-    setChineseStreamerData(fetched);
-  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -156,11 +146,19 @@ export default function LeaderboardPreview() {
       const lbAugmented = baseLB.concat(allAdditions);
       setFullData(lbAugmented);
       setChannelData(channels || []);
-      void fetchChineseChannelData();
+      
+      // Fetch Chinese streamers only for the players we're displaying
+      const allPlayerNames = lbAugmented.map(p => p.player_name);
+      const { data: chineseData } = await supabase
+        .from('chinese_streamers')
+        .select('player, url')
+        .in('player', allPlayerNames);
+      setChineseStreamerData(chineseData || []);
+      
       setLoading(false);
     }
     fetchData();
-  }, [fetchChineseChannelData]);
+  }, []);
 
   const data = fullData.filter(
     (entry) => entry.region.toLowerCase() === selectedRegion && entry.game_mode === selectedMode
