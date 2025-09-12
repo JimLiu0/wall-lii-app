@@ -382,7 +382,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .select('player, channel, youtube, live')
             .in('player', names);
           if (!chErr && channelsForPage) {
-            setChannelData(channelsForPage as ChannelEntry[]);
+            setChannelData(prev => [...prev, ...(channelsForPage as ChannelEntry[])]);
           }
         } else {
           setChannelData([]);
@@ -400,7 +400,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .select('player, url')
             .in('player', names);
           if (!cnErr && cnForPage) {
-            setChineseStreamerData(cnForPage as ChineseChannelEntry[]);
+            setChineseStreamerData(prev => [...prev, ...(cnForPage as ChineseChannelEntry[])]);
           }
         } else {
           setChineseStreamerData([]);
