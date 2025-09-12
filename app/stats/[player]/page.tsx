@@ -147,9 +147,14 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const decodedPlayer = decodeURIComponent(resolvedParams.player.toLowerCase());
 
   // Fetch minimal data for metadata
-  const { allData } = await fetchPlayerData(decodedPlayer);
-  
-  if (!allData || allData.length === 0) {
+  const { data: latestSnapshot } = await supabase
+    .from('leaderboard_snapshots')
+    .select('player_id, players!inner(player_name), rating')
+    .eq('players.player_name', decodedPlayer)
+    .order('snapshot_time', { ascending: false})
+    .limit(1)
+
+  if (!latestSnapshot) {
     return {
       title: 'Player Not Found | Wallii',
       description: 'This player could not be found in our database.'
