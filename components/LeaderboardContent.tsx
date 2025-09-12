@@ -559,7 +559,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   };
   const leaderboardLink = region === 'cn'
     ? 'https://hs.blizzard.cn/community/leaderboards/'
-    : `https://hearthstone.blizzard.com/en-us/community/leaderboards?region=${region}&leaderboardId=battlegrounds${searchParams?.mode === 'duo' ? 'duo' : ''}`;
+    : `https://hearthstone.blizzard.com/en-us/community/leaderboards?region=${region.toLocaleUpperCase()}&leaderboardId=battlegrounds${searchParams?.mode === 'duo' ? 'duo' : ''}`;
   const regionName = regionNames[region as keyof typeof regionNames];
 
   return (
