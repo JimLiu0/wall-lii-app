@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/utils/supabaseClient';
+import { playerExistsInSnapshots } from '@/utils/playerUtils';
 
 export default function PlayerSearch() {
   const router = useRouter();
@@ -43,21 +43,7 @@ export default function PlayerSearch() {
 
   const checkPlayerExists = async (playerName: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase
-        .from('leaderboard_snapshots')
-        .select(`
-          player_id,
-          players!inner(player_name)
-        `)
-        .eq('players.player_name', playerName)
-        .limit(1);
-
-      if (error) {
-        console.error('Error checking player:', error);
-        return false;
-      }
-
-      return data && data.length > 0;
+      return await playerExistsInSnapshots(playerName);
     } catch (error) {
       console.error('Error checking player:', error);
       return false;

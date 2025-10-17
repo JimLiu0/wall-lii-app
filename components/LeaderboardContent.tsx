@@ -434,7 +434,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     setHasMoreData(true);
     setLoading(true);
     void fetchLeaderboard(0, 100, false);
-  }, [region, solo, timeframe, dateOffset]);
+  }, [region, solo, timeframe, dateOffset, fetchLeaderboard]);
 
   // Handle region button clicks
   const handleRegionChange = (newRegion: string) => {

@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { DateTime } from 'luxon';
+import { getPlayerId } from './playerUtils';
 
 export async function fetchWeeklySnapshots(playerName: string, region: string, offset: number) {
   const now = DateTime.now(); // User's local time zone
@@ -10,16 +11,18 @@ export async function fetchWeeklySnapshots(playerName: string, region: string, o
     .toUTC();
   const endOfWeek = startOfWeek.plus({ days: 7 });
 
+  // Step 1: Get player_id efficiently
+  const playerId = await getPlayerId(playerName);
+  if (!playerId) {
+    console.error('Player not found:', playerName);
+    return [];
+  }
+
+  // Step 2: Query snapshots using player_id
   const { data, error } = await supabase
     .from('leaderboard_snapshots')
-    .select(`
-      player_id,
-      rating, 
-      snapshot_time, 
-      region,
-      players!inner(player_name)
-    `)
-    .eq('players.player_name', playerName)
+    .select('player_id, rating, snapshot_time, region')
+    .eq('player_id', playerId)
     .eq('region', region.toUpperCase())
     .gte('snapshot_time', startOfWeek.toISO())
     .lt('snapshot_time', endOfWeek.toISO())
@@ -31,8 +34,8 @@ export async function fetchWeeklySnapshots(playerName: string, region: string, o
   }
 
   // Transform data to match expected format
-  const transformed = (data || []).map((entry: any) => ({
-    player_name: entry.players.player_name,
+  const transformed = data.map((entry) => ({
+    player_name: playerName, // We already know the player name
     rating: entry.rating,
     snapshot_time: entry.snapshot_time,
     region: entry.region,
@@ -50,16 +53,18 @@ export async function fetchDailySnapshots(playerName: string, region: string, of
     .toUTC();
   const endOfDay = startOfDay.plus({ days: 1 });
 
+  // Step 1: Get player_id efficiently
+  const playerId = await getPlayerId(playerName);
+  if (!playerId) {
+    console.error('Player not found:', playerName);
+    return [];
+  }
+
+  // Step 2: Query snapshots using player_id
   const { data, error } = await supabase
     .from('leaderboard_snapshots')
-    .select(`
-      player_id,
-      rating, 
-      snapshot_time, 
-      region,
-      players!inner(player_name)
-    `)
-    .eq('players.player_name', playerName)
+    .select('player_id, rating, snapshot_time, region')
+    .eq('player_id', playerId)
     .eq('region', region.toUpperCase())
     .gte('snapshot_time', startOfDay.toISO())
     .lt('snapshot_time', endOfDay.toISO())
@@ -71,8 +76,8 @@ export async function fetchDailySnapshots(playerName: string, region: string, of
   }
 
   // Transform data to match expected format
-  const transformed = (data || []).map((entry: any) => ({
-    player_name: entry.players.player_name,
+  const transformed = data.map((entry) => ({
+    player_name: playerName, // We already know the player name
     rating: entry.rating,
     snapshot_time: entry.snapshot_time,
     region: entry.region,

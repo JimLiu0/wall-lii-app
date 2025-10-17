@@ -5,6 +5,7 @@ import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { PostgrestError } from '@supabase/supabase-js';
 import PlayerNotFound from '@/components/PlayerNotFound';
+import { getPlayerId } from '@/utils/playerUtils';
 
 
 interface PageParams {
@@ -63,7 +64,19 @@ async function fetchPlayerData(player: string) {
     console.error('Error fetching Chinese streamer data:', chineseError);
   }
 
-  // Fetch all data for the player using pagination to avoid Supabase limits
+  // Step 1: Get player_id efficiently
+  const playerId = await getPlayerId(player);
+  if (!playerId) {
+    console.error('Player not found:', player);
+    return {
+      channelData: channelData || [],
+      chineseStreamerData: chineseStreamerData || [],
+      allData: [],
+      error: null
+    };
+  }
+
+  // Step 2: Fetch all data using keyset pagination instead of OFFSET
   const pageSize = 1000;
   let allData: Array<{
     player_name: string;
@@ -72,42 +85,52 @@ async function fetchPlayerData(player: string) {
     region: string;
     game_mode: string;
   }> = [];
-  let from = 0;
   let error: PostgrestError | null = null;
+  let cursor: string | null = null;
   
   while (true) {
-    const { data: chunk, error: chunkError } = await supabase
+    let query = supabase
       .from('leaderboard_snapshots')
-      .select(`
-        player_id,
-        rating, 
-        snapshot_time, 
-        region, 
-        game_mode,
-        players!inner(player_name)
-      `)
-      .eq('players.player_name', player)
+      .select('player_id, rating, snapshot_time, region, game_mode')
+      .eq('player_id', playerId)
       .order('snapshot_time', { ascending: true })
-      .range(from, from + pageSize - 1);
+      .limit(pageSize);
+    
+    // Add cursor for keyset pagination
+    if (cursor) {
+      query = query.gt('snapshot_time', cursor);
+    }
+    
+    const { data: chunk, error: chunkError } = await query;
+    
     if (chunkError) {
       error = chunkError;
       break;
     }
+    
+    if (!chunk || chunk.length === 0) {
+      // No more rows
+      break;
+    }
+    
     // Transform the data to match expected format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const transformedChunk = (chunk || []).map((entry: any) => ({
-      player_name: entry.players.player_name,
+    const transformedChunk = chunk.map((entry) => ({
+      player_name: player, // We already know the player name
       rating: entry.rating,
       snapshot_time: entry.snapshot_time,
       region: entry.region,
       game_mode: entry.game_mode,
     }));
+    
     allData = allData.concat(transformedChunk);
-    if (!chunk || chunk.length < pageSize) {
-      // No more rows
+    
+    // Set cursor to the last snapshot_time for next iteration
+    cursor = chunk[chunk.length - 1].snapshot_time;
+    
+    // If we got fewer rows than pageSize, we're done
+    if (chunk.length < pageSize) {
       break;
     }
-    from += pageSize;
   }
 
   return {
@@ -146,13 +169,23 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const [resolvedParams] = await Promise.all([params, searchParams]);
   const decodedPlayer = decodeURIComponent(resolvedParams.player.toLowerCase());
 
-  // Fetch minimal data for metadata
+  // Step 1: Get player_id efficiently
+  const playerId = await getPlayerId(decodedPlayer);
+  if (!playerId) {
+    return {
+      title: 'Player Not Found | Wallii',
+      description: `Player ${decodedPlayer} not found on Wallii`,
+    };
+  }
+
+  // Step 2: Get latest snapshot using player_id
   const { data: latestSnapshot } = await supabase
     .from('leaderboard_snapshots')
-    .select('player_id, players!inner(player_name), rating')
-    .eq('players.player_name', decodedPlayer)
-    .order('snapshot_time', { ascending: false})
+    .select('player_id, rating')
+    .eq('player_id', playerId)
+    .order('snapshot_time', { ascending: false })
     .limit(1)
+    .single();
 
   if (!latestSnapshot) {
     return {
