@@ -16,11 +16,7 @@ type GameMode = 's' | 'd';
 
 interface PlayerData {
   name: string;
-  rank: number;
-  rating: number;
-  peak: number;
-  region: string;
-  data: { snapshot_time: string; rating: number }[];
+  data: { game_mode: string, player_name: string, region: string, snapshot_time: string; rating: number }[];
   availableModes: {
     regions: string[];
     gameModes: string[];
@@ -28,6 +24,7 @@ interface PlayerData {
     defaultGameMode: string;
     availableCombos: string[];
   };
+  currentRanks: Record<string, number | null>; // Key: "region-gameMode", Value: rank
 }
 
 interface ChannelEntry {
@@ -66,7 +63,17 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   useEffect(() => {
     setOffsetInput(offsetNumState);
   }, [offsetNumState]);
-  // const gameMode = searchParams.get('g') as GameMode || 's';
+
+  // Calculate current rank from pre-fetched data
+  const currentRank = useMemo(() => {
+    if (currentRegion === 'all') {
+      return null;
+    }
+    
+    const gameModeEnum = gameMode === 'd' ? '1' : '0';
+    const comboKey = `${currentRegion}-${gameModeEnum}`;
+    return playerData.currentRanks[comboKey] || null;
+  }, [currentRegion, gameMode, playerData.currentRanks]);
 
   // Memoize the Info icon click handler to prevent unnecessary re-renders
   const handleInfoClick = useCallback(() => {
@@ -83,7 +90,11 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   };
 
   let filteredData = useMemo(() => {
-    let filtered = playerData.data;
+    // First filter by region and game mode
+    const gameModeEnum = gameMode === 'd' ? '1' : '0';
+    let filtered = playerData.data.filter((row) => 
+      row.game_mode === gameModeEnum && row.region.toLowerCase() === currentRegion
+    );
 
     if (currentView !== 'all') {
       const now = DateTime.now().setZone('America/Los_Angeles');
@@ -98,16 +109,16 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
         endTime = startTime.plus({ days: 1 });
       }
 
+      // Get all data before current window
+      const previousWindowData = filtered
+        .filter(item => DateTime.fromISO(item.snapshot_time).setZone('America/Los_Angeles') < startTime)
+        .sort((a, b) => DateTime.fromISO(b.snapshot_time).setZone('America/Los_Angeles').toMillis() - DateTime.fromISO(a.snapshot_time).setZone('America/Los_Angeles').toMillis());
+
       // Get data in current window
-      filtered = playerData.data.filter((item) => {
+      filtered = filtered.filter((item) => {
         const itemTime = DateTime.fromISO(item.snapshot_time).setZone('America/Los_Angeles');
         return itemTime >= startTime && itemTime <= endTime;
       });
-
-      // Get all data before current window
-      const previousWindowData = playerData.data
-        .filter(item => DateTime.fromISO(item.snapshot_time).setZone('America/Los_Angeles') < startTime)
-        .sort((a, b) => DateTime.fromISO(b.snapshot_time).setZone('America/Los_Angeles').toMillis() - DateTime.fromISO(a.snapshot_time).setZone('America/Los_Angeles').toMillis());
 
       // If we have data in current window
       if (filtered.length > 0) {
@@ -146,9 +157,13 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     }
 
     return filtered;
-  }, [playerData.data, currentView, offsetNumState]);
+  }, [playerData.data, currentView, offsetNumState, currentRegion, gameMode]);
 
   filteredData = dedupData(filteredData);
+
+  // Calculate derived stats from filtered data
+  const currentRating = filteredData.length > 0 ? filteredData[filteredData.length - 1]?.rating : 0;
+  const peakRating = filteredData.reduce((max, item) => Math.max(max, item.rating), 0);
 
   const replaceUrlWithoutNavigation = (params: URLSearchParams) => {
     const url = `/stats/${player}?${params.toString()}`;
@@ -237,15 +252,15 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
           <div className="flex gap-8">
             <div>
               <div className="text-gray-400 text-sm">Rank</div>
-              <div className="text-2xl text-white">{playerData.rank || 'N/A'}</div>
+              <div className="text-2xl text-white">{currentRank || 'N/A'}</div>
             </div>
             <div>
               <div className="text-gray-400 text-sm">Rating</div>
-              <div className="text-2xl text-white">{playerData.rating}</div>
+              <div className="text-2xl text-white">{currentRating}</div>
             </div>
             <div>
               <div className="text-gray-400 text-sm">Peak</div>
-              <div className="text-2xl text-white">{playerData.peak}</div>
+              <div className="text-2xl text-white">{peakRating}</div>
             </div>
           </div>
         </div>

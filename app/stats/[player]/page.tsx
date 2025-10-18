@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { PostgrestError } from '@supabase/supabase-js';
 import PlayerNotFound from '@/components/PlayerNotFound';
 import { getPlayerId } from '@/utils/playerUtils';
+import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
 
 
 interface PageParams {
@@ -28,11 +29,7 @@ interface PageProps {
 
 interface PlayerData {
   name: string;
-  rank: number; // Now required since we fetch it from daily_leaderboard_stats
-  rating: number;
-  peak: number;
-  region: string;
-  data: { snapshot_time: string; rating: number }[];
+  data: { game_mode: string, player_name: string, region: string, snapshot_time: string; rating: number }[];
   availableModes: {
     regions: string[];
     gameModes: string[];
@@ -40,6 +37,7 @@ interface PlayerData {
     defaultGameMode: string;
     availableCombos: string[];
   };
+  currentRanks: Record<string, number | null>; // Key: "region-gameMode", Value: rank
 }
 
 
@@ -133,10 +131,52 @@ async function fetchPlayerData(player: string) {
     }
   }
 
+  // Step 3: Fetch current ranks for all valid combinations
+  const currentRanks: Record<string, number | null> = {};
+  
+  if (allData.length > 0) {
+    // Get unique regions and game modes from the data
+    const regions = [...new Set(allData.map(item => item.region.toLowerCase()))];
+    const gameModes = [...new Set(allData.map(item => item.game_mode))];
+    
+    // Get current leaderboard date
+    const { date: currentDate } = await getCurrentLeaderboardDate();
+    
+    // Fetch ranks for all valid combinations
+    for (const region of regions) {
+      for (const gameMode of gameModes) {
+        const comboKey = `${region}-${gameMode}`;
+        
+        try {
+          const { data: rankData, error: rankError } = await supabase
+            .from('daily_leaderboard_stats')
+            .select('rank')
+            .eq('player_id', playerId)
+            .eq('region', region.toUpperCase())
+            .eq('game_mode', gameMode)
+            .eq('day_start', currentDate)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .single();
+          
+          if (!rankError && rankData) {
+            currentRanks[comboKey] = rankData.rank;
+          } else {
+            currentRanks[comboKey] = null;
+          }
+        } catch (error) {
+          console.error(`Error fetching rank for ${comboKey}:`, error);
+          currentRanks[comboKey] = null;
+        }
+      }
+    }
+  }
+
   return {
     channelData: channelData || [],
     chineseStreamerData: chineseStreamerData || [],
     allData,
+    currentRanks,
     error
   };
 }
@@ -238,7 +278,7 @@ export default async function PlayerPage({
   const requestedGameMode = resolvedSearchParams.g || 's';
 
   // Use shared data fetching function
-  const { channelData, chineseStreamerData, allData, error } = await fetchPlayerData(player);
+  const { channelData, chineseStreamerData, allData, currentRanks, error } = await fetchPlayerData(player);
 
   if (error || !allData || allData.length === 0) {
     return <PlayerNotFound player={player} />;
@@ -265,7 +305,7 @@ export default async function PlayerPage({
     }
     acc[key].push(item);
     return acc;
-  }, {} as Record<string, typeof allData>);
+  }, {} as Record<string, Array<{ game_mode: string, player_name: string, region: string, snapshot_time: string; rating: number }>>);
 
   // Find the most recent rating change across all combinations
   let mostRecentChange = null;
@@ -296,7 +336,7 @@ export default async function PlayerPage({
   });
 
   // If no rating changes found, just use the most recent entry overall
-  if (!mostRecentChange) {
+  if (!mostRecentChange && allData.length > 0) {
     mostRecentChange = allData.reduce((latest, current) => {
       return new Date(current.snapshot_time) > new Date(latest.snapshot_time) ? current : latest;
     });
@@ -320,9 +360,9 @@ export default async function PlayerPage({
     }
   }
 
-  const defaultRegion = mostRecentChange.region.toLowerCase();
-  const defaultGameMode = mostRecentChange.game_mode;
-  const defaultView = determineDefaultView(mostRecentChange.snapshot_time);
+  const defaultRegion = mostRecentChange?.region.toLowerCase() || 'na';
+  const defaultGameMode = mostRecentChange?.game_mode || '0';
+  const defaultView = mostRecentChange ? determineDefaultView(mostRecentChange.snapshot_time) : 's';
 
   // Find the most recent valid combination if requested one doesn't exist
   const requestedCombo = `${requestedRegion}-${requestedGameMode === 'd' ? '1' : '0'}`;
@@ -361,48 +401,17 @@ export default async function PlayerPage({
     redirect(`/stats/${encodeURIComponent(player)}?${params.toString()}`);
   }
 
-  // Filter data for the current region and game mode
-  const filteredData = allData.filter(
-    item =>
-      item.region.toLowerCase() === requestedRegion &&
-      item.game_mode === (requestedGameMode === 'd' ? '1' : '0')
-  );
-
-  // Fetch latest rank from daily_leaderboard_stats using player_name
-  let playerRank: number | undefined;
-  if (allData.length > 0) {
-    const { data: rankData } = await supabase
-      .from('daily_leaderboard_stats')
-      .select(`
-        rank,
-        players!inner(player_name)
-      `)
-      .eq('players.player_name', player)
-      .order('day_start', { ascending: false })
-      .limit(1);
-    
-    if (rankData && rankData.length > 0) {
-      playerRank = rankData[0].rank;
-    }
-  }
-
   const playerData: PlayerData = {
     name: player,
-    rank: playerRank ?? 0, // Use fetched rank or default to 0
-    rating: filteredData[filteredData.length - 1]?.rating,
-    peak: filteredData.reduce((max, item) => Math.max(max, item.rating), 0),
-    region: requestedRegion,
-    data: filteredData.map((item) => ({
-      snapshot_time: item.snapshot_time,
-      rating: item.rating,
-    })),
+    data: allData,
     availableModes: {
       regions,
       gameModes,
       defaultRegion: requestedRegion,
       defaultGameMode: requestedGameMode === 'd' ? '1' : '0',
       availableCombos
-    }
+    },
+    currentRanks: currentRanks || {}
   };
 
   return (
