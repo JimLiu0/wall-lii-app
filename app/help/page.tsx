@@ -26,7 +26,7 @@ const managementCommands = [
   {
     command: '!addchannel',
     image: '/addchannel.png',
-    description: 'Add your channel to the bot'
+    description: 'Add your channel to the bot. Do this before other commands'
   },
   {
     command: '!deletechannel',
@@ -37,7 +37,12 @@ const managementCommands = [
     command: '!addname',
     image: '/addname.png',
     description: 'Add your player name to your channel'
-  }
+  },
+  {
+    command: '!addyoutube',
+    image: '/addyoutube.png',
+    description: 'Link your youtube to your channel',
+  },
 ];
 
 export default function HelpPage() {

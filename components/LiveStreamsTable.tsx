@@ -152,9 +152,17 @@ export default async function LiveStreamsTable() {
 
   return (
     <div className="bg-gray-900 rounded-lg p-6 mt-6">
-      <h2 className="text-center text-xl font-bold text-white">
-        Top Ranked Livestreams
-      </h2>
+      <div className="flex text-center flex-col">
+        <h2 className="text-center text-xl font-bold text-white">
+          Top Ranked Livestreams
+        </h2>
+        <Link
+          href={'/help'}
+          className="text-blue-400 hover:underline font-semibold"
+        >
+          Add Your Twitch/Youtube →
+        </Link>
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
