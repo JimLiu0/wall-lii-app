@@ -575,6 +575,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
               onDateChange={handleDateChange}
               maxDate={ptNow.endOf('day')}
               minDate={minDate}
+              weekNavigation={timeframe=='week'}
             />
           </h1>
         </div>

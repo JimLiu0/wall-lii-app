@@ -61,13 +61,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   
   // Initialize selectedDate based on current offset and view
   const [selectedDate, setSelectedDate] = useState<DateTime>(() => {
-    const now = DateTime.now().setZone('America/Los_Angeles');
-    if (currentView === 'week') {
-      return now.minus({ weeks: offsetNumState });
-    } else if (currentView === 'day') {
-      return now.minus({ days: offsetNumState });
-    }
-    return now;
+    return DateTime.now().setZone('America/Los_Angeles');
   });
 
   // Calculate current rank from pre-fetched data
@@ -194,14 +188,6 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     replaceUrlWithoutNavigation(params);
   };
 
-  const navigateOffset = (direction: 'prev' | 'next') => {
-    const newOffset = direction === 'prev' 
-      ? offsetNumState + 1
-      : Math.max(0, offsetNumState - 1);
-    
-    updateOffset(newOffset);
-  };
-
   const handleDateChange = (date: DateTime) => {
     setSelectedDate(date);
   };
@@ -226,24 +212,6 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
       updateOffset(newOffset);
     }
   }, [selectedDate, currentView]);
-
-  // Update selectedDate when offset changes (for arrow navigation)
-  useEffect(() => {
-    if (currentView === 'all') return;
-    
-    const now = DateTime.now().setZone('America/Los_Angeles');
-    let newDate: DateTime;
-    
-    if (currentView === 'day') {
-      newDate = now.minus({ days: offsetNumState });
-    } else if (currentView === 'week') {
-      newDate = now.minus({ weeks: offsetNumState });
-    } else {
-      return;
-    }
-    
-    setSelectedDate(newDate);
-  }, [offsetNumState, currentView]);
 
   const updateGameMode = (newGameMode: GameMode) => {
     setGameMode(newGameMode);
@@ -360,6 +328,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     onDateChange={handleDateChange}
                     maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
                     minDate={DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 })}
+                    weekNavigation={currentView === 'week'}
                   />
                 </div>
               )}

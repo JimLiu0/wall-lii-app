@@ -9,13 +9,15 @@ interface DatePickerProps {
   onDateChange: (date: DateTime) => void;
   maxDate?: DateTime;
   minDate?: DateTime;
+  weekNavigation?: boolean;
 }
 
 export default function DatePicker({ 
   selectedDate, 
   onDateChange, 
   maxDate = DateTime.now().setZone('America/Los_Angeles').set({ hour: 23, minute: 59, second: 0, millisecond: 0 }),
-  minDate = DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 })
+  minDate = DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }),
+  weekNavigation = false
 }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(selectedDate.startOf('month'));
@@ -76,12 +78,16 @@ export default function DatePicker({
   };
 
   const navigateDay = (direction: 'prev' | 'next') => {
+    const increment = weekNavigation ? 7 : 1;
     const newDate = direction === 'prev' 
-      ? selectedDate.minus({ days: 1 })
-      : selectedDate.plus({ days: 1 });
+      ? selectedDate.minus({ days: increment })
+      : selectedDate.plus({ days: increment });
     
-    if (newDate >= minDate && newDate <= maxDate) {
-      onDateChange(newDate);
+    // Cap the date to maxDate if it goes into the future
+    const cappedDate = newDate > maxDate ? maxDate : newDate;
+    
+    if (cappedDate >= minDate && cappedDate <= maxDate) {
+      onDateChange(cappedDate);
     }
   };
 
@@ -111,7 +117,7 @@ export default function DatePicker({
       {/* Right arrow button */}
       <button
         onClick={() => navigateDay('next')}
-        disabled={selectedDate.plus({ days: 1 }) > maxDate}
+        disabled={selectedDate.plus({ days: weekNavigation ? 7 : 1 }) > maxDate}
         className="inline-flex items-center justify-center w-8 h-8 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800"
       >
         <ChevronRight className="w-4 h-4" />
