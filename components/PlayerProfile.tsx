@@ -171,10 +171,11 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     window.history.replaceState(null, '', url);
   };
 
+  const periodMap = { all: 's', week: 'w', day: 'd' };
+
   const updateView = (newView: TimeView) => {
     setCurrentView(newView);
     setOffsetNumState(0);
-    const periodMap = { all: 's', week: 'w', day: 'd' };
     const params = new URLSearchParams(searchParams);
     params.set('v', periodMap[newView]);
     params.set('o', '0');
@@ -185,6 +186,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     setOffsetNumState(newOffset);
     const params = new URLSearchParams(searchParams);
     params.set('o', newOffset.toString());
+    params.set('v', periodMap[currentView]);
     replaceUrlWithoutNavigation(params);
   };
 
