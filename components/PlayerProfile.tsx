@@ -9,6 +9,7 @@ import getPeriodLabel from '@/utils/getPeriodLabel';
 import { dedupData } from '@/utils/getDedupData';
 import ButtonGroup from './ButtonGroup';
 import PlayerHeader from './PlayerHeader';
+import DatePicker from './DatePicker';
 import { Info } from 'lucide-react';
 
 type TimeView = 'all' | 'week' | 'day';
@@ -52,17 +53,22 @@ interface Props {
 export default function PlayerProfile({ player, region, view: viewParam, offset, playerData, channelData, chineseStreamerData }: Props) {
   const searchParams = useSearchParams();
   const [showTimeModal, setShowTimeModal] = useState(false);
-  const [isLoadingOffset, setIsLoadingOffset] = useState(false);
 
   const [gameMode, setGameMode] = useState<GameMode>((searchParams.get('g') as GameMode) || 's');
   const [currentRegion, setCurrentRegion] = useState<string>(region);
   const [currentView, setCurrentView] = useState<TimeView>(viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all');
   const [offsetNumState, setOffsetNumState] = useState<number>(offset || 0);
-
-  const [offsetInput, setOffsetInput] = useState(offsetNumState);
-  useEffect(() => {
-    setOffsetInput(offsetNumState);
-  }, [offsetNumState]);
+  
+  // Initialize selectedDate based on current offset and view
+  const [selectedDate, setSelectedDate] = useState<DateTime>(() => {
+    const now = DateTime.now().setZone('America/Los_Angeles');
+    if (currentView === 'week') {
+      return now.minus({ weeks: offsetNumState });
+    } else if (currentView === 'day') {
+      return now.minus({ days: offsetNumState });
+    }
+    return now;
+  });
 
   // Calculate current rank from pre-fetched data
   const currentRank = useMemo(() => {
@@ -88,6 +94,8 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     }
     return `/lb/${currentRegion}?mode=${gameModeParam}`;
   };
+
+  const peakRating = playerData.data.reduce((max, item) => Math.max(max, item.rating), 0);
 
   let filteredData = useMemo(() => {
     // First filter by region and game mode
@@ -163,7 +171,6 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
 
   // Calculate derived stats from filtered data
   const currentRating = filteredData.length > 0 ? filteredData[filteredData.length - 1]?.rating : 0;
-  const peakRating = filteredData.reduce((max, item) => Math.max(max, item.rating), 0);
 
   const replaceUrlWithoutNavigation = (params: URLSearchParams) => {
     const url = `/stats/${player}?${params.toString()}`;
@@ -181,14 +188,62 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   };
 
   const updateOffset = (newOffset: number) => {
-    setIsLoadingOffset(true);
     setOffsetNumState(newOffset);
-    setOffsetInput(newOffset);
     const params = new URLSearchParams(searchParams);
     params.set('o', newOffset.toString());
     replaceUrlWithoutNavigation(params);
-    setIsLoadingOffset(false);
   };
+
+  const navigateOffset = (direction: 'prev' | 'next') => {
+    const newOffset = direction === 'prev' 
+      ? offsetNumState + 1
+      : Math.max(0, offsetNumState - 1);
+    
+    updateOffset(newOffset);
+  };
+
+  const handleDateChange = (date: DateTime) => {
+    setSelectedDate(date);
+  };
+
+  // Convert selectedDate to offset based on current view
+  useEffect(() => {
+    if (currentView === 'all') return;
+    
+    const now = DateTime.now().setZone('America/Los_Angeles');
+    let newOffset: number;
+    
+    if (currentView === 'day') {
+      newOffset = Math.max(0, Math.floor(now.diff(selectedDate, 'days').days));
+    } else if (currentView === 'week') {
+      newOffset = Math.max(0, Math.floor(now.diff(selectedDate, 'weeks').weeks));
+    } else {
+      return;
+    }
+    
+    // Only update if the offset has actually changed to avoid infinite loops
+    if (newOffset !== offsetNumState) {
+      updateOffset(newOffset);
+    }
+  }, [selectedDate, currentView]);
+
+  // Update selectedDate when offset changes (for arrow navigation)
+  useEffect(() => {
+    if (currentView === 'all') return;
+    
+    const now = DateTime.now().setZone('America/Los_Angeles');
+    let newDate: DateTime;
+    
+    if (currentView === 'day') {
+      newDate = now.minus({ days: offsetNumState });
+    } else if (currentView === 'week') {
+      newDate = now.minus({ weeks: offsetNumState });
+    } else {
+      return;
+    }
+    
+    setSelectedDate(newDate);
+  }, [offsetNumState, currentView]);
 
   const updateGameMode = (newGameMode: GameMode) => {
     setGameMode(newGameMode);
@@ -230,7 +285,6 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
       setCurrentRegion(r);
       setCurrentView(v);
       setOffsetNumState(Number.isFinite(o) ? o : 0);
-      setOffsetInput(Number.isFinite(o) ? o : 0);
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -297,41 +351,16 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
               </div>
 
               {currentView !== 'all' && (
-                <div className="flex gap-2 mt-4">
-                  <button
-                    onClick={() => updateOffset(offsetNumState + 1)}
-                    className="px-3 py-2 rounded transition-colors bg-gray-800 text-gray-300 hover:bg-gray-700"
-                  >
-                    ⬅️
-                  </button>
-                  <div className="flex items-center gap-2 px-3 py-2 rounded bg-gray-800">
-                    <input
-                      type="number"
-                      value={offsetInput}
-                      onChange={(e) => setOffsetInput(Number(e.target.value))}
-                      min={0}
-                      max={99}
-                      placeholder="Offset"
-                      className="w-14 h-8 text-center text-sm rounded bg-gray-900 text-white border border-gray-700 focus:outline-none"
-                    />
-                    <span className="text-sm text-gray-300">
-                      {currentView === 'week' && `week${offsetInput !== 1 ? 's' : ''} ago`}
-                      {currentView === 'day' && `day${offsetInput !== 1 ? 's' : ''} ago`}
-                    </span>
-                    <button
-                      onClick={() => updateOffset(offsetInput)}
-                      className={`h-8 px-3 text-sm rounded transition-colors ${isLoadingOffset ? 'bg-blue-900 text-blue-300' : 'bg-blue-600 text-white hover:bg-blue-500'}`}
-                      disabled={isLoadingOffset}
-                    >
-                      {isLoadingOffset ? 'Loading…' : 'Go'}
-                    </button>
-                  </div>
-                  <button
-                    className={`px-3 py-2 rounded transition-colors bg-gray-800 text-gray-300 hover:bg-gray-700 ${offsetNumState === 0 && 'hidden'}`}
-                    onClick={() => updateOffset(offsetNumState - 1)}
-                  >
-                    ➡️
-                  </button>
+                <div className="flex items-center gap-1 mt-4">
+
+
+                  {/* Date picker */}
+                  <DatePicker
+                    selectedDate={selectedDate}
+                    onDateChange={handleDateChange}
+                    maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
+                    minDate={DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 })}
+                  />
                 </div>
               )}
 
