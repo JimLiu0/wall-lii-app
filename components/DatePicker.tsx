@@ -75,17 +75,46 @@ export default function DatePicker({
     );
   };
 
+  const navigateDay = (direction: 'prev' | 'next') => {
+    const newDate = direction === 'prev' 
+      ? selectedDate.minus({ days: 1 })
+      : selectedDate.plus({ days: 1 });
+    
+    if (newDate >= minDate && newDate <= maxDate) {
+      onDateChange(newDate);
+    }
+  };
+
   const days = getDaysInMonth(currentMonth);
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative flex items-center gap-1" ref={dropdownRef}>
+      {/* Left arrow button */}
+      <button
+        onClick={() => navigateDay('prev')}
+        disabled={selectedDate.minus({ days: 1 }) < minDate}
+        className="inline-flex items-center justify-center w-8 h-8 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800"
+      >
+        <ChevronLeft className="w-4 h-4" />
+      </button>
+
+      {/* Date picker button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="inline-flex items-center gap-1 px-2 py-1 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
       >
         <Calendar className="w-4 h-4" />
         <span>{selectedDate.toFormat('MMM dd, yyyy')}</span>
+      </button>
+
+      {/* Right arrow button */}
+      <button
+        onClick={() => navigateDay('next')}
+        disabled={selectedDate.plus({ days: 1 }) > maxDate}
+        className="inline-flex items-center justify-center w-8 h-8 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800"
+      >
+        <ChevronRight className="w-4 h-4" />
       </button>
 
       {isOpen && (

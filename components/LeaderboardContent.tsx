@@ -569,13 +569,13 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         <div className="flex items-center justify-center mb-2 text-center">
           <h1 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-2 flex-wrap justify-center">
             {regionName} {regionName == 'Global' && '(No CN)'} Leaderboard
+            <Info onClick={handleInfoClick} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
             <DatePicker
               selectedDate={selectedDate}
               onDateChange={handleDateChange}
               maxDate={ptNow.endOf('day')}
               minDate={minDate}
             />
-            <Info onClick={handleInfoClick} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
           </h1>
         </div>
         
