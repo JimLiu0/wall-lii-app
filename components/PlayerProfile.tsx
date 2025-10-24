@@ -89,7 +89,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     return `/lb/${currentRegion}?mode=${gameModeParam}`;
   };
 
-  const peakRating = playerData.data.reduce((max, item) => Math.max(max, item.rating), 0);
+  const peakRating = playerData.data.filter((row) => row.region.toLowerCase() === currentRegion).reduce((max, item) => Math.max(max, item.rating), 0);
 
   let filteredData = useMemo(() => {
     // First filter by region and game mode
