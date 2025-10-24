@@ -81,7 +81,7 @@ export default function LeaderboardPreview() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const { date: today } = await getCurrentLeaderboardDate();
+      const { date: today } = getCurrentLeaderboardDate();
 
       const lbCacheKey = `preview:lb:${today}`;
       const chCacheKey = `preview:channels:${today}`;

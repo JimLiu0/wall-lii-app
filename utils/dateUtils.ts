@@ -70,32 +70,21 @@ export async function getLeaderboardDateRange(timeframe: 'day' | 'week' = 'day',
 }
 
 /**
- * Gets the current date for leaderboard queries, with fallback to previous day
- * if today's data isn't available yet.
+ * Gets the current date for leaderboard queries, with time-based fallback to previous day
+ * if it's before 12:05 AM PT (to handle data update delays).
  */
-export async function getCurrentLeaderboardDate(): Promise<{ date: string; isUsingFallback: boolean }> {
+export function getCurrentLeaderboardDate(): { date: string; isUsingFallback: boolean } {
   const ptNow = DateTime.now().setZone('America/Los_Angeles');
   const today = ptNow.startOf('day');
-  const todayStr = today.toISODate() || '';
-
-  // Check if today's data exists
-  const { data: todayData, error } = await supabase
-    .from('daily_leaderboard_stats')
-    .select('day_start')
-    .eq('day_start', todayStr)
-    .limit(1);
-
-  if (!error && todayData && todayData.length > 0) {
-    return {
-      date: todayStr,
-      isUsingFallback: false
-    };
-  }
-
-  // Fall back to yesterday
-  const yesterday = today.minus({ days: 1 });
+  
+  // If it's before 12:05 AM PT, use yesterday's data to ensure availability
+  const cutoffTime = today.plus({ minutes: 5 }); // 12:05 AM PT
+  const isUsingFallback = ptNow < cutoffTime;
+  
+  const targetDate = isUsingFallback ? today.minus({ days: 1 }) : today;
+  
   return {
-    date: yesterday.toISODate() || '',
-    isUsingFallback: true
+    date: targetDate.toISODate() || '',
+    isUsingFallback
   };
 } 

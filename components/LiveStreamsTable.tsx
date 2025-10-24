@@ -85,7 +85,7 @@ export default async function LiveStreamsTable() {
   const livePlayers = channelData.map((c: ChannelEntry) => c.player);
 
   // Get the appropriate date for leaderboard queries (with fallback)
-  const { date: today } = await getCurrentLeaderboardDate();
+  const { date: today } = getCurrentLeaderboardDate();
 
   // Fetch today's leaderboard entries for all live players (cache for 5 min)
   const lbCacheKey = `livestreams:lb:${today}`;

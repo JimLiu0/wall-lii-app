@@ -140,7 +140,7 @@ async function fetchPlayerData(player: string) {
     const gameModes = [...new Set(allData.map(item => item.game_mode))];
     
     // Get current leaderboard date
-    const { date: currentDate } = await getCurrentLeaderboardDate();
+    const { date: currentDate } = getCurrentLeaderboardDate();
     
     // Fetch ranks for all valid combinations
     for (const region of regions) {
