@@ -230,7 +230,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         }
 
         // Get baseline data for deltas (fetching by player_id instead of range)
-        const playerIds = currentData.map((p: any) => p.player_id).filter(Boolean).sort();
+        const playerIds = currentData.map((p: RawLeaderboardEntry) => p.player_id).filter(Boolean).sort();
         const baselineCacheKey = `lb-baseline:all:${mode}:${prevStart}:${currentStart}:${playerIds.join(',')}`;
         let baselineData = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
         
@@ -325,7 +325,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
         }
 
         // Get baseline data for deltas (fetching by player_id instead of range)
-        const playerIds = resultData.map((p: any) => p.player_id).filter(Boolean).sort();
+        const playerIds = resultData.map((p: RawLeaderboardEntry) => p.player_id).filter(Boolean).sort();
         const baselineCacheKey = `lb-baseline:${region}:${mode}:${prevStart}:${currentStart}:${playerIds.join(',')}`;
         let baselineResults = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
         
