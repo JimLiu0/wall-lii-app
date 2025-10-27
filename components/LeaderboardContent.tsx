@@ -24,6 +24,7 @@ interface LeaderboardEntry {
 }
 
 interface RawLeaderboardEntry {
+  player_id?: string;
   player_name: string;
   rating: number;
   rank: number;
@@ -217,6 +218,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           if (error) throw error;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           currentData = (fetched || []).map((row: any, index) => ({
+            player_id: row.player_id,
             player_name: row.players.player_name,
             rating: typeof row.rating === 'number' ? row.rating : 0,
             rank: offset + index + 1,
@@ -227,11 +229,12 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           inMemoryCache.set(currentCacheKey, currentData, 5 * 60 * 1000);
         }
 
-        // Get baseline data for deltas (matching current data pagination)
-        const baselineCacheKey = `lb-baseline:all:${mode}:${prevStart}:${dateOffset}:${offset}:${limit}`;
+        // Get baseline data for deltas (fetching by player_id instead of range)
+        const playerIds = currentData.map((p: any) => p.player_id).filter(Boolean).sort();
+        const baselineCacheKey = `lb-baseline:all:${mode}:${prevStart}:${currentStart}:${playerIds.join(',')}`;
         let baselineData = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
         
-        if (!baselineData) {
+        if (!baselineData && playerIds.length > 0) {
           const { data: fetched, error } = await supabase
             .from('daily_leaderboard_stats')
             .select(`
@@ -243,23 +246,25 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .eq('day_start', prevStart)
             .eq('game_mode', mode)
             .not('region', 'eq', 'CN')
-            .order('rating', { ascending: false })
-            .range(offset, offset + limit - 1);
+            .in('player_id', playerIds);
           
           if (error) throw error;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          baselineData = (fetched || []).map((row: any, index) => ({
+          baselineData = (fetched || []).map((row: any) => ({
+            player_id: row.player_id,
             player_name: row.players.player_name,
             rating: row.rating,
-            rank: index + 1,
+            rank: 0, // Don't need rank for baseline when comparing all
             region: row.region,
             games_played: 0,
             weekly_games_played: 0,
           }));
           inMemoryCache.set(baselineCacheKey, baselineData, 5 * 60 * 1000);
+        } else if (!baselineData) {
+          baselineData = [];
         }
 
-        // Calculate deltas
+        // Calculate deltas - match by player_id when available
         const prevMap = Object.fromEntries(
           baselineData.map(p => [p.player_name, typeof p.rating === 'number' ? p.rating : 0])
         );
@@ -308,6 +313,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           }
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           resultData = (result.data || []).map((row: any) => ({
+            player_id: row.player_id,
             player_name: row.players.player_name,
             rating: row.rating,
             rank: typeof row.rank === 'number' ? row.rank : 0,
@@ -318,11 +324,12 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
           inMemoryCache.set(currentCacheKey, resultData, 5 * 60 * 1000);
         }
 
-        // Get baseline data for deltas (matching current data pagination)
-        const baselineCacheKey = `lb-baseline:${region}:${mode}:${prevStart}:${dateOffset}:${offset}:${limit}`;
+        // Get baseline data for deltas (fetching by player_id instead of range)
+        const playerIds = resultData.map((p: any) => p.player_id).filter(Boolean).sort();
+        const baselineCacheKey = `lb-baseline:${region}:${mode}:${prevStart}:${currentStart}:${playerIds.join(',')}`;
         let baselineResults = inMemoryCache.get<RawLeaderboardEntry[]>(baselineCacheKey);
         
-        if (!baselineResults) {
+        if (!baselineResults && playerIds.length > 0) {
           const { data: fetched } = await supabase
             .from('daily_leaderboard_stats')
             .select(`
@@ -336,11 +343,10 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             .eq('region', region.toUpperCase())
             .eq('game_mode', solo ? '0' : '1')
             .eq('day_start', prevStart)
-            .order('updated_at', { ascending: false })
-            .order('rank', { ascending: true })
-            .range(offset, offset + limit - 1);
+            .in('player_id', playerIds);
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           baselineResults = (fetched || []).map((row: any) => ({
+            player_id: row.player_id,
             player_name: row.players.player_name,
             rating: row.rating,
             rank: typeof row.rank === 'number' ? row.rank : 0,
@@ -349,6 +355,8 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
             weekly_games_played: 0,
           }));
           inMemoryCache.set(baselineCacheKey, baselineResults, 5 * 60 * 1000);
+        } else if (!baselineResults) {
+          baselineResults = [];
         }
 
         const yesterMap = Object.fromEntries(
