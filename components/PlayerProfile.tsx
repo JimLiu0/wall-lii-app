@@ -261,7 +261,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   }, [currentRegion]);
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto py-4 px-0 [@media(min-width:431px)]:px-4">
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="flex flex-col gap-4 mb-8">
           <PlayerHeader backUrl={getBackUrl()} />

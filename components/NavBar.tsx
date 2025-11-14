@@ -103,7 +103,7 @@ export default function NavBar() {
               aria-label="Leaderboard"
             >
               <Trophy className="w-5 h-5" />
-              <div className="hide-below-430">Leaderboard</div>
+              <div className="hidden [@media(min-width:431px)]:block">Leaderboard</div>
             </Link>
             <Link
               href="/news"
@@ -111,7 +111,7 @@ export default function NavBar() {
               aria-label="Latest News"
             >
               <Newspaper className="w-5 h-5" />
-              <div className="hide-below-430">News</div>
+              <div className="hidden [@media(min-width:431px)]:block">News</div>
             </Link>
             <div
               className="relative"
@@ -127,7 +127,7 @@ export default function NavBar() {
                 tabIndex={0}
               >
                 <Heart className="w-5 h-5" />
-                <div className="hide-below-430">Support</div>
+                <div className="hidden [@media(min-width:431px)]:block">Support</div>
               </button>
               {isSupportOpen && (
                 <div className="absolute left-1/2 -translate-x-1/2 z-10 bg-gray-800 rounded-lg shadow-lg py-2 w-32">
@@ -219,7 +219,7 @@ export default function NavBar() {
                 tabIndex={0}
               >
                 <HelpCircle className="w-5 h-5" />
-                <div className="hide-below-430">Help</div>
+                <div className="hidden [@media(min-width:431px)]:block">Help</div>
               </button>
               {isDropdownOpen && (
                 <div className="absolute right-0 md:left-1/2 md:-translate-x-1/2 w-42 bg-gray-800 rounded-lg shadow-lg py-2 z-10">

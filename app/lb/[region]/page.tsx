@@ -52,7 +52,7 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-0 py-8 [@media(min-width:431px)]:px-4">
         <div className="max-w-4xl mx-auto">
           <SeasonResetBanner />
           <NewsBanner />

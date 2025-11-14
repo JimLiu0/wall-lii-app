@@ -571,8 +571,8 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const regionName = regionNames[region as keyof typeof regionNames];
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <div className="bg-gray-900 rounded-lg p-6">
+    <div className="container mx-auto py-4 px-0 max-w-4xl [@media(min-width:431px)]:px-4">
+      <div className="bg-gray-900 rounded-lg py-6 px-0 [@media(min-width:431px)]:px-6">
         {/* Info row */}
         <div className="flex items-center justify-center mb-2 text-center">
           <h1 className="text-xl sm:text-2xl font-semibold text-white flex items-center gap-2 flex-wrap justify-center">
