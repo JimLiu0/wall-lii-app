@@ -49,21 +49,18 @@ export default async function LiveStreamsTable() {
       .from('channels')
       .select('channel, player, live, youtube')
       .eq('live', true);
-    if (error || !fetched || fetched.length === 0) {
-      return (
-        <div className="bg-gray-900 rounded-lg p-6 mt-6">
-          <h2 className="text-center text-xl font-bold text-white mb-4">
-            Top Ranked Livestreams
-          </h2>
-          <div className="text-center text-gray-400 py-8">
-            <p className="text-lg">No streamers currently live who are on the leaderboard</p>
-            <p className="text-sm mt-2">Check back later for live streams from top players</p>
-          </div>
-        </div>
-      );
+    if (error) {
+      console.error('Error fetching live channels:', error);
+      // Don't return early on error, continue with empty array
+      channelData = [];
+    } else if (!fetched || fetched.length === 0) {
+      // Legitimately no live streamers
+      channelData = [];
+    } else {
+      channelData = fetched;
+      // Only cache successful results
+      inMemoryCache.set(channelCacheKey, channelData, 5 * 60 * 1000);
     }
-    channelData = fetched;
-    inMemoryCache.set(channelCacheKey, channelData, 5 * 60 * 1000);
   }
 
   // Fetch Chinese streamer data
@@ -74,15 +71,34 @@ export default async function LiveStreamsTable() {
       .from('chinese_streamers')
       .select('player, url');
     if (error) {
+      console.error('Error fetching Chinese streamer data:', error);
       chineseStreamerData = [];
     } else {
       chineseStreamerData = fetched || [];
+      // Only cache successful results
+      if (chineseStreamerData.length > 0) {
+        inMemoryCache.set(chineseCacheKey, chineseStreamerData, 5 * 60 * 1000);
+      }
     }
-    inMemoryCache.set(chineseCacheKey, chineseStreamerData, 5 * 60 * 1000);
   }
 
   // Get all live player names
   const livePlayers = channelData.map((c: ChannelEntry) => c.player);
+
+  // Early return if no live players (but only after we've tried to fetch)
+  if (livePlayers.length === 0) {
+    return (
+      <div className="bg-gray-900 rounded-lg p-6 mt-6">
+        <h2 className="text-center text-xl font-bold text-white mb-4">
+          Top Ranked Livestreams
+        </h2>
+        <div className="text-center text-gray-400 py-8">
+          <p className="text-lg">No streamers currently live who are on the leaderboard</p>
+          <p className="text-sm mt-2">Check back later for live streams from top players</p>
+        </div>
+      </div>
+    );
+  }
 
   // Get the appropriate date for leaderboard queries (with fallback)
   const { date: today } = getCurrentLeaderboardDate();
@@ -103,29 +119,43 @@ export default async function LiveStreamsTable() {
       `)
       .in('players.player_name', livePlayers)
       .eq('day_start', today);
-    if (error || !fetched || fetched.length === 0) {
-      return (
-        <div className="bg-gray-900 rounded-lg p-6 mt-6">
-          <h2 className="text-center text-xl font-bold text-white mb-4">
-            Top Ranked Livestreams
-          </h2>
-          <div className="text-center text-gray-400 py-8">
-            <p className="text-lg">No streamers currently live who are on the leaderboard</p>
-            <p className="text-sm mt-2">Check back later for live streams from top players</p>
-          </div>
-        </div>
-      );
+    if (error) {
+      console.error('Error fetching leaderboard data for live streamers:', error);
+      // Don't return early on error, continue with empty array
+      leaderboardData = [];
+    } else if (!fetched || fetched.length === 0) {
+      // Legitimately no data
+      leaderboardData = [];
+    } else {
+      // Transform the data to match the expected format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      leaderboardData = (fetched || []).map((entry: any) => ({
+        player_name: entry.players.player_name,
+        rating: entry.rating,
+        rank: entry.rank,
+        region: entry.region,
+        game_mode: entry.game_mode,
+      }));
+      // Only cache successful results
+      if (leaderboardData.length > 0) {
+        inMemoryCache.set(lbCacheKey, leaderboardData, 5 * 60 * 1000);
+      }
     }
-    // Transform the data to match the expected format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    leaderboardData = (fetched || []).map((entry: any) => ({
-      player_name: entry.players.player_name,
-      rating: entry.rating,
-      rank: entry.rank,
-      region: entry.region,
-      game_mode: entry.game_mode,
-    }));
-    inMemoryCache.set(lbCacheKey, leaderboardData, 5 * 60 * 1000);
+  }
+
+  // Early return if no leaderboard data
+  if (!leaderboardData || leaderboardData.length === 0) {
+    return (
+      <div className="bg-gray-900 rounded-lg p-6 mt-6">
+        <h2 className="text-center text-xl font-bold text-white mb-4">
+          Top Ranked Livestreams
+        </h2>
+        <div className="text-center text-gray-400 py-8">
+          <p className="text-lg">No streamers currently live who are on the leaderboard</p>
+          <p className="text-sm mt-2">Check back later for live streams from top players</p>
+        </div>
+      </div>
+    );
   }
 
   // For each player, pick the entry with the lowest rank (and highest rating if tie)

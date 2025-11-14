@@ -37,7 +37,7 @@ export default async function LeaderboardPreview() {
   let channels = inMemoryCache.get<ChannelEntry[]>(chCacheKey);
 
   if (!lb) {
-    const { data: lbData } = await supabase
+    const { data: lbData, error: lbError } = await supabase
       .from('daily_leaderboard_stats')
       .select(`
         player_id,
@@ -51,26 +51,45 @@ export default async function LeaderboardPreview() {
       .order('rank', { ascending: true })
       .limit(80);
     
-    // Transform the data to match the expected format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    lb = (lbData || []).map((entry: any) => ({
-      player_name: entry.players.player_name,
-      rating: entry.rating,
-      rank: entry.rank,
-      region: entry.region,
-      game_mode: entry.game_mode,
-    }));
-    inMemoryCache.set(lbCacheKey, lb, 5 * 60 * 1000);
+    if (lbError) {
+      console.error('Error fetching leaderboard data:', lbError);
+      // Don't cache errors, return empty array to show fallback UI
+      lb = [];
+    } else {
+      // Transform the data to match the expected format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      lb = (lbData || []).map((entry: any) => ({
+        player_name: entry.players.player_name,
+        rating: entry.rating,
+        rank: entry.rank,
+        region: entry.region,
+        game_mode: entry.game_mode,
+      }));
+      // Only cache successful results
+      if (lb.length > 0) {
+        inMemoryCache.set(lbCacheKey, lb, 5 * 60 * 1000);
+      }
+    }
   }
 
   const playerNames = lb?.map((p) => p.player_name) || [];
-  if (!channels) {
-    const { data: chData } = await supabase
+  if (!channels && playerNames.length > 0) {
+    const { data: chData, error: chError } = await supabase
       .from('channels')
       .select('channel, player, live, youtube')
       .in('player', playerNames);
-    channels = chData || [];
-    inMemoryCache.set(chCacheKey, channels, 5 * 60 * 1000);
+    if (chError) {
+      console.error('Error fetching channel data:', chError);
+      channels = [];
+    } else {
+      channels = chData || [];
+      // Only cache successful results
+      if (channels.length > 0) {
+        inMemoryCache.set(chCacheKey, channels, 5 * 60 * 1000);
+      }
+    }
+  } else if (!channels) {
+    channels = [];
   }
 
   // Build an augmented list without mutating the cached array to avoid duplication
@@ -95,11 +114,18 @@ export default async function LeaderboardPreview() {
   
   // Fetch Chinese streamers only for the players we're displaying
   const allPlayerNames = lbAugmented.map(p => p.player_name);
-  const { data: chineseData } = await supabase
-    .from('chinese_streamers')
-    .select('player, url')
-    .in('player', allPlayerNames);
-  const chineseStreamerData = chineseData || [];
+  let chineseStreamerData: { player: string; url: string }[] = [];
+  if (allPlayerNames.length > 0) {
+    const { data: chineseData, error: chineseError } = await supabase
+      .from('chinese_streamers')
+      .select('player, url')
+      .in('player', allPlayerNames);
+    if (chineseError) {
+      console.error('Error fetching Chinese streamer data:', chineseError);
+    } else {
+      chineseStreamerData = chineseData || [];
+    }
+  }
 
   return (
     <LeaderboardPreviewClient
