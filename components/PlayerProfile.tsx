@@ -166,10 +166,10 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   // Calculate derived stats from filtered data
   const currentRating = filteredData.length > 0 ? filteredData[filteredData.length - 1]?.rating : 0;
 
-  const replaceUrlWithoutNavigation = (params: URLSearchParams) => {
+  const replaceUrlWithoutNavigation = useCallback((params: URLSearchParams) => {
     const url = `/stats/${player}?${params.toString()}`;
     window.history.replaceState(null, '', url);
-  };
+  }, [player]);
 
   const periodMap = { all: 's', week: 'w', day: 'd' };
 
@@ -182,13 +182,13 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     replaceUrlWithoutNavigation(params);
   };
 
-  const updateOffset = (newOffset: number) => {
+  const updateOffset = useCallback((newOffset: number) => {
     setOffsetNumState(newOffset);
     const params = new URLSearchParams(searchParams);
     params.set('o', newOffset.toString());
     params.set('v', periodMap[currentView]);
     replaceUrlWithoutNavigation(params);
-  };
+  }, [searchParams, currentView, replaceUrlWithoutNavigation]);
 
   const handleDateChange = (date: DateTime) => {
     setSelectedDate(date);
@@ -213,7 +213,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     if (newOffset !== offsetNumState) {
       updateOffset(newOffset);
     }
-  }, [selectedDate, currentView]);
+  }, [selectedDate, currentView, offsetNumState, updateOffset]);
 
   const updateGameMode = (newGameMode: GameMode) => {
     setGameMode(newGameMode);
