@@ -21,7 +21,7 @@ const gameModes = [
 function getWallLiiLeaderboardLink(region: string, mode: string) {
   const regionLower = region.toLowerCase();
   const modeStr = mode === '1' ? 'duo' : 'solo';
-  return `/lb/${regionLower}?mode=${modeStr}`;
+  return `/lb/${regionLower}/${modeStr}`;
 }
 
 interface LeaderboardEntry {

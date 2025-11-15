@@ -8,7 +8,7 @@ import { Heart, Newspaper, HelpCircle, Trophy } from 'lucide-react';
 export default function NavBar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
-  const [leaderboardUrl, setLeaderboardUrl] = useState('/lb/all?mode=solo');
+  const [leaderboardUrl, setLeaderboardUrl] = useState('/lb/all/solo');
   const supportRef = useRef<HTMLDivElement>(null);
   const helpRef = useRef<HTMLDivElement>(null);
 
@@ -16,7 +16,7 @@ export default function NavBar() {
   function getLeaderboardUrlFromStorage() {
     const storedRegion = localStorage.getItem('preferredRegion') || 'all';
     const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
-    return `/lb/${storedRegion}?mode=${storedGameMode}`;
+    return `/lb/${storedRegion}/${storedGameMode}`;
   }
 
   useEffect(() => {

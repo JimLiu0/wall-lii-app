@@ -51,14 +51,13 @@ interface ChineseChannelEntry {
 interface Props {
   region: string;
   defaultSolo?: boolean;
-  searchParams?: { mode?: string };
 }
 
 
 const MAX_ROWS = 1000; // hard cap; we only ever surface top 1000
 const regions = ['na', 'eu', 'ap', 'cn'] as const;
 
-export default function LeaderboardContent({ region, defaultSolo = true, searchParams }: Props) {
+export default function LeaderboardContent({ region, defaultSolo = true }: Props) {
   const router = useRouter();
   const ptNow = DateTime.now().setZone('America/Los_Angeles').startOf('day');
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
@@ -70,16 +69,8 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   const [hasMoreData, setHasMoreData] = useState(true);
   const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [solo, setSolo] = useState(() => {
-    // Initialize from URL params if available
-    const urlGameMode = searchParams?.mode;
-    if (urlGameMode === 'solo' || urlGameMode === 'duo') {
-      return urlGameMode === 'solo';
-    }
-    // Fall back to localStorage or default (only in browser)
-    if (typeof window !== 'undefined') {
-      const storedGameMode = localStorage.getItem('preferredGameMode');
-      return storedGameMode ? storedGameMode === 'solo' : defaultSolo;
-    }
+    // Use defaultSolo prop which comes from the route params (source of truth)
+    // Route params always take precedence over localStorage
     return defaultSolo;
   });
   const [searchQuery, setSearchQuery] = useState('');
@@ -115,6 +106,11 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     setDateOffset(offset);
   }, [calculateDateOffset]);
 
+  // Sync solo state with defaultSolo prop (from route params)
+  useEffect(() => {
+    setSolo(defaultSolo);
+  }, [defaultSolo]);
+
   // Save preferences to localStorage when they change
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -125,16 +121,6 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       window.dispatchEvent(new Event('localStorageChange'));
     }
   }, [region, solo]);
-
-  useEffect(() => {
-    const currentMode = searchParams?.mode;
-    const expectedMode = solo ? 'solo' : 'duo';
-    const correctUrl = region === 'all' ? `/all?mode=${expectedMode}` : `/lb/${region}?mode=${expectedMode}`;
-  
-    if (currentMode !== expectedMode) {
-      router.replace(correctUrl);
-    }
-  }, [region, solo, searchParams, router]);
 
 
   const fetchLeaderboard = useCallback(async (offset: number = 0, limit: number = 100, append: boolean = false) => {
@@ -452,7 +438,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
       }
       // Preserve the current game mode in the URL
       const gameMode = solo ? 'solo' : 'duo';
-      const url = newRegion === 'all' ? `/lb/all?mode=${gameMode}` : `/lb/${newRegion}?mode=${gameMode}`;
+      const url = `/lb/${newRegion}/${gameMode}`;
       router.push(url);
     }
   };
@@ -465,7 +451,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
     }
     // Update URL with current game mode
     const gameMode = isSolo ? 'solo' : 'duo';
-    const url = region === 'all' ? `lb/all?mode=${gameMode}` : `/lb/${region}?mode=${gameMode}`;
+    const url = `/lb/${region}/${gameMode}`;
     router.push(url);
   };
 
@@ -567,7 +553,7 @@ export default function LeaderboardContent({ region, defaultSolo = true, searchP
   };
   const leaderboardLink = region === 'cn'
     ? 'https://hs.blizzard.cn/community/leaderboards/'
-    : `https://hearthstone.blizzard.com/en-us/community/leaderboards?region=${region.toLocaleUpperCase()}&leaderboardId=battlegrounds${searchParams?.mode === 'duo' ? 'duo' : ''}`;
+    : `https://hearthstone.blizzard.com/en-us/community/leaderboards?region=${region.toLocaleUpperCase()}&leaderboardId=battlegrounds${solo ? '' : 'duo'}`;
   const regionName = regionNames[region as keyof typeof regionNames];
 
   return (

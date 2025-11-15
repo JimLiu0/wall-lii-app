@@ -83,10 +83,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   // Generate back button URL based on current region and game mode
   const getBackUrl = () => {
     const gameModeParam = gameMode === 'd' ? 'duo' : 'solo';
-    if (currentRegion === 'all') {
-      return `/lb/all?mode=${gameModeParam}`;
-    }
-    return `/lb/${currentRegion}?mode=${gameModeParam}`;
+    return `/lb/${currentRegion}/${gameModeParam}`;
   };
 
   const peakRating = playerData.data.filter((row) => row.region.toLowerCase() === currentRegion).reduce((max, item) => Math.max(max, item.rating), 0);
