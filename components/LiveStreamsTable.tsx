@@ -34,7 +34,7 @@ function getModeLabel(mode: string) {
 function getWallLiiLeaderboardLink(region: string, mode: string) {
   const regionLower = region.toLowerCase();
   const modeStr = mode === '1' ? 'duo' : 'solo';
-  return `/lb/${regionLower}?mode=${modeStr}`;
+  return `/lb/${regionLower}/${modeStr}`;
 }
 
 export default async function LiveStreamsTable() {
@@ -211,7 +211,7 @@ export default async function LiveStreamsTable() {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Link
-                      href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
+                      href={`/stats/${entry.player_name}`}
                       className="text-blue-300 font-semibold hover:underline"
                       prefetch={false}
                       target="_blank"

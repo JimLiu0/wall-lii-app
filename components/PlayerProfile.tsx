@@ -11,6 +11,7 @@ import ButtonGroup from './ButtonGroup';
 import PlayerHeader from './PlayerHeader';
 import DatePicker from './DatePicker';
 import { Info } from 'lucide-react';
+import { normalizeUrlParams, toNewUrlParams } from '@/utils/urlParams';
 
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
@@ -44,25 +45,59 @@ interface Props {
   player: string;
   region: string;
   view: string;
-  offset: number;
+  date: string | null; // ISO date string from server component (new format)
   playerData: PlayerData;
   channelData: ChannelEntry[];
   chineseStreamerData: ChineseChannelEntry[];
+  minDate?: string; // ISO string from server component
 }
 
-export default function PlayerProfile({ player, region, view: viewParam, offset, playerData, channelData, chineseStreamerData }: Props) {
+export default function PlayerProfile({ player, region, date, playerData, channelData, chineseStreamerData, minDate }: Props) {
   const searchParams = useSearchParams();
   const [showTimeModal, setShowTimeModal] = useState(false);
 
-  const [gameMode, setGameMode] = useState<GameMode>((searchParams.get('g') as GameMode) || 's');
+  // Normalize URL params (handles both old and new format for backwards compatibility)
+  const normalizedParams = useMemo(() => {
+    const params: Record<string, string> = {};
+    searchParams.forEach((value, key) => {
+      params[key] = value;
+    });
+    return normalizeUrlParams(params);
+  }, [searchParams]);
+
+  const [gameMode, setGameMode] = useState<GameMode>(normalizedParams.mode === 'duo' ? 'd' : 's');
   const [currentRegion, setCurrentRegion] = useState<string>(region);
-  const [currentView, setCurrentView] = useState<TimeView>(viewParam === 'w' ? 'week' : viewParam === 'd' ? 'day' : 'all');
-  const [offsetNumState, setOffsetNumState] = useState<number>(offset || 0);
+  const [currentView, setCurrentView] = useState<TimeView>(normalizedParams.view);
   
-  // Initialize selectedDate based on current offset and view
+  // Initialize selectedDate from date parameter or calculate from offset
   const [selectedDate, setSelectedDate] = useState<DateTime>(() => {
-    return DateTime.now().setZone('America/Los_Angeles');
+    const ptNow = DateTime.now().setZone('America/Los_Angeles');
+    if (date) {
+      const parsedDate = DateTime.fromISO(date).setZone('America/Los_Angeles');
+      if (parsedDate.isValid) {
+        return parsedDate.startOf('day');
+      }
+    }
+    // Fall back to calculating from offset using normalizedParams
+    const view = normalizedParams.view;
+    const offset = normalizedParams.offset;
+    if (view === 'day') {
+      return ptNow.minus({ days: offset }).startOf('day');
+    } else if (view === 'week') {
+      return ptNow.minus({ weeks: offset }).startOf('week').startOf('day');
+    }
+    return ptNow.startOf('day');
   });
+
+  // Sync selectedDate when date prop changes (from server)
+  useEffect(() => {
+    if (date) {
+      const parsedDate = DateTime.fromISO(date).setZone('America/Los_Angeles');
+      if (parsedDate.isValid) {
+        setSelectedDate(parsedDate.startOf('day'));
+      }
+    }
+  }, [date]);
 
   // Calculate current rank from pre-fetched data
   const currentRank = useMemo(() => {
@@ -83,13 +118,22 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   // Generate back button URL based on current region and game mode
   const getBackUrl = () => {
     const gameModeParam = gameMode === 'd' ? 'duo' : 'solo';
-    if (currentRegion === 'all') {
-      return `/lb/all?mode=${gameModeParam}`;
-    }
-    return `/lb/${currentRegion}?mode=${gameModeParam}`;
+    return `/lb/${currentRegion}/${gameModeParam}`;
   };
 
   const peakRating = playerData.data.filter((row) => row.region.toLowerCase() === currentRegion).reduce((max, item) => Math.max(max, item.rating), 0);
+
+  // Calculate offset from selectedDate for internal use
+  const calculatedOffset = useMemo(() => {
+    if (currentView === 'all') return 0;
+    const now = DateTime.now().setZone('America/Los_Angeles');
+    if (currentView === 'day') {
+      return Math.max(0, Math.floor(now.startOf('day').diff(selectedDate.startOf('day'), 'days').days));
+    } else if (currentView === 'week') {
+      return Math.max(0, Math.floor(now.startOf('week').startOf('day').diff(selectedDate.startOf('week').startOf('day'), 'weeks').weeks));
+    }
+    return 0;
+  }, [currentView, selectedDate]);
 
   let filteredData = useMemo(() => {
     // First filter by region and game mode
@@ -99,15 +143,14 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     );
 
     if (currentView !== 'all') {
-      const now = DateTime.now().setZone('America/Los_Angeles');
       let startTime: DateTime;
       let endTime: DateTime;
 
       if (currentView === 'week') {
-        startTime = now.minus({ weeks: offsetNumState }).startOf('week').startOf('day');
+        startTime = selectedDate.startOf('week').startOf('day');
         endTime = startTime.plus({ weeks: 1 });
       } else {
-        startTime = now.minus({ days: offsetNumState }).startOf('day');
+        startTime = selectedDate.startOf('day');
         endTime = startTime.plus({ days: 1 });
       }
 
@@ -159,74 +202,100 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
     }
 
     return filtered;
-  }, [playerData.data, currentView, offsetNumState, currentRegion, gameMode]);
+  }, [playerData.data, currentView, selectedDate, currentRegion, gameMode]);
 
   filteredData = dedupData(filteredData);
 
   // Calculate derived stats from filtered data
   const currentRating = filteredData.length > 0 ? filteredData[filteredData.length - 1]?.rating : 0;
 
-  const replaceUrlWithoutNavigation = useCallback((params: URLSearchParams) => {
+  const replaceUrlWithoutNavigation = useCallback((newParams: {
+    region: string;
+    mode: 'solo' | 'duo';
+    view: 'all' | 'week' | 'day';
+    date: string | null;
+  }) => {
+    const params = toNewUrlParams(newParams);
     const url = `/stats/${player}?${params.toString()}`;
     window.history.replaceState(null, '', url);
   }, [player]);
 
-  const periodMap = { all: 's', week: 'w', day: 'd' };
-
   const updateView = (newView: TimeView) => {
     setCurrentView(newView);
-    setOffsetNumState(0);
-    const params = new URLSearchParams(searchParams);
-    params.set('v', periodMap[newView]);
-    params.set('o', '0');
-    replaceUrlWithoutNavigation(params);
+    
+    // Calculate date for new view (today for day/week, null for all)
+    const ptNow = DateTime.now().setZone('America/Los_Angeles');
+    let newDate: string | null = null;
+    if (newView === 'day') {
+      newDate = ptNow.startOf('day').toISODate();
+      setSelectedDate(ptNow.startOf('day'));
+    } else if (newView === 'week') {
+      newDate = ptNow.startOf('week').startOf('day').toISODate();
+      setSelectedDate(ptNow.startOf('week').startOf('day'));
+    }
+    
+    replaceUrlWithoutNavigation({
+      region: currentRegion,
+      mode: gameMode === 'd' ? 'duo' : 'solo',
+      view: newView,
+      date: newDate
+    });
   };
-
-  const updateOffset = useCallback((newOffset: number) => {
-    setOffsetNumState(newOffset);
-    const params = new URLSearchParams(searchParams);
-    params.set('o', newOffset.toString());
-    params.set('v', periodMap[currentView]);
-    replaceUrlWithoutNavigation(params);
-  }, [searchParams, currentView, replaceUrlWithoutNavigation]);
 
   const handleDateChange = (date: DateTime) => {
-    setSelectedDate(date);
-  };
-
-  // Convert selectedDate to offset based on current view
-  useEffect(() => {
+    // For week view, normalize to start of week
+    const normalizedDate = currentView === 'week' 
+      ? date.startOf('week').startOf('day')
+      : date.startOf('day');
+    setSelectedDate(normalizedDate);
+    
+    // Update URL with new date
     if (currentView === 'all') return;
     
-    const now = DateTime.now().setZone('America/Los_Angeles');
-    let newOffset: number;
-    
-    if (currentView === 'day') {
-      newOffset = Math.max(0, Math.floor(now.diff(selectedDate, 'days').days));
-    } else if (currentView === 'week') {
-      newOffset = Math.max(0, Math.floor(now.diff(selectedDate, 'weeks').weeks));
-    } else {
-      return;
+    const dateIso = normalizedDate.toISODate();
+    if (dateIso) {
+      replaceUrlWithoutNavigation({
+        region: currentRegion,
+        mode: gameMode === 'd' ? 'duo' : 'solo',
+        view: currentView,
+        date: dateIso
+      });
+      
     }
-    
-    // Only update if the offset has actually changed to avoid infinite loops
-    if (newOffset !== offsetNumState) {
-      updateOffset(newOffset);
-    }
-  }, [selectedDate, currentView, offsetNumState, updateOffset]);
+  };
 
   const updateGameMode = (newGameMode: GameMode) => {
     setGameMode(newGameMode);
-    const params = new URLSearchParams(searchParams);
-    params.set('g', newGameMode);
-    replaceUrlWithoutNavigation(params);
+    let dateIso: string | null = null;
+    if (currentView !== 'all') {
+      const normalizedDate = currentView === 'week'
+        ? selectedDate.startOf('week').startOf('day')
+        : selectedDate.startOf('day');
+      dateIso = normalizedDate.toISODate();
+    }
+    replaceUrlWithoutNavigation({
+      region: currentRegion,
+      mode: newGameMode === 'd' ? 'duo' : 'solo',
+      view: currentView,
+      date: dateIso
+    });
   };
 
   const updateRegion = (newRegion: string) => {
     setCurrentRegion(newRegion.toLowerCase());
-    const params = new URLSearchParams(searchParams);
-    params.set('r', newRegion.toLowerCase());
-    replaceUrlWithoutNavigation(params);
+    let dateIso: string | null = null;
+    if (currentView !== 'all') {
+      const normalizedDate = currentView === 'week'
+        ? selectedDate.startOf('week').startOf('day')
+        : selectedDate.startOf('day');
+      dateIso = normalizedDate.toISODate();
+    }
+    replaceUrlWithoutNavigation({
+      region: newRegion.toLowerCase(),
+      mode: gameMode === 'd' ? 'duo' : 'solo',
+      view: currentView,
+      date: dateIso
+    });
   };
 
   const { availableModes } = playerData;
@@ -246,15 +315,30 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
   useEffect(() => {
     const onPopState = () => {
       const sp = new URLSearchParams(window.location.search);
-      const g = (sp.get('g') as GameMode) || 's';
-      const r = (sp.get('r') || currentRegion).toLowerCase();
-      const vParam = sp.get('v');
-      const v: TimeView = vParam === 'w' ? 'week' : vParam === 'd' ? 'day' : 'all';
-      const o = Number(sp.get('o') || 0);
-      setGameMode(g);
-      setCurrentRegion(r);
-      setCurrentView(v);
-      setOffsetNumState(Number.isFinite(o) ? o : 0);
+      const params: Record<string, string> = {};
+      sp.forEach((value, key) => {
+        params[key] = value;
+      });
+      const normalized = normalizeUrlParams(params);
+      
+      setGameMode(normalized.mode === 'duo' ? 'd' : 's');
+      setCurrentRegion(normalized.region.toLowerCase());
+      setCurrentView(normalized.view);
+      
+      // Update selectedDate from normalized date
+      if (normalized.date) {
+        const parsedDate = DateTime.fromISO(normalized.date).setZone('America/Los_Angeles');
+        if (parsedDate.isValid) {
+          setSelectedDate(parsedDate.startOf('day'));
+        }
+      } else if (normalized.view !== 'all') {
+        const ptNow = DateTime.now().setZone('America/Los_Angeles');
+        if (normalized.view === 'day') {
+          setSelectedDate(ptNow.startOf('day'));
+        } else if (normalized.view === 'week') {
+          setSelectedDate(ptNow.startOf('week').startOf('day'));
+        }
+      }
     };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
@@ -329,7 +413,11 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     selectedDate={selectedDate}
                     onDateChange={handleDateChange}
                     maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
-                    minDate={DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 })}
+                    minDate={
+                      minDate 
+                        ? DateTime.fromISO(minDate).setZone('America/Los_Angeles').startOf('day')
+                        : DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }).startOf('day')
+                    }
                     weekNavigation={currentView === 'week'}
                   />
                 </div>
@@ -342,7 +430,7 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
               <div className="text-xl font-bold text-white mt-4">
                 {currentView === 'all'
                   ? 'Season Rating Record'
-                  : `${currentView === 'week' ? 'Week' : 'Day'} - ${getPeriodLabel(currentView, offsetNumState)}`}
+                  : `${currentView === 'week' ? 'Week' : 'Day'} - ${getPeriodLabel(currentView, calculatedOffset)}`}
               </div>
             </div>
 

@@ -21,7 +21,7 @@ const gameModes = [
 function getWallLiiLeaderboardLink(region: string, mode: string) {
   const regionLower = region.toLowerCase();
   const modeStr = mode === '1' ? 'duo' : 'solo';
-  return `/lb/${regionLower}?mode=${modeStr}`;
+  return `/lb/${regionLower}/${modeStr}`;
 }
 
 interface LeaderboardEntry {
@@ -110,7 +110,7 @@ export default function LeaderboardPreviewClient({
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Link
-                        href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
+                        href={`/stats/${entry.player_name}?region=${selectedRegion}&mode=${selectedMode === '0' ? 'solo' : 'duo'}`}
                         className="text-blue-300 font-semibold hover:underline"
                         prefetch={false}
                         target="_blank"
