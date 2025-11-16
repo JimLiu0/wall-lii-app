@@ -417,13 +417,14 @@ export default async function PlayerPage({
 
   // Calculate minDate from the oldest snapshot in the player's data
   // Convert to ISO string for passing to Client Component
+  // Use startOf('day') to ensure the entire first day is selectable
   const minDate = allData.length > 0
     ? (DateTime.fromISO(
         allData.reduce((oldest, current) => 
           current.snapshot_time < oldest.snapshot_time ? current : oldest
         ).snapshot_time
-      ).setZone('America/Los_Angeles').toISO() ?? undefined)
-    : (DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }).toISO() ?? undefined);
+      ).setZone('America/Los_Angeles').startOf('day').toISO() ?? undefined)
+    : (DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }).startOf('day').toISO() ?? undefined);
 
   return (
     <Suspense fallback={

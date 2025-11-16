@@ -329,8 +329,8 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
                     minDate={
                       minDate 
-                        ? DateTime.fromISO(minDate).setZone('America/Los_Angeles')
-                        : DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 })
+                        ? DateTime.fromISO(minDate).setZone('America/Los_Angeles').startOf('day')
+                        : DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }).startOf('day')
                     }
                     weekNavigation={currentView === 'week'}
                   />
