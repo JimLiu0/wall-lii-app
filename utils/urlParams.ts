@@ -78,9 +78,12 @@ export function normalizeUrlParams(searchParams: {
   if (searchParams.date) {
     // New format: date parameter (ISO date string)
     try {
-      const parsedDate = DateTime.fromISO(searchParams.date).setZone('America/Los_Angeles');
+      // Parse date as if it's in PST timezone to avoid timezone shifts
+      // fromISO without time creates date at local midnight, so we need to
+      // explicitly set it in PST timezone from the start
+      const parsedDate = DateTime.fromISO(searchParams.date, { zone: 'America/Los_Angeles' }).startOf('day');
       if (parsedDate.isValid) {
-        date = parsedDate.startOf('day').toISODate();
+        date = parsedDate.toISODate();
         // Calculate offset from date
         if (view === 'day') {
           offset = Math.max(0, Math.floor(ptNow.startOf('day').diff(parsedDate.startOf('day'), 'days').days));

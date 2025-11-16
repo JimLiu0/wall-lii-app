@@ -73,9 +73,10 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   const [selectedDate, setSelectedDate] = useState<DateTime>(() => {
     const ptNow = DateTime.now().setZone('America/Los_Angeles');
     if (date) {
-      const parsedDate = DateTime.fromISO(date).setZone('America/Los_Angeles');
+      // Parse date as if it's in PST timezone to avoid timezone shifts
+      const parsedDate = DateTime.fromISO(date, { zone: 'America/Los_Angeles' }).startOf('day');
       if (parsedDate.isValid) {
-        return parsedDate.startOf('day');
+        return parsedDate;
       }
     }
     // Fall back to calculating from offset using normalizedParams
@@ -92,9 +93,10 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   // Sync selectedDate when date prop changes (from server)
   useEffect(() => {
     if (date) {
-      const parsedDate = DateTime.fromISO(date).setZone('America/Los_Angeles');
+      // Parse date as if it's in PST timezone to avoid timezone shifts
+      const parsedDate = DateTime.fromISO(date, { zone: 'America/Los_Angeles' }).startOf('day');
       if (parsedDate.isValid) {
-        setSelectedDate(parsedDate.startOf('day'));
+        setSelectedDate(parsedDate);
       }
     }
   }, [date]);
@@ -134,6 +136,24 @@ export default function PlayerProfile({ player, region, date, playerData, channe
     }
     return 0;
   }, [currentView, selectedDate]);
+
+  // Calculate minDate from the oldest snapshot for the current region and game mode
+  const calculatedMinDate = useMemo(() => {
+    const gameModeEnum = gameMode === 'd' ? '1' : '0';
+    const regionModeData = playerData.data.filter((row) => 
+      row.game_mode === gameModeEnum && row.region.toLowerCase() === currentRegion
+    );
+    
+    if (regionModeData.length > 0) {
+      const oldestSnapshot = regionModeData.reduce((oldest, current) => 
+        current.snapshot_time < oldest.snapshot_time ? current : oldest
+      );
+      return DateTime.fromISO(oldestSnapshot.snapshot_time, { zone: 'America/Los_Angeles' }).startOf('day');
+    }
+    
+    // Fallback to 30 days ago if no data for this region/mode
+    return DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }).startOf('day');
+  }, [playerData.data, currentRegion, gameMode]);
 
   let filteredData = useMemo(() => {
     // First filter by region and game mode
@@ -327,9 +347,10 @@ export default function PlayerProfile({ player, region, date, playerData, channe
       
       // Update selectedDate from normalized date
       if (normalized.date) {
-        const parsedDate = DateTime.fromISO(normalized.date).setZone('America/Los_Angeles');
+        // Parse date as if it's in PST timezone to avoid timezone shifts
+        const parsedDate = DateTime.fromISO(normalized.date, { zone: 'America/Los_Angeles' }).startOf('day');
         if (parsedDate.isValid) {
-          setSelectedDate(parsedDate.startOf('day'));
+          setSelectedDate(parsedDate);
         }
       } else if (normalized.view !== 'all') {
         const ptNow = DateTime.now().setZone('America/Los_Angeles');
@@ -413,11 +434,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
                     selectedDate={selectedDate}
                     onDateChange={handleDateChange}
                     maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
-                    minDate={
-                      minDate 
-                        ? DateTime.fromISO(minDate).setZone('America/Los_Angeles').startOf('day')
-                        : DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }).startOf('day')
-                    }
+                    minDate={calculatedMinDate}
                     weekNavigation={currentView === 'week'}
                   />
                 </div>
