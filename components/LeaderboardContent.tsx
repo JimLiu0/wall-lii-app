@@ -12,6 +12,7 @@ import { getLeaderboardDateRange } from '@/utils/dateUtils';
 import { Info, X } from 'lucide-react';
 import { inMemoryCache } from '@/utils/inMemoryCache';
 import { DateTime } from 'luxon';
+import { toNewUrlParams } from '@/utils/urlParams';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -740,7 +741,17 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                 </tr>
               </thead>
               <tbody>
-                {filteredData.map((entry) => (
+                {filteredData.map((entry) => {
+                  // Build stats URL using current state values
+                  const statsUrlParams = toNewUrlParams({
+                    region: entry.region.toLowerCase(),
+                    mode: solo ? 'solo' : 'duo',
+                    view: timeframe,
+                    date: selectedDate.startOf('day').toISODate()
+                  });
+                  const statsUrl = `/stats/${entry.player_name}?${statsUrlParams.toString()}`;
+                  
+                  return (
                   <tr
                     key={entry.player_name + entry.region}
                     className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
@@ -762,7 +773,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Link
-                          href={`/stats/${entry.player_name}?r=${entry.region.toLowerCase()}`}
+                          href={statsUrl}
                           target="_blank"
                           prefetch={false}
                           className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
@@ -802,7 +813,8 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                       {entry.games_played}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             {hasMoreData && !searchQuery && (

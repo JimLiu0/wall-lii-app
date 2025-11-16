@@ -8,6 +8,7 @@ import PlayerNotFound from '@/components/PlayerNotFound';
 import { getPlayerId } from '@/utils/playerUtils';
 import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
 import { DateTime } from 'luxon';
+import { normalizeUrlParams, toNewUrlParams, hasOldFormat } from '@/utils/urlParams';
 
 
 interface PageParams {
@@ -15,10 +16,16 @@ interface PageParams {
 }
 
 interface SearchParams {
+  // Old format (for backwards compatibility)
   r?: string;
   v?: string;
   o?: string;
   g?: string;
+  // New format
+  region?: string;
+  mode?: string;
+  view?: string;
+  date?: string;
 }
 
 interface PageProps {
@@ -273,10 +280,24 @@ export default async function PlayerPage({
     searchParams
   ]);
   const player = decodeURIComponent(resolvedParams.player.toLowerCase());
-  const requestedRegion = resolvedSearchParams.r || 'all';
-  const requestedView = resolvedSearchParams.v;
-  const requestedOffset = parseInt(resolvedSearchParams.o || '0', 10);
-  const requestedGameMode = resolvedSearchParams.g || 's';
+  
+  // Check if old format is being used and redirect to new format
+  if (hasOldFormat(resolvedSearchParams)) {
+    const normalized = normalizeUrlParams(resolvedSearchParams);
+    const params = toNewUrlParams({
+      region: normalized.region,
+      mode: normalized.mode,
+      view: normalized.view,
+      date: normalized.date
+    });
+    redirect(`/stats/${encodeURIComponent(player)}?${params.toString()}`);
+  }
+  
+  // Normalize URL parameters (now only new format)
+  const normalized = normalizeUrlParams(resolvedSearchParams);
+  const requestedRegion = normalized.region;
+  const requestedView = normalized.view;
+  const requestedGameMode = normalized.mode;
 
   // Use shared data fetching function
   const { channelData, chineseStreamerData, allData, currentRanks, error } = await fetchPlayerData(player);
@@ -363,13 +384,16 @@ export default async function PlayerPage({
 
   const defaultRegion = mostRecentChange?.region.toLowerCase() || 'na';
   const defaultGameMode = mostRecentChange?.game_mode || '0';
-  const defaultView = mostRecentChange ? determineDefaultView(mostRecentChange.snapshot_time) : 's';
+  const defaultViewOld = mostRecentChange ? determineDefaultView(mostRecentChange.snapshot_time) : 's';
+  const defaultView: 'all' | 'week' | 'day' = defaultViewOld === 'w' ? 'week' : defaultViewOld === 'd' ? 'day' : 'all';
+  const defaultMode: 'solo' | 'duo' = defaultGameMode === '1' ? 'duo' : 'solo';
 
   // Find the most recent valid combination if requested one doesn't exist
-  const requestedCombo = `${requestedRegion}-${requestedGameMode === 'd' ? '1' : '0'}`;
+  const requestedGameModeEnum = requestedGameMode === 'duo' ? '1' : '0';
+  const requestedCombo = `${requestedRegion}-${requestedGameModeEnum}`;
   
   // Determine valid game mode based on available combos
-  const validGameMode = (() => {
+  const validGameMode: 'solo' | 'duo' = (() => {
     if (requestedGameMode && availableCombos.includes(requestedCombo)) {
       return requestedGameMode;
     }
@@ -378,9 +402,9 @@ export default async function PlayerPage({
     // Check if player has solo games in the requested/default region
     const hasSolo = availableCombos.includes(`${requestedRegion === 'all' ? defaultRegion : requestedRegion}-0`);
     
-    if (hasDuo && !hasSolo) return 'd';
-    if (hasSolo && !hasDuo) return 's';
-    return defaultGameMode === '1' ? 'd' : 's';
+    if (hasDuo && !hasSolo) return 'duo';
+    if (hasSolo && !hasDuo) return 'solo';
+    return defaultMode;
   })();
 
   // Only redirect if absolutely necessary
@@ -392,12 +416,16 @@ export default async function PlayerPage({
     // If game mode doesn't match available modes
     requestedGameMode !== validGameMode
   ) {
-    // Keep existing params if they're valid
-    const params = new URLSearchParams({
-      r: requestedRegion === 'all' ? defaultRegion : requestedRegion,
-      g: validGameMode,
-      v: requestedView || defaultView,
-      o: requestedOffset.toString()
+    // Use new URL format for redirects
+    const finalRegion = requestedRegion === 'all' ? defaultRegion : requestedRegion;
+    const finalView = requestedView || defaultView;
+    const finalDate = normalized.date;
+    
+    const params = toNewUrlParams({
+      region: finalRegion,
+      mode: validGameMode,
+      view: finalView,
+      date: finalDate
     });
     redirect(`/stats/${encodeURIComponent(player)}?${params.toString()}`);
   }
@@ -409,7 +437,7 @@ export default async function PlayerPage({
       regions,
       gameModes,
       defaultRegion: requestedRegion,
-      defaultGameMode: requestedGameMode === 'd' ? '1' : '0',
+      defaultGameMode: requestedGameMode === 'duo' ? '1' : '0',
       availableCombos
     },
     currentRanks: currentRanks || {}
@@ -438,7 +466,7 @@ export default async function PlayerPage({
         player={player}
         region={requestedRegion}
         view={requestedView}
-        offset={requestedOffset}
+        date={normalized.date}
         playerData={playerData}
         channelData={channelData}
         chineseStreamerData={chineseStreamerData}
