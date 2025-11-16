@@ -70,12 +70,32 @@ export default function DatePicker({
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentMonth(prev => 
-      direction === 'prev' 
+    setCurrentMonth(prev => {
+      const newMonth = direction === 'prev' 
         ? prev.minus({ months: 1 })
-        : prev.plus({ months: 1 })
-    );
+        : prev.plus({ months: 1 });
+      
+      // Check if the new month is within the allowed range
+      const monthStart = newMonth.startOf('month');
+      const monthEnd = newMonth.endOf('month');
+      
+      // If going to previous month, check if month start is before minDate
+      if (direction === 'prev' && monthEnd < minDate.startOf('day')) {
+        return prev; // Don't navigate if month would be before minDate
+      }
+      
+      // If going to next month, check if month start is after maxDate
+      if (direction === 'next' && monthStart > maxDate.endOf('day')) {
+        return prev; // Don't navigate if month would be after maxDate
+      }
+      
+      return newMonth;
+    });
   };
+
+  // Check if we can navigate to previous/next month
+  const canNavigatePrevMonth = currentMonth.startOf('month').minus({ months: 1 }).endOf('month') >= minDate.startOf('day');
+  const canNavigateNextMonth = currentMonth.startOf('month').plus({ months: 1 }).startOf('month') <= maxDate.endOf('day');
 
   const navigateDay = (direction: 'prev' | 'next') => {
     const increment = weekNavigation ? 7 : 1;
@@ -92,7 +112,7 @@ export default function DatePicker({
   };
 
   const days = getDaysInMonth(currentMonth);
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   return (
     <div className="relative flex items-center gap-1" ref={dropdownRef}>
@@ -129,7 +149,8 @@ export default function DatePicker({
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => navigateMonth('prev')}
-              className="p-1 hover:bg-gray-800 rounded transition-colors"
+              disabled={!canNavigatePrevMonth}
+              className="p-1 hover:bg-gray-800 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
               <ChevronLeft className="w-4 h-4 text-gray-400" />
             </button>
@@ -138,7 +159,8 @@ export default function DatePicker({
             </h3>
             <button
               onClick={() => navigateMonth('next')}
-              className="p-1 hover:bg-gray-800 rounded transition-colors"
+              disabled={!canNavigateNextMonth}
+              className="p-1 hover:bg-gray-800 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
               <ChevronRight className="w-4 h-4 text-gray-400" />
             </button>
