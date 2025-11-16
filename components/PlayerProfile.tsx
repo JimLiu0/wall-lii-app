@@ -48,9 +48,10 @@ interface Props {
   playerData: PlayerData;
   channelData: ChannelEntry[];
   chineseStreamerData: ChineseChannelEntry[];
+  minDate?: string; // ISO string from server component
 }
 
-export default function PlayerProfile({ player, region, view: viewParam, offset, playerData, channelData, chineseStreamerData }: Props) {
+export default function PlayerProfile({ player, region, view: viewParam, offset, playerData, channelData, chineseStreamerData, minDate }: Props) {
   const searchParams = useSearchParams();
   const [showTimeModal, setShowTimeModal] = useState(false);
 
@@ -326,7 +327,11 @@ export default function PlayerProfile({ player, region, view: viewParam, offset,
                     selectedDate={selectedDate}
                     onDateChange={handleDateChange}
                     maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
-                    minDate={DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 })}
+                    minDate={
+                      minDate 
+                        ? DateTime.fromISO(minDate).setZone('America/Los_Angeles')
+                        : DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 })
+                    }
                     weekNavigation={currentView === 'week'}
                   />
                 </div>

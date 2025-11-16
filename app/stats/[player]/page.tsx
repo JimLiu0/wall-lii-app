@@ -7,6 +7,7 @@ import { PostgrestError } from '@supabase/supabase-js';
 import PlayerNotFound from '@/components/PlayerNotFound';
 import { getPlayerId } from '@/utils/playerUtils';
 import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
+import { DateTime } from 'luxon';
 
 
 interface PageParams {
@@ -414,6 +415,16 @@ export default async function PlayerPage({
     currentRanks: currentRanks || {}
   };
 
+  // Calculate minDate from the oldest snapshot in the player's data
+  // Convert to ISO string for passing to Client Component
+  const minDate = allData.length > 0
+    ? (DateTime.fromISO(
+        allData.reduce((oldest, current) => 
+          current.snapshot_time < oldest.snapshot_time ? current : oldest
+        ).snapshot_time
+      ).setZone('America/Los_Angeles').toISO() ?? undefined)
+    : (DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }).toISO() ?? undefined);
+
   return (
     <Suspense fallback={
       <div className="container mx-auto p-4">
@@ -430,6 +441,7 @@ export default async function PlayerPage({
         playerData={playerData}
         channelData={channelData}
         chineseStreamerData={chineseStreamerData}
+        minDate={minDate}
       />
     </Suspense>
   );
