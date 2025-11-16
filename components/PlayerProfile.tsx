@@ -49,10 +49,9 @@ interface Props {
   playerData: PlayerData;
   channelData: ChannelEntry[];
   chineseStreamerData: ChineseChannelEntry[];
-  minDate?: string; // ISO string from server component
 }
 
-export default function PlayerProfile({ player, region, date, playerData, channelData, chineseStreamerData, minDate }: Props) {
+export default function PlayerProfile({ player, region, date, playerData, channelData, chineseStreamerData }: Props) {
   const searchParams = useSearchParams();
   const [showTimeModal, setShowTimeModal] = useState(false);
 
