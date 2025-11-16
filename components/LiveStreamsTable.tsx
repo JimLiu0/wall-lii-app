@@ -4,8 +4,6 @@ import SocialIndicators from './SocialIndicators';
 import { unstable_noStore } from 'next/cache';
 import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
 import { inMemoryCache } from '@/utils/inMemoryCache';
-import { toNewUrlParams } from '@/utils/urlParams';
-import { DateTime } from 'luxon';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -213,15 +211,7 @@ export default async function LiveStreamsTable() {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Link
-                      href={(() => {
-                        const statsUrlParams = toNewUrlParams({
-                          region: entry.region.toLowerCase(),
-                          mode: entry.game_mode === '1' ? 'duo' : 'solo',
-                          view: 'day',
-                          date: DateTime.now().setZone('America/Los_Angeles').startOf('day').toISODate()
-                        });
-                        return `/stats/${entry.player_name}?${statsUrlParams.toString()}`;
-                      })()}
+                      href={`/stats/${entry.player_name}`}
                       className="text-blue-300 font-semibold hover:underline"
                       prefetch={false}
                       target="_blank"

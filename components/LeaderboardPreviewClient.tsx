@@ -4,8 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import SocialIndicators from './SocialIndicators';
 import ButtonGroup from './ButtonGroup';
-import { toNewUrlParams } from '@/utils/urlParams';
-import { DateTime } from 'luxon';
 
 const regions = [
   { code: 'all', label: 'ALL'},
@@ -112,15 +110,7 @@ export default function LeaderboardPreviewClient({
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Link
-                        href={(() => {
-                          const statsUrlParams = toNewUrlParams({
-                            region: entry.region.toLowerCase(),
-                            mode: entry.game_mode === '1' ? 'duo' : 'solo',
-                            view: 'day',
-                            date: DateTime.now().setZone('America/Los_Angeles').startOf('day').toISODate()
-                          });
-                          return `/stats/${entry.player_name}?${statsUrlParams.toString()}`;
-                        })()}
+                        href={`/stats/${entry.player_name}?region=${selectedRegion}&mode=${selectedMode === '0' ? 'solo' : 'duo'}`}
                         className="text-blue-300 font-semibold hover:underline"
                         prefetch={false}
                         target="_blank"
