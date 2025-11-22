@@ -4,6 +4,8 @@ import LiveStreamsTable from '@/components/LiveStreamsTable';
 import LeaderboardPreview from '@/components/LeaderboardPreview';
 import PlayerSearch from '@/components/PlayerSearch';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Hearthstone Battlegrounds Leaderboard | Wallii',
   description: 'View hearthstone battlegrounds leaderboard rankings for all regions in Wallii',

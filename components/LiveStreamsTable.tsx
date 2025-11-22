@@ -2,8 +2,7 @@ import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import SocialIndicators from './SocialIndicators';
 import { unstable_noStore } from 'next/cache';
-import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
-import { inMemoryCache } from '@/utils/inMemoryCache';
+import { DateTime } from 'luxon';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -11,6 +10,7 @@ interface LeaderboardEntry {
   rank: number;
   region: string;
   game_mode: string; // '0' for solo, '1' for duo
+  day_start: string;
 }
 
 
@@ -20,11 +20,6 @@ interface ChannelEntry {
   player: string;
   live: boolean;
   youtube?: string;
-}
-
-interface ChineseChannelEntry {
-  player: string;
-  url: string;
 }
 
 function getModeLabel(mode: string) {
@@ -41,144 +36,164 @@ export default async function LiveStreamsTable() {
   // Prevent caching for live data
   unstable_noStore();
   
-  // Fetch all live channels (cache for 5 min)
-  const channelCacheKey = 'livestreams:channels';
-  let channelData = inMemoryCache.get<ChannelEntry[]>(channelCacheKey);
-  if (!channelData) {
-    const { data: fetched, error } = await supabase
-      .from('channels')
-      .select('channel, player, live, youtube')
-      .eq('live', true);
-    if (error) {
-      console.error('Error fetching live channels:', error);
-      // Don't return early on error, continue with empty array
-      channelData = [];
-    } else if (!fetched || fetched.length === 0) {
-      // Legitimately no live streamers
-      channelData = [];
-    } else {
-      channelData = fetched;
-      // Only cache successful results
-      inMemoryCache.set(channelCacheKey, channelData, 5 * 60 * 1000);
-    }
+  // Fetch all live channels
+  const { data: fetchedChannels, error: channelError } = await supabase
+    .from('channels')
+    .select('channel, player, live, youtube')
+    .eq('live', true);
+  
+  if (channelError) {
+    console.error('Error fetching live channels:', channelError);
+  }
+  
+  const channelData = fetchedChannels || [];
+  
+  // Early return only if channels query returns zero rows
+  if (channelData.length === 0) {
+    return (
+      <div className="bg-gray-900 rounded-lg p-6 mt-6">
+        <h2 className="text-center text-xl font-bold text-white mb-4">
+          Top Ranked Livestreams
+        </h2>
+        <div className="text-center text-gray-400 py-8">
+          <p className="text-lg">No streamers currently live who are on the leaderboard</p>
+          <p className="text-sm mt-2">Check back later for live streams from top players</p>
+        </div>
+      </div>
+    );
   }
 
   // Fetch Chinese streamer data
-  const chineseCacheKey = 'livestreams:chinese';
-  let chineseStreamerData = inMemoryCache.get<ChineseChannelEntry[]>(chineseCacheKey);
-  if (!chineseStreamerData) {
-    const { data: fetched, error } = await supabase
-      .from('chinese_streamers')
-      .select('player, url');
-    if (error) {
-      console.error('Error fetching Chinese streamer data:', error);
-      chineseStreamerData = [];
-    } else {
-      chineseStreamerData = fetched || [];
-      // Only cache successful results
-      if (chineseStreamerData.length > 0) {
-        inMemoryCache.set(chineseCacheKey, chineseStreamerData, 5 * 60 * 1000);
-      }
-    }
+  const { data: fetchedChinese, error: chineseError } = await supabase
+    .from('chinese_streamers')
+    .select('player, url');
+  
+  if (chineseError) {
+    console.error('Error fetching Chinese streamer data:', chineseError);
   }
+  
+  const chineseStreamerData = fetchedChinese || [];
 
   // Get all live player names
   const livePlayers = channelData.map((c: ChannelEntry) => c.player);
 
-  // Early return if no live players (but only after we've tried to fetch)
-  if (livePlayers.length === 0) {
-    return (
-      <div className="bg-gray-900 rounded-lg p-6 mt-6">
-        <h2 className="text-center text-xl font-bold text-white mb-4">
-          Top Ranked Livestreams
-        </h2>
-        <div className="text-center text-gray-400 py-8">
-          <p className="text-lg">No streamers currently live who are on the leaderboard</p>
-          <p className="text-sm mt-2">Check back later for live streams from top players</p>
-        </div>
-      </div>
-    );
-  }
+  // Get today and yesterday dates for leaderboard queries
+  const ptNow = DateTime.now().setZone('America/Los_Angeles');
+  const today = ptNow.startOf('day').toISODate() || '';
+  const yesterday = ptNow.minus({ days: 1 }).startOf('day').toISODate() || '';
 
-  // Get the appropriate date for leaderboard queries (with fallback)
-  const { date: today } = getCurrentLeaderboardDate();
-
-  // Fetch today's leaderboard entries for all live players (cache for 5 min)
-  const lbCacheKey = `livestreams:lb:${today}`;
-  let leaderboardData = inMemoryCache.get<LeaderboardEntry[]>(lbCacheKey);
-  if (!leaderboardData) {
-    const { data: fetched, error } = await supabase
-      .from('daily_leaderboard_stats')
-      .select(`
-        player_id,
-        rating, 
-        rank, 
-        region, 
-        game_mode,
-        players!inner(player_name)
-      `)
-      .in('players.player_name', livePlayers)
-      .eq('day_start', today);
-    if (error) {
-      console.error('Error fetching leaderboard data for live streamers:', error);
-      // Don't return early on error, continue with empty array
-      leaderboardData = [];
-    } else if (!fetched || fetched.length === 0) {
-      // Legitimately no data
-      leaderboardData = [];
-    } else {
-      // Transform the data to match the expected format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      leaderboardData = (fetched || []).map((entry: any) => ({
-        player_name: entry.players.player_name,
-        rating: entry.rating,
-        rank: entry.rank,
-        region: entry.region,
-        game_mode: entry.game_mode,
-      }));
-      // Only cache successful results
-      if (leaderboardData.length > 0) {
-        inMemoryCache.set(lbCacheKey, leaderboardData, 5 * 60 * 1000);
+  // First, get player_ids for all live players (more efficient than joining by name)
+  const playerIdMap = new Map<string, string>(); // player_name -> player_id
+  if (livePlayers.length > 0) {
+    try {
+      const queryPromise = supabase
+        .from('players')
+        .select('player_id, player_name')
+        .in('player_name', livePlayers);
+      
+      // Add timeout protection (3 seconds)
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => 
+        setTimeout(() => resolve({ data: null, error: { message: 'Query timeout after 3 seconds' } }), 3000)
+      );
+      
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+      
+      if (result.data) {
+        const { data: playerData, error: playerError } = result;
+        
+        if (playerError) {
+          console.error('Error fetching player IDs:', playerError);
+        } else if (playerData) {
+          playerData.forEach((p: { player_id: string; player_name: string }) => {
+            playerIdMap.set(p.player_name.toLowerCase(), p.player_id);
+          });
+        }
+      } else if (result.error) {
+        console.error('Player ID query error:', result.error.message);
       }
+    } catch (error) {
+      console.error('Error in player ID query:', error);
     }
   }
 
-  // Early return if no leaderboard data
-  if (!leaderboardData || leaderboardData.length === 0) {
-    return (
-      <div className="bg-gray-900 rounded-lg p-6 mt-6">
-        <h2 className="text-center text-xl font-bold text-white mb-4">
-          Top Ranked Livestreams
-        </h2>
-        <div className="text-center text-gray-400 py-8">
-          <p className="text-lg">No streamers currently live who are on the leaderboard</p>
-          <p className="text-sm mt-2">Check back later for live streams from top players</p>
-        </div>
-      </div>
-    );
+  // Fetch leaderboard entries for today or yesterday, taking most recent per player
+  const leaderboardMap = new Map<string, LeaderboardEntry>();
+  const playerIds = Array.from(playerIdMap.values());
+  
+  if (playerIds.length > 0) {
+    try {
+      const queryPromise = supabase
+        .from('daily_leaderboard_stats')
+        .select(`
+          player_id,
+          rating, 
+          rank, 
+          region, 
+          game_mode,
+          day_start,
+          players!inner(player_name)
+        `)
+        .in('player_id', playerIds)
+        .in('day_start', [today, yesterday])
+        .order('day_start', { ascending: false });
+      
+      // Add timeout protection (5 seconds)
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => 
+        setTimeout(() => resolve({ data: null, error: { message: 'Query timeout after 5 seconds' } }), 5000)
+      );
+      
+      const result = await Promise.race([queryPromise, timeoutPromise]);
+      
+      if (result.data) {
+        const { data: fetchedLb, error: lbError } = result;
+        
+        if (lbError) {
+          console.error('Error fetching leaderboard data for live streamers:', lbError);
+        } else if (fetchedLb) {
+          // Since ordered by day_start DESC, first entry per player is most recent
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          fetchedLb.forEach((entry: any) => {
+            const playerName = entry.players.player_name.toLowerCase();
+            if (!leaderboardMap.has(playerName)) {
+              leaderboardMap.set(playerName, {
+                player_name: entry.players.player_name,
+                rating: entry.rating,
+                rank: entry.rank,
+                region: entry.region,
+                game_mode: entry.game_mode,
+                day_start: entry.day_start,
+              });
+            }
+          });
+        }
+      } else if (result.error) {
+        console.error('Leaderboard query error:', result.error.message);
+      }
+    } catch (error) {
+      console.error('Error in leaderboard query:', error);
+    }
   }
 
-  // For each player, pick the entry with the lowest rank (and highest rating if tie)
-  const bestEntryByPlayer = Object.values(
-    leaderboardData.reduce((acc: Record<string, LeaderboardEntry>, entry: LeaderboardEntry) => {
-      const key = entry.player_name.toLowerCase();
-      if (!acc[key]) {
-        acc[key] = entry;
-      } else {
-        const current = acc[key];
-        if (
-          entry.rank < current.rank ||
-          (entry.rank === current.rank && entry.rating > current.rating)
-        ) {
-          acc[key] = entry;
-        }
-      }
-      return acc;
-    }, {})
-  ) as LeaderboardEntry[];
+  // Filter to only show live players who have leaderboard data
+  const tableRows = channelData
+    .map((channel: ChannelEntry) => {
+      const playerName = channel.player;
+      const lbEntry = leaderboardMap.get(playerName.toLowerCase());
+      return {
+        player_name: playerName,
+        channel: channel,
+        leaderboard: lbEntry || null,
+      };
+    })
+    .filter((row) => row.leaderboard !== null); // Only show players with leaderboard data
 
   // Sort by rank ascending
-  bestEntryByPlayer.sort((a, b) => a.rank - b.rank);
+  tableRows.sort((a, b) => {
+    if (a.leaderboard && b.leaderboard) {
+      return a.leaderboard.rank - b.leaderboard.rank;
+    }
+    return 0;
+  });
 
   return (
     <div className="bg-gray-900 rounded-lg p-6 mt-6">
@@ -205,34 +220,48 @@ export default async function LiveStreamsTable() {
             </tr>
           </thead>
           <tbody>
-            {bestEntryByPlayer.map((entry: LeaderboardEntry) => (
-              <tr key={entry.player_name + entry.region + entry.game_mode} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
-                <td className="px-4 py-3 text-sm font-medium text-zinc-400">#{entry.rank}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/stats/${entry.player_name}`}
-                      className="text-blue-300 font-semibold hover:underline"
-                      prefetch={false}
-                      target="_blank"
-                    >
-                      {entry.player_name}
-                    </Link>
-                    <SocialIndicators playerName={entry.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-left text-lg font-semibold text-white">{entry.rating}</td>
-                <td className="px-4 py-3 text-left text-white">{getModeLabel(entry.game_mode)}</td>
-                <td className="px-4 py-3 text-left text-white">
-                  <Link
-                    href={getWallLiiLeaderboardLink(entry.region, entry.game_mode)}
-                    className="text-blue-400 hover:underline"
-                  >
-                    {entry.region.toUpperCase()}
-                  </Link>
+            {tableRows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
+                  No live streamers currently on the leaderboard
                 </td>
               </tr>
-            ))}
+            ) : (
+              tableRows.map((row) => (
+                <tr key={row.player_name} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
+                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">
+                    #{row.leaderboard!.rank}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/stats/${row.player_name}`}
+                        className="text-blue-300 font-semibold hover:underline"
+                        prefetch={false}
+                        target="_blank"
+                      >
+                        {row.player_name}
+                      </Link>
+                      <SocialIndicators playerName={row.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-left text-lg font-semibold text-white">
+                    {row.leaderboard!.rating}
+                  </td>
+                  <td className="px-4 py-3 text-left text-white">
+                    {getModeLabel(row.leaderboard!.game_mode)}
+                  </td>
+                  <td className="px-4 py-3 text-left text-white">
+                    <Link
+                      href={getWallLiiLeaderboardLink(row.leaderboard!.region, row.leaderboard!.game_mode)}
+                      className="text-blue-400 hover:underline"
+                    >
+                      {row.leaderboard!.region.toUpperCase()}
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

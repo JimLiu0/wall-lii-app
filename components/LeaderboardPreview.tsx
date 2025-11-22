@@ -1,7 +1,6 @@
 import { supabase } from '@/utils/supabaseClient';
 import { unstable_noStore } from 'next/cache';
-import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
-import { inMemoryCache } from '@/utils/inMemoryCache';
+import { DateTime } from 'luxon';
 import LeaderboardPreviewClient from './LeaderboardPreviewClient';
 
 const gameModes = [
@@ -29,15 +28,20 @@ export default async function LeaderboardPreview() {
   // Prevent caching for live data
   unstable_noStore();
   
-  const { date: today } = getCurrentLeaderboardDate();
+  // Get today and yesterday dates
+  const ptNow = DateTime.now().setZone('America/Los_Angeles');
+  const today = ptNow.startOf('day').toISODate() || '';
+  const yesterday = ptNow.minus({ days: 1 }).startOf('day').toISODate() || '';
 
-  const lbCacheKey = `preview:lb:${today}`;
-  const chCacheKey = `preview:channels:${today}`;
-  let lb = inMemoryCache.get<LeaderboardEntry[]>(lbCacheKey);
-  let channels = inMemoryCache.get<ChannelEntry[]>(chCacheKey);
-
-  if (!lb) {
-    const { data: lbData, error: lbError } = await supabase
+  // Fetch leaderboard data: try today first, fallback to yesterday if empty
+  let lb: LeaderboardEntry[] = [];
+  const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) => 
+    setTimeout(() => resolve({ data: null, error: { message: 'Query timeout after 5 seconds' } }), 5000)
+  );
+  
+  try {
+    // Try today's data first
+    const todayQueryPromise = supabase
       .from('daily_leaderboard_stats')
       .select(`
         player_id,
@@ -51,45 +55,83 @@ export default async function LeaderboardPreview() {
       .order('rank', { ascending: true })
       .limit(80);
     
-    if (lbError) {
-      console.error('Error fetching leaderboard data:', lbError);
-      // Don't cache errors, return empty array to show fallback UI
-      lb = [];
-    } else {
-      // Transform the data to match the expected format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      lb = (lbData || []).map((entry: any) => ({
-        player_name: entry.players.player_name,
-        rating: entry.rating,
-        rank: entry.rank,
-        region: entry.region,
-        game_mode: entry.game_mode,
-      }));
-      // Only cache successful results
-      if (lb.length > 0) {
-        inMemoryCache.set(lbCacheKey, lb, 5 * 60 * 1000);
+    const todayResult = await Promise.race([todayQueryPromise, timeoutPromise]);
+    
+    if (todayResult.data) {
+      const { data: lbData, error: lbError } = todayResult;
+      
+      if (lbError) {
+        console.error('Error fetching today\'s leaderboard data:', lbError);
+      } else if (lbData && lbData.length > 0) {
+        // Transform the data to match the expected format
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        lb = lbData.map((entry: any) => ({
+          player_name: entry.players.player_name,
+          rating: entry.rating,
+          rank: entry.rank,
+          region: entry.region,
+          game_mode: entry.game_mode,
+        }));
+      }
+    } else if (todayResult.error) {
+      console.error('Today\'s leaderboard query error:', todayResult.error.message);
+    }
+    
+    // If today returned nothing, try yesterday
+    if (lb.length === 0) {
+      const yesterdayQueryPromise = supabase
+        .from('daily_leaderboard_stats')
+        .select(`
+          player_id,
+          rating, 
+          rank, 
+          region, 
+          game_mode,
+          players!inner(player_name)
+        `)
+        .eq('day_start', yesterday)
+        .order('rank', { ascending: true })
+        .limit(80);
+      
+      const yesterdayResult = await Promise.race([yesterdayQueryPromise, timeoutPromise]);
+      
+      if (yesterdayResult.data) {
+        const { data: lbData, error: lbError } = yesterdayResult;
+        
+        if (lbError) {
+          console.error('Error fetching yesterday\'s leaderboard data:', lbError);
+        } else if (lbData && lbData.length > 0) {
+          // Transform the data to match the expected format
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          lb = lbData.map((entry: any) => ({
+            player_name: entry.players.player_name,
+            rating: entry.rating,
+            rank: entry.rank,
+            region: entry.region,
+            game_mode: entry.game_mode,
+          }));
+        }
+      } else if (yesterdayResult.error) {
+        console.error('Yesterday\'s leaderboard query error:', yesterdayResult.error.message);
       }
     }
+  } catch (error) {
+    console.error('Error in leaderboard query:', error);
   }
 
-  const playerNames = lb?.map((p) => p.player_name) || [];
-  if (!channels && playerNames.length > 0) {
+  // Fetch channel data for players in leaderboard
+  const playerNames = lb.map((p) => p.player_name);
+  let channels: ChannelEntry[] = [];
+  if (playerNames.length > 0) {
     const { data: chData, error: chError } = await supabase
       .from('channels')
       .select('channel, player, live, youtube')
       .in('player', playerNames);
     if (chError) {
       console.error('Error fetching channel data:', chError);
-      channels = [];
     } else {
       channels = chData || [];
-      // Only cache successful results
-      if (channels.length > 0) {
-        inMemoryCache.set(chCacheKey, channels, 5 * 60 * 1000);
-      }
     }
-  } else if (!channels) {
-    channels = [];
   }
 
   // Build an augmented list without mutating the cached array to avoid duplication
