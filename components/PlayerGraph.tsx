@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 interface Props {
   data: { snapshot_time: string; rating: number }[];
   playerName: string;
+  placements: number[];
 }
 
 function useIsSmallScreen() {
@@ -25,7 +26,7 @@ function useIsSmallScreen() {
   return isSmall;
 }
 
-export default function PlayerGraph({ data, playerName }: Props) {
+export default function PlayerGraph({ data, playerName, placements }: Props) {
   data = dedupData(data);
   // Check if all ratings are the same
   const allSameRating = data.every(d => d.rating === data[0].rating);
@@ -96,6 +97,7 @@ export default function PlayerGraph({ data, playerName }: Props) {
       rating: d.rating,
       snapshot_time: d.snapshot_time,
       prevRating: i > 0 ? data[i - 1].rating : null,
+      placement: i > 0 && placements[i - 1] !== undefined ? placements[i - 1] : null,
     };
   });
 

@@ -4,6 +4,7 @@ interface PayloadData {
   rating: number;
   prevRating: number | null;
   snapshot_time: string;
+  placement: number | null;
 }
 
 interface TooltipProps {
@@ -18,6 +19,7 @@ export default function RatingTooltip({ active, payload }: TooltipProps) {
   const point = payload[0].payload;
   const current = point.rating;
   const prev = point.prevRating;
+  const placement = point.placement;
 
   const delta = prev !== null && prev !== undefined ? current - prev : null;
 
@@ -43,6 +45,11 @@ export default function RatingTooltip({ active, payload }: TooltipProps) {
         Rating: <span className="font-mono">{current}</span>{' '}
         <span className={`ml-1 font-mono ${deltaColor}`}>{deltaText}</span>
       </div>
+      {placement !== null && placement !== undefined && (
+        <div className="text-sm">
+          Placement: <span className="font-mono">{placement}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import PlayerHeader from './PlayerHeader';
 import DatePicker from './DatePicker';
 import { Info } from 'lucide-react';
 import { normalizeUrlParams, toNewUrlParams } from '@/utils/urlParams';
+import { calculatePlacementsWithAverage } from '@/utils/calculatePlacements';
 
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
@@ -224,6 +225,10 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   }, [playerData.data, currentView, selectedDate, currentRegion, gameMode]);
 
   filteredData = dedupData(filteredData);
+
+  // Calculate placements and average placement from filtered data
+  const ratings = filteredData.map((d) => d.rating);
+  const { placements, average: averagePlacement } = calculatePlacementsWithAverage(ratings);
 
   // Calculate derived stats from filtered data
   const currentRating = filteredData.length > 0 ? filteredData[filteredData.length - 1]?.rating : 0;
@@ -452,7 +457,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
 
             <div className="h-[300px] w-full">
               {filteredData.length > 0 ? (
-                <PlayerGraph data={filteredData} playerName={playerData.name} />
+                <PlayerGraph data={filteredData} playerName={playerData.name} placements={placements} />
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-400">
                   No data found during this period
@@ -463,7 +468,11 @@ export default function PlayerProfile({ player, region, date, playerData, channe
 
           {filteredData.length > 0 && (
             <div className="w-full md:w-1/4 flex justify-center items-center">
-              <StatsSummary data={filteredData} />
+              <StatsSummary 
+                data={filteredData} 
+                region={currentRegion}
+                averagePlacement={averagePlacement}
+              />
             </div>
           )}
         </div>
