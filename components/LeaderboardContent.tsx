@@ -54,8 +54,6 @@ interface Props {
   defaultSolo?: boolean;
 }
 
-
-const MAX_ROWS = 1000; // hard cap; we only ever surface top 1000
 const regions = ['na', 'eu', 'ap', 'cn'] as const;
 
 export default function LeaderboardContent({ region, defaultSolo = true }: Props) {
@@ -74,6 +72,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     // Route params always take precedence over localStorage
     return defaultSolo;
   });
+  const MAX_ROWS = solo ? 1000: 100; // hard cap;
   const [searchQuery, setSearchQuery] = useState('');
   const observerTarget = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);

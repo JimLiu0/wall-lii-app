@@ -3,7 +3,7 @@ import { AlertTriangle, Heart } from 'lucide-react';
 
 export default function SeasonResetBanner() {
   // Set the start date for the banner (adjust this to when you want it to start showing)
-  const bannerStartDate = new Date('2025-08-5'); // Adjust this date as needed
+  const bannerStartDate = new Date('2025-12-02'); // Adjust this date as needed
   const bannerEndDate = new Date(bannerStartDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days later
   const now = new Date();
 
@@ -24,17 +24,7 @@ export default function SeasonResetBanner() {
               Season 11 Database Reset
             </h3>
             <p className="text-orange-100 text-sm leading-relaxed">
-              Season 11 of Battlegrounds has started, so Wallii&apos;s database has been reset. 
-              If you&apos;d like to see previous season data, consider{' '}
-              <Link 
-                href="https://www.paypal.com/donate/?hosted_button_id=TBGLAGYRPHLEY" 
-                target="_blank"
-                className="inline-flex items-center gap-1 text-orange-300 hover:text-orange-200 font-medium underline underline-offset-2"
-              >
-                donating
-                <Heart className="w-3 h-3" />
-              </Link>
-              {' '}to help support the development and maintenance of historical data features.
+              Season 12 of Battlegrounds has started, so Wallii&apos;s database has been reset. 
             </p>
           </div>
         </div>
