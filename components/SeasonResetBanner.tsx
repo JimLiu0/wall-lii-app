@@ -2,7 +2,7 @@ import { AlertTriangle } from 'lucide-react';
 
 export default function SeasonResetBanner() {
   // Set the start date for the banner (adjust this to when you want it to start showing)
-  const bannerStartDate = new Date('2025-12-02'); // Adjust this date as needed
+  const bannerStartDate = new Date('2025-11-02'); // Adjust this date as needed
   const bannerEndDate = new Date(bannerStartDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days later
   const now = new Date();
 
