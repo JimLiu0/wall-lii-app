@@ -1,5 +1,4 @@
-import Link from 'next/link';
-import { AlertTriangle, Heart } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 
 export default function SeasonResetBanner() {
   // Set the start date for the banner (adjust this to when you want it to start showing)
