@@ -17,7 +17,7 @@ export default function StatsSummary({ data, region, averagePlacement }: Props) 
 
       { region.toLowerCase() !== 'cn' && averagePlacement !== null && 
         <div className="flex justify-between text-lg">
-          <span className="text-white pr-4">Average Placement</span>
+          <span className="text-white pr-4">🎯 Placement</span>
           <span className="font-bold text-white">
             {isNaN(averagePlacement) ? 'N/A' : averagePlacement}
           </span>
