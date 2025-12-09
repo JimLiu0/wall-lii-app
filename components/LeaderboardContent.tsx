@@ -22,6 +22,7 @@ interface LeaderboardEntry {
   games_played: number;
   rating_delta: number;
   rank_delta: number;
+  placement?: number | null;
 }
 
 interface RawLeaderboardEntry {
@@ -33,6 +34,8 @@ interface RawLeaderboardEntry {
   games_played?: number;
   weekly_games_played?: number;
   rating_delta?: number;
+  day_avg?: number | null;
+  weekly_avg?: number | null;
 }
 
 
@@ -77,7 +80,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
   const observerTarget = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const [sortColumn, setSortColumn] = useState<'rank' | 'rank_delta' | 'rating' | 'rating_delta' | 'games_played' | 'player_name'>('rank');
+  const [sortColumn, setSortColumn] = useState<'rank' | 'rank_delta' | 'rating' | 'rating_delta' | 'games_played' | 'player_name' | 'placement'>('rank');
   const [sortAsc, setSortAsc] = useState(true);
   const [timeframe, setTimeframe] = useState<'day' | 'week'>('day');
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -193,6 +196,8 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
               region, 
               games_played, 
               weekly_games_played,
+              day_avg,
+              weekly_avg,
               players!inner(player_name)
             `)
             .eq('day_start', currentStart)
@@ -211,6 +216,8 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
             region: row.region,
             games_played: typeof row.games_played === 'number' ? row.games_played : 0,
             weekly_games_played: typeof row.weekly_games_played === 'number' ? row.weekly_games_played : 0,
+            day_avg: typeof row.day_avg === 'number' ? row.day_avg : null,
+            weekly_avg: typeof row.weekly_avg === 'number' ? row.weekly_avg : null,
           }));
           inMemoryCache.set(currentCacheKey, currentData, 5 * 60 * 1000);
         }
@@ -255,17 +262,29 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
           baselineData.map(p => [p.player_name, typeof p.rating === 'number' ? p.rating : 0])
         );
         
-        const dataWithDelta = currentData.map(p => ({
-          player_name: p.player_name,
-          rating: typeof p.rating === 'number' ? p.rating : 0,
-          rank: typeof p.rank === 'number' ? p.rank : 0,
-          region: p.region,
-          games_played: timeframe === 'week' ? (typeof p.weekly_games_played === 'number' ? p.weekly_games_played : 0) : (typeof p.games_played === 'number' ? p.games_played : 0),
-          rating_delta: typeof prevMap[p.player_name] === 'number'
-            ? (typeof p.rating === 'number' ? p.rating - prevMap[p.player_name] : 0)
-            : 0,
-          rank_delta: 0,
-        }));
+        const dataWithDelta = currentData.map(p => {
+          const gamesPlayed = timeframe === 'week' 
+            ? (typeof p.weekly_games_played === 'number' ? p.weekly_games_played : 0) 
+            : (typeof p.games_played === 'number' ? p.games_played : 0);
+          
+          // Calculate placement based on timeframe and games threshold
+          const placementValue = timeframe === 'day'
+            ? (gamesPlayed >= 5 && p.day_avg != null ? Number(p.day_avg.toFixed(2)) : null)
+            : (gamesPlayed >= 10 && p.weekly_avg != null ? Number(p.weekly_avg.toFixed(2)) : null);
+          
+          return {
+            player_name: p.player_name,
+            rating: typeof p.rating === 'number' ? p.rating : 0,
+            rank: typeof p.rank === 'number' ? p.rank : 0,
+            region: p.region,
+            games_played: gamesPlayed,
+            rating_delta: typeof prevMap[p.player_name] === 'number'
+              ? (typeof p.rating === 'number' ? p.rating - prevMap[p.player_name] : 0)
+              : 0,
+            rank_delta: 0,
+            placement: placementValue,
+          };
+        });
 
         entries = dataWithDelta;
       } else {
@@ -283,6 +302,8 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
               region, 
               games_played, 
               weekly_games_played,
+              day_avg,
+              weekly_avg,
               updated_at,
               players!inner(player_name)
             `)
@@ -306,6 +327,8 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
             region: row.region ?? region.toUpperCase(),
             games_played: typeof row.games_played === 'number' ? row.games_played : 0,
             weekly_games_played: typeof row.weekly_games_played === 'number' ? row.weekly_games_played : 0,
+            day_avg: typeof row.day_avg === 'number' ? row.day_avg : null,
+            weekly_avg: typeof row.weekly_avg === 'number' ? row.weekly_avg : null,
           }));
           inMemoryCache.set(currentCacheKey, resultData, 5 * 60 * 1000);
         }
@@ -352,17 +375,25 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
         type RawLeaderboardEntryWithWeekly = RawLeaderboardEntry & { weekly_games_played?: number };
         entries = resultData.map((p: RawLeaderboardEntryWithWeekly) => {
           const y = yesterMap[p.player_name] || { rating: p.rating, rank: p.rank };
+          const gamesPlayed = timeframe === 'week'
+            ? (p.weekly_games_played ?? 0)
+            : (p.games_played ?? 0);
+          
+          // Calculate placement based on timeframe and games threshold
+          const placementValue = timeframe === 'day'
+            ? (gamesPlayed >= 5 && p.day_avg != null ? Number(p.day_avg.toFixed(2)) : null)
+            : (gamesPlayed >= 10 && p.weekly_avg != null ? Number(p.weekly_avg.toFixed(2)) : null);
+          
           return {
             ...p,
-            games_played: timeframe === 'week'
-              ? (p.weekly_games_played ?? 0)
-              : (p.games_played ?? 0),
+            games_played: gamesPlayed,
             rating_delta: typeof y.rating === 'number'
               ? (typeof p.rating === 'number' ? p.rating - y.rating : 0)
               : 0,
             rank_delta: typeof y.rank === 'number'
               ? (typeof p.rank === 'number' ? y.rank - p.rank : 0)
               : 0,
+            placement: placementValue,
           } as LeaderboardEntry;
         });
       }
@@ -498,6 +529,27 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     dataCopy.sort((a, b) => {
       const valA = a[sortColumn];
       const valB = b[sortColumn];
+      
+      // Special handling for placement column: N/A (null) values always sort to bottom
+      if (sortColumn === 'placement') {
+        const placementA = valA as number | null | undefined;
+        const placementB = valB as number | null | undefined;
+        if (placementA === null || placementA === undefined) {
+          if (placementB === null || placementB === undefined) return 0;
+          return 1; // A goes to bottom
+        }
+        if (placementB === null || placementB === undefined) return -1; // B goes to bottom
+        // Both are numbers, sort numerically
+        if (placementA < placementB) return sortAsc ? -1 : 1;
+        if (placementA > placementB) return sortAsc ? 1 : -1;
+        return 0;
+      }
+      
+      // Standard sorting for other columns
+      if (valA == null || valB == null) {
+        if (valA == null && valB == null) return 0;
+        return valA == null ? 1 : -1;
+      }
       if (valA < valB) return sortAsc ? -1 : 1;
       if (valA > valB) return sortAsc ? 1 : -1;
       return 0;
@@ -737,6 +789,15 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                       }}>
                     Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
+                  {solo && region !== 'cn' && (
+                    <th className="px-4 py-2 text-left cursor-pointer"
+                        onClick={() => {
+                          if (sortColumn === 'placement') setSortAsc(!sortAsc);
+                          else { setSortColumn('placement'); setSortAsc(true); }
+                        }}>
+                      Placement{sortColumn === 'placement' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -811,6 +872,11 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                     <td className="px-4 py-3 text-left text-white">
                       {entry.games_played}
                     </td>
+                    {solo && region !== 'cn' && (
+                      <td className="px-4 py-3 text-left text-white">
+                        {entry.placement != null ? entry.placement : 'N/A'}
+                      </td>
+                    )}
                   </tr>
                   );
                 })}
