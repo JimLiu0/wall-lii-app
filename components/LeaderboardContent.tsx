@@ -465,7 +465,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [region, solo, timeframe, dateOffset]);
+  }, [region, solo, timeframe, dateOffset, MAX_ROWS]);
 
   // Fetch data when any relevant parameter changes
   useEffect(() => {
