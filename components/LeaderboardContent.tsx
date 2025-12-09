@@ -88,10 +88,16 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
   const [dateOffset, setDateOffset] = useState(0);
   const [selectedDate, setSelectedDate] = useState<DateTime>(ptNow);
   const [minDate, setMinDate] = useState<DateTime>(DateTime.now().minus({ days: 30 }));
+  const [showPlacementInfo, setShowPlacementInfo] = useState(false);
 
   // Memoize the Info icon click handler to prevent unnecessary re-renders
   const handleInfoClick = useCallback(() => {
     setShowInfoModal(prev => !prev);
+  }, []);
+
+  // Handle placement info icon click
+  const handlePlacementInfoClick = useCallback(() => {
+    setShowPlacementInfo(prev => !prev);
   }, []);
 
   // Calculate offset based on selected date
@@ -267,10 +273,15 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
             ? (typeof p.weekly_games_played === 'number' ? p.weekly_games_played : 0) 
             : (typeof p.games_played === 'number' ? p.games_played : 0);
           
-          // Calculate placement based on timeframe and games threshold
-          const placementValue = timeframe === 'day'
-            ? (gamesPlayed >= 5 && p.day_avg != null ? Number(p.day_avg.toFixed(2)) : null)
-            : (gamesPlayed >= 10 && p.weekly_avg != null ? Number(p.weekly_avg.toFixed(2)) : null);
+          // Get starting rating from baseline (previous period)
+          const startingRating = typeof prevMap[p.player_name] === 'number' ? prevMap[p.player_name] : 0;
+          
+          // Calculate placement based on timeframe, games threshold, and starting rating > 9000
+          const placementValue = startingRating > 9000
+            ? (timeframe === 'day'
+              ? (gamesPlayed >= 5 && p.day_avg != null ? Number(p.day_avg.toFixed(2)) : null)
+              : (gamesPlayed >= 10 && p.weekly_avg != null ? Number(p.weekly_avg.toFixed(2)) : null))
+            : null;
           
           return {
             player_name: p.player_name,
@@ -379,10 +390,15 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
             ? (p.weekly_games_played ?? 0)
             : (p.games_played ?? 0);
           
-          // Calculate placement based on timeframe and games threshold
-          const placementValue = timeframe === 'day'
-            ? (gamesPlayed >= 5 && p.day_avg != null ? Number(p.day_avg.toFixed(2)) : null)
-            : (gamesPlayed >= 10 && p.weekly_avg != null ? Number(p.weekly_avg.toFixed(2)) : null);
+          // Get starting rating from baseline (previous period)
+          const startingRating = typeof y.rating === 'number' ? y.rating : 0;
+          
+          // Calculate placement based on timeframe, games threshold, and starting rating > 9000
+          const placementValue = startingRating > 9000
+            ? (timeframe === 'day'
+              ? (gamesPlayed >= 5 && p.day_avg != null ? Number(p.day_avg.toFixed(2)) : null)
+              : (gamesPlayed >= 10 && p.weekly_avg != null ? Number(p.weekly_avg.toFixed(2)) : null))
+            : null;
           
           return {
             ...p,
@@ -731,6 +747,20 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
           No results found.
         </div> }
 
+        {/* Placement Info Section */}
+        {solo && region !== 'cn' && showPlacementInfo && (
+          <div className="mb-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+            <div className="space-y-2 text-sm text-gray-300">
+              <p>Placement average is shown only when:</p>
+              <ul className="list-disc list-inside space-y-0.5 ml-2">
+                <li>Starting rating &gt; 9000</li>
+                <li>Day view: &gt; 4 games played</li>
+                <li>Week view: &gt; 9 games played</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
         { filteredData.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -790,12 +820,25 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                     Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
                   {solo && region !== 'cn' && (
-                    <th className="px-4 py-2 text-left cursor-pointer"
-                        onClick={() => {
-                          if (sortColumn === 'placement') setSortAsc(!sortAsc);
-                          else { setSortColumn('placement'); setSortAsc(true); }
-                        }}>
-                      Placement{sortColumn === 'placement' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                    <th className="px-4 py-2 text-left">
+                      <div className="flex items-center gap-1">
+                        <span 
+                          className="cursor-pointer"
+                          onClick={() => {
+                            if (sortColumn === 'placement') setSortAsc(!sortAsc);
+                            else { setSortColumn('placement'); setSortAsc(true); }
+                          }}
+                        >
+                          Placement{sortColumn === 'placement' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                        </span>
+                        <Info 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePlacementInfoClick();
+                          }}
+                          className='text-blue-400 hover:text-blue-300 cursor-pointer w-4 h-4'
+                        />
+                      </div>
                     </th>
                   )}
                 </tr>
