@@ -75,7 +75,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     // Route params always take precedence over localStorage
     return defaultSolo;
   });
-  const MAX_ROWS = solo ? 1000: 100; // hard cap;
+  const MAX_ROWS = useMemo(() => solo ? 1000 : 100, [solo]); // hard cap;
   const [searchQuery, setSearchQuery] = useState('');
   const observerTarget = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -516,7 +516,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     setCurrentOffset(nextOffset);
     const remaining = Math.min(100, MAX_ROWS - nextOffset);
     await fetchLeaderboard(nextOffset, remaining, true);
-  }, [loadingMore, hasMoreData, currentOffset, fetchLeaderboard]);
+  }, [loadingMore, hasMoreData, currentOffset, MAX_ROWS, fetchLeaderboard]);
 
   // Load all remaining data function
   const loadAllData = useCallback(async () => {
@@ -538,7 +538,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     } finally {
       setIsLoadingAll(false);
     }
-  }, [isLoadingAll, hasMoreData, currentOffset, fetchLeaderboard]);
+  }, [isLoadingAll, hasMoreData, currentOffset, MAX_ROWS, fetchLeaderboard]);
 
   const sortedData = useMemo(() => {
     const dataCopy = [...leaderboardData];
