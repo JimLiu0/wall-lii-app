@@ -14,6 +14,10 @@ export function estimatePlacement(start: number, end: number) {
       // avgOpp-formula
       const avgOpp =
         start - 148.1181435 * (100 - ((p - 1) * (200 / 7) + gain));
+      
+      if (avgOpp > 8500) {
+        return bestSoFar;
+      }
 
       const delta = Math.abs(dexAvg - avgOpp);
 
