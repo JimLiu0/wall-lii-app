@@ -32,9 +32,8 @@ export async function getLeaderboardDateRange(timeframe: 'day' | 'week' = 'day',
       currentStart = todayStr;
       prevStart = today.minus({ days: 1 }).toISODate() || '';
     } else {
-      // Weekly baseline: start of previous week (Monday)
-      // startOf('week') returns Monday, so subtract 1 week to get previous Monday
-      const weekStart = today.startOf('week').minus({ weeks: 1 });
+      // Weekly baseline: day before Monday of the current week (Sunday)
+      const weekStart = today.startOf('week').minus({ days: 1 });
       currentStart = todayStr;
       prevStart = weekStart.toISODate() || '';
     }
@@ -57,9 +56,8 @@ export async function getLeaderboardDateRange(timeframe: 'day' | 'week' = 'day',
     currentStart = yesterdayStr;
     prevStart = yesterday.minus({ days: 1 }).toISODate() || '';
   } else {
-    // Weekly baseline: start of previous week (Monday)
-    // startOf('week') returns Monday, so subtract 1 week to get previous Monday
-    const weekStart = yesterday.startOf('week').minus({ weeks: 1 });
+    // Weekly baseline: day before Monday of the current week (Sunday)
+    const weekStart = yesterday.startOf('week').minus({ days: 1 });
     currentStart = yesterdayStr;
     prevStart = weekStart.toISODate() || '';
   }
