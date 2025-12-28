@@ -819,7 +819,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                       }}>
                     Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}
                   </th>
-                  {solo && region !== 'cn' && (
+                  {region !== 'cn' && (
                     <th className="px-4 py-2 text-left">
                       <div className="flex items-center gap-1">
                         <span 
@@ -915,7 +915,7 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
                     <td className="px-4 py-3 text-left text-white">
                       {entry.games_played}
                     </td>
-                    {solo && region !== 'cn' && (
+                    {region !== 'cn' && (
                       <td className="px-4 py-3 text-left text-white">
                         {entry.placement != null ? entry.placement : 'N/A'}
                       </td>
