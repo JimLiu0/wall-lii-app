@@ -6,7 +6,7 @@ export function estimatePlacement(start: number, end: number) {
   const placements = [1, 2, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
 
   // dexAvg (same formula, using starting MMR)
-  const dexAvg = start < 8200 ? start : (start - 0.85 * (start - 8500));
+  const dexAvg = start < 8200 ? start : (start - 0.85 * (start - 10000));
 
   // Find placement with smallest delta
   const best = placements.reduce(
@@ -15,7 +15,7 @@ export function estimatePlacement(start: number, end: number) {
       const avgOpp =
         start - 148.1181435 * (100 - ((p - 1) * (200 / 7) + gain));
       
-      if (avgOpp > 8500) {
+      if (avgOpp > 10000) {
         return bestSoFar;
       }
 
