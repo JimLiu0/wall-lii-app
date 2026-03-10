@@ -13,8 +13,6 @@ import DatePicker from './DatePicker';
 import { Info } from 'lucide-react';
 import { normalizeUrlParams, toNewUrlParams } from '@/utils/urlParams';
 import { calculatePlacementsWithAverage } from '@/utils/calculatePlacements';
-import DataTable, { type DataTableColumn } from '@/components/DataTable';
-import { formatSnapshotTimeInPT, formatSnapshotTimeRelative } from '@/utils/dateUtils';
 
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
@@ -231,95 +229,6 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   // Calculate placements and average placement from filtered data
   const ratings = filteredData.map((d) => d.rating);
   const { placements, average: averagePlacement } = calculatePlacementsWithAverage(ratings);
-
-  // Derive one row per game (rating transition) for the table
-  interface GameRow {
-    id: string;
-    datePlayed: string;
-    placement: number;
-    mmrChange: number;
-    endingMmr: number;
-    startingMmr: number;
-  }
-  const games = useMemo((): GameRow[] => {
-    if (filteredData.length < 2) return [];
-    const rows: GameRow[] = [];
-    for (let i = 0; i <= filteredData.length - 2; i++) {
-      const start = filteredData[i];
-      const end = filteredData[i + 1];
-      rows.push({
-        id: `${start.snapshot_time}-${end.snapshot_time}`,
-        datePlayed: end.snapshot_time,
-        placement: placements[i],
-        mmrChange: end.rating - start.rating,
-        endingMmr: end.rating,
-        startingMmr: start.rating,
-      });
-    }
-    return rows;
-  }, [filteredData, placements]);
-
-  const [gamesPage, setGamesPage] = useState(1);
-  const GAMES_PAGE_SIZE = 25;
-
-  const sortedGames = useMemo(() => {
-    const copy = [...games];
-    // Default order: newest first
-    copy.sort((a, b) => (a.datePlayed < b.datePlayed ? 1 : a.datePlayed > b.datePlayed ? -1 : 0));
-    return copy;
-  }, [games]);
-
-  const totalPages = Math.max(1, Math.ceil(sortedGames.length / GAMES_PAGE_SIZE));
-  const paginatedGames = useMemo(() => {
-    const start = (gamesPage - 1) * GAMES_PAGE_SIZE;
-    return sortedGames.slice(start, start + GAMES_PAGE_SIZE);
-  }, [sortedGames, gamesPage, GAMES_PAGE_SIZE]);
-
-  // Reset to page 1 when period/mode/region or game count changes
-  const periodKey = `${currentView}-${currentRegion}-${gameMode}-${games.length}`;
-  useEffect(() => {
-    setGamesPage(1);
-  }, [periodKey]);
-
-  const gamesColumns: DataTableColumn<GameRow>[] = useMemo(() => [
-    {
-      key: 'datePlayed',
-      label: 'Date played',
-      sticky: true,
-      render: (row) => {
-        const formatted = formatSnapshotTimeInPT(row.datePlayed);
-        const relative = formatSnapshotTimeRelative(row.datePlayed);
-        return (
-          <span title={relative} className="text-zinc-400">
-            {formatted}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'placement',
-      label: 'Placement',
-      render: (row) => <span className="text-white">{row.placement}</span>,
-    },
-    {
-      key: 'mmrChange',
-      label: 'Δ MMR',
-      render: (row) => (
-        row.mmrChange > 0 ? (
-          <span className="text-green-400">+{row.mmrChange}</span>
-        ) : row.mmrChange < 0 ? (
-          <span className="text-red-400">{row.mmrChange}</span>
-        ) : (
-          <span className="text-zinc-400">—</span>
-        )
-      ),
-    },
-    {
-      key: 'endingMmr',
-      label: 'Ending MMR',
-      render: (row) => <span className="text-white font-semibold">{row.endingMmr}</span>,
-    },
-  ], []);
 
   // Calculate derived stats from filtered data
   const currentRating = filteredData.length > 0 ? filteredData[filteredData.length - 1]?.rating : 0;
@@ -555,64 +464,15 @@ export default function PlayerProfile({ player, region, date, playerData, channe
                 </div>
               )}
             </div>
-
-            {filteredData.length > 0 && (
-              <div className="mt-8">
-                <div className="md:hidden mb-6">
-                  <StatsSummary 
-                    data={filteredData} 
-                    region={currentRegion}
-                    averagePlacement={averagePlacement}
-                  />
-                </div>
-                <h2 className="text-lg font-semibold text-white mb-4">Games in this period</h2>
-                <DataTable
-                  columns={gamesColumns}
-                  data={paginatedGames}
-                  getRowKey={(row) => row.id}
-                  emptyMessage="No games in this period."
-                />
-                {sortedGames.length > GAMES_PAGE_SIZE && (
-                  <div className="flex flex-wrap items-center justify-between gap-2 mt-4 text-sm text-zinc-400">
-                    <div>
-                      Showing {(gamesPage - 1) * GAMES_PAGE_SIZE + 1}–{Math.min(gamesPage * GAMES_PAGE_SIZE, sortedGames.length)} of {sortedGames.length} games
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setGamesPage((p) => Math.max(1, p - 1))}
-                        disabled={gamesPage <= 1}
-                        className="px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
-                      >
-                        Previous
-                      </button>
-                      <span>
-                        Page {gamesPage} of {totalPages}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setGamesPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={gamesPage >= totalPages}
-                        className="px-3 py-1 rounded bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {filteredData.length > 0 && (
-            <div className="hidden md:flex w-full md:w-1/4 justify-center items-start">
-              <div className="w-full">
-                <StatsSummary 
-                  data={filteredData} 
-                  region={currentRegion}
-                  averagePlacement={averagePlacement}
-                />
-              </div>
+            <div className="w-full md:w-1/4 flex justify-center items-center">
+              <StatsSummary 
+                data={filteredData} 
+                region={currentRegion}
+                averagePlacement={averagePlacement}
+              />
             </div>
           )}
         </div>

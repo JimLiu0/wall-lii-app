@@ -13,7 +13,6 @@ import { Info, X } from 'lucide-react';
 import { inMemoryCache } from '@/utils/inMemoryCache';
 import { DateTime } from 'luxon';
 import { toNewUrlParams } from '@/utils/urlParams';
-import DataTable, { type DataTableColumn } from '@/components/DataTable';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -583,160 +582,6 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
     );
   }, [sortedData, searchQuery]);
 
-  const handleSort = useCallback((key: string) => {
-    if (key === sortColumn) {
-      setSortAsc((a) => !a);
-      return;
-    }
-    setSortColumn(key as typeof sortColumn);
-    const defaultAsc = ['rank', 'player_name', 'rating', 'placement'].includes(key);
-    setSortAsc(defaultAsc);
-  }, [sortColumn]);
-
-  const leaderboardColumns = useMemo((): DataTableColumn<LeaderboardEntry>[] => {
-    const cols: DataTableColumn<LeaderboardEntry>[] = [
-      {
-        key: 'rank',
-        label: 'Rank',
-        sortKey: 'rank',
-        sticky: true,
-        headerClassName: '',
-        cellClassName: 'text-sm font-medium text-zinc-400',
-        render: (entry) => `#${entry.rank}`,
-      },
-      ...(region !== 'all'
-        ? [
-            {
-              key: 'rank_delta_desktop',
-              label: 'ΔRank',
-              sortKey: 'rank_delta',
-              headerClassName: 'hidden sm:table-cell',
-              cellClassName: 'text-sm font-medium text-zinc-400 hidden sm:table-cell',
-              render: (entry) =>
-                entry.rank_delta > 0 ? (
-                  <span className="text-green-400">+{entry.rank_delta}</span>
-                ) : entry.rank_delta < 0 ? (
-                  <span className="text-red-400">{entry.rank_delta}</span>
-                ) : (
-                  <span className="text-zinc-400">—</span>
-                ),
-            } as DataTableColumn<LeaderboardEntry>,
-          ]
-        : []),
-      {
-        key: 'player_name',
-        label: 'Player',
-        sortKey: 'player_name',
-        render: (entry) => {
-          const statsUrlParams = toNewUrlParams({
-            region: entry.region.toLowerCase(),
-            mode: solo ? 'solo' : 'duo',
-            view: timeframe,
-            date: selectedDate.startOf('day').toISODate(),
-          });
-          const statsUrl = `/stats/${entry.player_name}?${statsUrlParams.toString()}`;
-          return (
-            <div className="flex items-center gap-2">
-              <Link
-                href={statsUrl}
-                target="_blank"
-                prefetch={false}
-                className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
-              >
-                {entry.player_name}
-              </Link>
-              <SocialIndicators
-                playerName={entry.player_name}
-                channelData={channelData}
-                chineseStreamerData={chineseStreamerData}
-              />
-              {region === 'all' && (
-                <span className="text-sm text-gray-400">({entry.region})</span>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        key: 'rating',
-        label: 'Rating',
-        sortKey: 'rating',
-        cellClassName: 'text-lg font-semibold text-white',
-        render: (entry) => entry.rating,
-      },
-      ...(region !== 'all'
-        ? [
-            {
-              key: 'rank_delta_mobile',
-              label: 'ΔRank',
-              sortKey: 'rank_delta',
-              headerClassName: 'table-cell sm:hidden',
-              cellClassName: 'text-sm font-medium text-zinc-400 table-cell sm:hidden',
-              render: (entry) =>
-                entry.rank_delta > 0 ? (
-                  <span className="text-green-400">+{entry.rank_delta}</span>
-                ) : entry.rank_delta < 0 ? (
-                  <span className="text-red-400">{entry.rank_delta}</span>
-                ) : (
-                  <span className="text-zinc-400">—</span>
-                ),
-            } as DataTableColumn<LeaderboardEntry>,
-          ]
-        : []),
-      {
-        key: 'rating_delta',
-        label: 'ΔRating',
-        sortKey: 'rating_delta',
-        render: (entry) =>
-          entry.rating_delta > 0 ? (
-            <span className="text-green-400">+{entry.rating_delta}</span>
-          ) : entry.rating_delta < 0 ? (
-            <span className="text-red-400">{entry.rating_delta}</span>
-          ) : (
-            <span className="text-zinc-400">—</span>
-          ),
-      },
-      {
-        key: 'games_played',
-        label: 'Games',
-        sortKey: 'games_played',
-        cellClassName: 'text-white',
-        render: (entry) => entry.games_played,
-      },
-      ...(region !== 'cn'
-        ? [
-            {
-              key: 'placement',
-              label: (
-                <div className="flex items-center gap-1">
-                  <span>Placement</span>
-                  <Info
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handlePlacementInfoClick();
-                    }}
-                    className="text-blue-400 hover:text-blue-300 cursor-pointer w-4 h-4"
-                  />
-                </div>
-              ),
-              sortKey: 'placement',
-              cellClassName: 'text-white',
-              render: (entry) => (entry.placement != null ? entry.placement : 'N/A'),
-            } as DataTableColumn<LeaderboardEntry>,
-          ]
-        : []),
-    ];
-    return cols;
-  }, [
-    region,
-    solo,
-    timeframe,
-    selectedDate,
-    channelData,
-    chineseStreamerData,
-    handlePlacementInfoClick,
-  ]);
-
   // Infinite scroll observer (load more data)
   useEffect(() => {
     if (loading) return;
@@ -917,28 +762,182 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
         )}
 
         { filteredData.length > 0 && (
-          <DataTable<LeaderboardEntry>
-            columns={leaderboardColumns}
-            data={filteredData}
-            getRowKey={(entry) => `${entry.player_name}-${entry.region}`}
-            sortColumn={sortColumn}
-            sortAsc={sortAsc}
-            onSort={handleSort}
-            footer={
-              hasMoreData && !searchQuery ? (
-                <div
-                  ref={observerTarget}
-                  className="py-8 text-center text-sm font-medium text-zinc-400"
-                >
-                  {loadingMore ? (
-                    'Loading more players...'
-                  ) : (
-                    'Scroll to load more players...'
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
+                  <th className="sticky left-0 bg-gray-900 z-10 px-4 py-2 text-left cursor-pointer"
+                      onClick={() => {
+                        if (sortColumn === 'rank') setSortAsc(!sortAsc);
+                        else { setSortColumn('rank'); setSortAsc(true); }
+                      }}>
+                    Rank{sortColumn === 'rank' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  {region !== 'all' && (
+                    <th className="px-4 py-2 text-left cursor-pointer hidden sm:table-cell"
+                        onClick={() => {
+                          if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
+                          else { setSortColumn('rank_delta'); setSortAsc(false); }
+                        }}>
+                      ΔRank{sortColumn === 'rank_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                    </th>
                   )}
-                </div>
-              ) : undefined
-            }
-          />
+                  <th className="px-4 py-2 text-left cursor-pointer"
+                      onClick={() => {
+                        if (sortColumn === 'player_name') setSortAsc(!sortAsc);
+                        else { setSortColumn('player_name'); setSortAsc(true); }
+                      }}>
+                    Player{sortColumn === 'player_name' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer"
+                      onClick={() => {
+                        if (sortColumn === 'rating') setSortAsc(!sortAsc);
+                        else { setSortColumn('rating'); setSortAsc(true); }
+                      }}>
+                    Rating{sortColumn === 'rating' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  {region !== 'all' && (
+                    <th className="px-4 py-2 text-left cursor-pointer table-cell sm:hidden"
+                        onClick={() => {
+                          if (sortColumn === 'rank_delta') setSortAsc(!sortAsc);
+                          else { setSortColumn('rank_delta'); setSortAsc(false); }
+                        }}>
+                      ΔRank{sortColumn === 'rank_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                    </th>
+                  )}
+                  <th className="px-4 py-2 text-left cursor-pointer"
+                      onClick={() => {
+                        if (sortColumn === 'rating_delta') setSortAsc(!sortAsc);
+                        else { setSortColumn('rating_delta'); setSortAsc(false); }
+                      }}>
+                    ΔRating{sortColumn === 'rating_delta' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  <th className="px-4 py-2 text-left cursor-pointer"
+                      onClick={() => {
+                        if (sortColumn === 'games_played') setSortAsc(!sortAsc);
+                        else { setSortColumn('games_played'); setSortAsc(false); }
+                      }}>
+                    Games{sortColumn === 'games_played' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                  </th>
+                  {region !== 'cn' && (
+                    <th className="px-4 py-2 text-left">
+                      <div className="flex items-center gap-1">
+                        <span 
+                          className="cursor-pointer"
+                          onClick={() => {
+                            if (sortColumn === 'placement') setSortAsc(!sortAsc);
+                            else { setSortColumn('placement'); setSortAsc(true); }
+                          }}
+                        >
+                          Placement{sortColumn === 'placement' ? (sortAsc ? ' ▲' : ' ▼') : ''}
+                        </span>
+                        <Info 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePlacementInfoClick();
+                          }}
+                          className='text-blue-400 hover:text-blue-300 cursor-pointer w-4 h-4'
+                        />
+                      </div>
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredData.map((entry) => {
+                  // Build stats URL using current state values
+                  const statsUrlParams = toNewUrlParams({
+                    region: entry.region.toLowerCase(),
+                    mode: solo ? 'solo' : 'duo',
+                    view: timeframe,
+                    date: selectedDate.startOf('day').toISODate()
+                  });
+                  const statsUrl = `/stats/${entry.player_name}?${statsUrlParams.toString()}`;
+                  
+                  return (
+                  <tr
+                    key={entry.player_name + entry.region}
+                    className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
+                  >
+                    <td className="sticky left-0 bg-gray-900 px-4 py-3 text-sm font-medium text-zinc-400">
+                      #{entry.rank}
+                    </td>
+                    {region !== 'all' && (
+                      <td className="px-4 py-3 text-sm font-medium text-zinc-400 hidden sm:table-cell">
+                        {entry.rank_delta > 0 ? (
+                          <span className="text-green-400">+{entry.rank_delta}</span>
+                        ) : entry.rank_delta < 0 ? (
+                          <span className="text-red-400">{entry.rank_delta}</span>
+                        ) : (
+                          <span className="text-zinc-400">—</span>
+                        )}
+                      </td>
+                    )}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Link
+                          href={statsUrl}
+                          target="_blank"
+                          prefetch={false}
+                          className="text-blue-300 hover:text-blue-500 hover:underline font-semibold transition-colors cursor-pointer"
+                        >
+                          {entry.player_name}
+                        </Link>
+                        <SocialIndicators playerName={entry.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData}/>
+                        {region === 'all' && (
+                          <span className="text-sm text-gray-400">({entry.region})</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-left text-lg font-semibold text-white">
+                      {entry.rating}
+                    </td>
+                    {region !== 'all' && (
+                      <td className="px-4 py-3 text-sm font-medium text-zinc-400 table-cell sm:hidden">
+                        {entry.rank_delta > 0 ? (
+                          <span className="text-green-400">+{entry.rank_delta}</span>
+                        ) : entry.rank_delta < 0 ? (
+                          <span className="text-red-400">{entry.rank_delta}</span>
+                        ) : (
+                          <span className="text-zinc-400">—</span>
+                        )}
+                      </td>
+                    )}
+                    <td className="px-4 py-3 text-left">
+                      {entry.rating_delta > 0 ? (
+                        <span className="text-green-400">+{entry.rating_delta}</span>
+                      ) : entry.rating_delta < 0 ? (
+                        <span className="text-red-400">{entry.rating_delta}</span>
+                      ) : (
+                        <span className="text-zinc-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-left text-white">
+                      {entry.games_played}
+                    </td>
+                    {region !== 'cn' && (
+                      <td className="px-4 py-3 text-left text-white">
+                        {entry.placement != null ? entry.placement : 'N/A'}
+                      </td>
+                    )}
+                  </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {hasMoreData && !searchQuery && (
+              <div
+                ref={observerTarget}
+                className="py-8 text-center text-sm font-medium text-zinc-400"
+              >
+                {loadingMore ? (
+                  'Loading more players...'
+                ) : (
+                  'Scroll to load more players...'
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
