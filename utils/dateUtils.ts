@@ -87,4 +87,22 @@ export function getCurrentLeaderboardDate(): { date: string; isUsingFallback: bo
     date: targetDate.toISODate() || '',
     isUsingFallback
   };
+}
+
+const PT_ZONE = 'America/Los_Angeles';
+
+/**
+ * Format a snapshot ISO time in Pacific Time for display (e.g. "Mar 3, 4:30 PM").
+ */
+export function formatSnapshotTimeInPT(iso: string): string {
+  const dt = DateTime.fromISO(iso, { zone: PT_ZONE });
+  return dt.toLocaleString(DateTime.DATETIME_SHORT);
+}
+
+/**
+ * Format a snapshot ISO time as relative to now (e.g. "2 hours ago").
+ */
+export function formatSnapshotTimeRelative(iso: string): string {
+  const dt = DateTime.fromISO(iso, { zone: PT_ZONE });
+  return dt.toRelative() ?? iso;
 } 
