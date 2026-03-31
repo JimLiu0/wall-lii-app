@@ -15,14 +15,15 @@ export default function StatsSummary({ data, region, averagePlacement }: Props) 
     <div className="bg-gray-900 p-6 rounded-lg shadow-lg space-y-4 w-fit text-left">
       <div className="text-2xl font-bold text-white">📊 Session Stats</div>
 
-      { region.toLowerCase() !== 'cn' && averagePlacement !== null && 
+      {region.toLowerCase() !== 'cn' && averagePlacement !== null && (
         <div className="flex justify-between text-lg">
-          <span className="text-white pr-4">🎯 Placement</span>
+          <span className="text-white pr-4">🏁 Average Placement</span>
           <span className="font-bold text-white">
             {isNaN(averagePlacement) ? 'N/A' : averagePlacement}
           </span>
-        </div> }
-  
+        </div>
+      )}
+
       <div className="flex justify-between text-lg">
         <span className="text-white pr-4">🎮 Games Played</span>
         <span className="font-bold text-white">{games_played}</span>
