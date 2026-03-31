@@ -1,23 +1,22 @@
 import { supabase } from './supabaseClient';
 
 /**
- * Helper function to get player_id from player_name
- * @param playerName - The player name to look up
- * @returns Promise<string | null> - The player_id or null if not found
+ * Helper function to get player_id from player_name.
+ * Stats routes pass lowercased slugs; `players.player_name` is stored lowercase to match.
  */
 export async function getPlayerId(playerName: string): Promise<string | null> {
   const { data, error } = await supabase
     .from('players')
     .select('player_id')
     .eq('player_name', playerName)
-    .single();
-  
-  if (error || !data) {
+    .maybeSingle();
+
+  if (error) {
     console.error('Error fetching player_id for', playerName, ':', error);
     return null;
   }
-  
-  return data.player_id;
+
+  return data?.player_id ?? null;
 }
 
 /**
