@@ -16,13 +16,9 @@ function formatPlacementPlain(value: number): string {
 
 export interface GameRecordsTableProps {
   rows: GameRecordRow[];
-  compactTime?: boolean;
 }
 
-export default function GameRecordsTable({
-  rows,
-  compactTime = false,
-}: GameRecordsTableProps) {
+export default function GameRecordsTable({ rows }: GameRecordsTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-[14px] leading-normal">
@@ -41,7 +37,7 @@ export default function GameRecordsTable({
               className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
             >
               <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">
-                {formatRecordedAt(row.recordedAt, { compact: compactTime })}
+                {formatRecordedAt(row.recordedAt)}
               </td>
               <td className="px-4 py-3 text-white">
                 {formatPlacementPlain(row.placement)}

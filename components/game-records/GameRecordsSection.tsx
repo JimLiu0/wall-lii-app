@@ -114,20 +114,6 @@ function GameRecordsPaginationBar({
   );
 }
 
-function useCompactRecordedAt() {
-  const [compact, setCompact] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 640px)');
-    const update = () => setCompact(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
-
-  return compact;
-}
-
 /** Re-render periodically so relative labels stay reasonably fresh */
 function useRelativeTimeRerender(intervalMs = 60_000) {
   const [, setTick] = useState(0);
@@ -216,7 +202,6 @@ export default function GameRecordsSection({
   const [page, setPage] = useState(1);
   const [pageDraft, setPageDraft] = useState('1');
   const [showTimeInfo, setShowTimeInfo] = useState(false);
-  const compactTime = useCompactRecordedAt();
   useRelativeTimeRerender();
 
   useEffect(() => {
@@ -322,7 +307,7 @@ export default function GameRecordsSection({
           <>
             <GameRecordsPaginationBar {...paginationBarProps} />
             <div className="mt-4">
-              <GameRecordsTable rows={pageRecords} compactTime={compactTime} />
+              <GameRecordsTable rows={pageRecords} />
             </div>
             <div className="mt-4">
               <GameRecordsPaginationBar {...paginationBarProps} />
