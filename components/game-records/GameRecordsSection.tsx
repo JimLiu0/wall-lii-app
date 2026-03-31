@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Info } from 'lucide-react';
 import GameRecordsTable from '@/components/game-records/GameRecordsTable';
 import { useGameRecordsPaginated } from '@/hooks/useGameRecordsPaginated';
 import type { SnapshotRowForGames } from '@/utils/buildGameRecordsFromSnapshots';
@@ -32,34 +33,57 @@ function useRelativeTimeRerender(intervalMs = 60_000) {
   }, [intervalMs]);
 }
 
+function GameRecordsHeading({
+  showTimeInfo,
+  onToggleTimeInfo,
+}: {
+  showTimeInfo: boolean;
+  onToggleTimeInfo: () => void;
+}) {
+  return (
+    <>
+      <div className="flex gap-2 items-center">
+        <h2 className="text-xl font-bold text-white">Game records</h2>
+        <Info
+          onClick={onToggleTimeInfo}
+          className="text-blue-400 hover:text-blue-300 cursor-pointer shrink-0"
+        />
+      </div>
+      {showTimeInfo && (
+        <div className="text-xs text-gray-400 mt-2">
+          All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.
+        </div>
+      )}
+    </>
+  );
+}
+
 function TableSkeleton() {
   return (
-    <div className="w-full overflow-x-auto rounded-lg border border-gray-800 bg-gray-950/50">
-      <table className="w-full min-w-[520px] text-left text-sm">
+    <div className="overflow-x-auto">
+      <table className="w-full text-[14px] leading-normal">
         <thead>
-          <tr className="border-b border-gray-800 text-xs font-semibold uppercase tracking-wide text-gray-400">
-            <th className="px-3 py-2.5 sm:px-4 sm:py-3">Recorded At</th>
-            <th className="px-3 py-2.5 sm:px-4 sm:py-3 whitespace-nowrap">
-              Placement (est.)
-            </th>
-            <th className="px-3 py-2.5 sm:px-4 sm:py-3">Δ MMR</th>
-            <th className="px-3 py-2.5 sm:px-4 sm:py-3 text-right">Ending MMR</th>
+          <tr className="font-medium text-zinc-400 border-b border-gray-800">
+            <th className="px-4 py-2 text-left">Recorded At</th>
+            <th className="px-4 py-2 text-left">Placement (est.)</th>
+            <th className="px-4 py-2 text-left">Δ MMR</th>
+            <th className="px-4 py-2 text-left">Ending MMR</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-800/80">
+        <tbody>
           {Array.from({ length: 8 }).map((_, i) => (
-            <tr key={i} className="animate-pulse">
-              <td className="px-3 py-2.5 sm:px-4 sm:py-3">
+            <tr key={`sk-${i}`} className="border-b border-gray-800 animate-pulse">
+              <td className="px-4 py-3">
                 <div className="h-4 rounded bg-gray-800/90" />
               </td>
-              <td className="px-3 py-2.5 sm:px-4 sm:py-3">
-                <div className="h-4 w-12 rounded bg-gray-800/90" />
-              </td>
-              <td className="px-3 py-2.5 sm:px-4 sm:py-3">
+              <td className="px-4 py-3">
                 <div className="h-4 w-10 rounded bg-gray-800/90" />
               </td>
-              <td className="px-3 py-2.5 sm:px-4 sm:py-3 text-right">
-                <div className="ml-auto h-4 w-14 rounded bg-gray-800/90" />
+              <td className="px-4 py-3">
+                <div className="h-4 w-8 rounded bg-gray-800/90" />
+              </td>
+              <td className="px-4 py-3">
+                <div className="h-4 w-14 rounded bg-gray-800/90" />
               </td>
             </tr>
           ))}
@@ -84,6 +108,7 @@ export default function GameRecordsSection({
   error = null,
 }: GameRecordsSectionProps) {
   const [page, setPage] = useState(1);
+  const [showTimeInfo, setShowTimeInfo] = useState(false);
   const compactTime = useCompactRecordedAt();
   useRelativeTimeRerender();
 
@@ -118,52 +143,50 @@ export default function GameRecordsSection({
     return `Page ${safePage} of ${totalPages}`;
   }, [totalCount, safePage, totalPages]);
 
+  const toggleTimeInfo = useCallback(() => {
+    setShowTimeInfo((v) => !v);
+  }, []);
+
   if (error) {
     return (
-      <section className="mt-10 border-t border-gray-800 pt-8">
-        <h2 className="text-lg font-semibold text-white sm:text-xl">Game records</h2>
-        <p className="mt-4 text-sm text-red-400">Unable to load game records.</p>
-      </section>
+      <div className="mt-6">
+        <GameRecordsHeading showTimeInfo={showTimeInfo} onToggleTimeInfo={toggleTimeInfo} />
+        <p className="mt-4 text-[14px] text-gray-400">Unable to load game records.</p>
+      </div>
     );
   }
 
   if (isLoading) {
     return (
-      <section className="mt-10 border-t border-gray-800 pt-8">
-        <h2 className="text-lg font-semibold text-white sm:text-xl">Game records</h2>
-        <p className="mt-1 text-xs text-gray-500">
-          Recent times shown relatively; older times shown in Pacific Time.
-        </p>
+      <div className="mt-6">
+        <GameRecordsHeading showTimeInfo={showTimeInfo} onToggleTimeInfo={toggleTimeInfo} />
         <div className="mt-4">
           <TableSkeleton />
         </div>
-      </section>
+      </div>
     );
   }
 
   return (
-    <section className="mt-10 border-t border-gray-800 pt-8">
-      <h2 className="text-lg font-semibold text-white sm:text-xl">Game records</h2>
-      <p className="mt-1 text-xs text-gray-500">
-        Recent times shown relatively; older times shown in Pacific Time.
-      </p>
+    <div className="mt-6">
+      <GameRecordsHeading showTimeInfo={showTimeInfo} onToggleTimeInfo={toggleTimeInfo} />
 
       <div className="mt-4">
         {totalCount === 0 ? (
-          <p className="rounded-lg border border-gray-800 bg-gray-950/40 px-4 py-8 text-center text-sm text-gray-400">
-            No recorded games for this filter.
-          </p>
+          <div className="text-center text-[14px] text-gray-400 py-8">
+            <p>No recorded games for this filter.</p>
+          </div>
         ) : (
           <>
             <GameRecordsTable rows={pageRecords} compactTime={compactTime} />
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-gray-500">{paginationLabel}</p>
-              <div className="flex gap-2">
+              <p className="text-[14px] text-gray-400">{paginationLabel}</p>
+              <div className="flex gap-2 justify-center sm:justify-end">
                 <button
                   type="button"
                   onClick={handlePrev}
                   disabled={!canPrev}
-                  className="rounded-md border border-gray-700 bg-gray-900 px-3 py-1.5 text-sm text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-md border border-gray-700 bg-gray-900 px-3 py-1.5 text-[14px] text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Previous
                 </button>
@@ -171,7 +194,7 @@ export default function GameRecordsSection({
                   type="button"
                   onClick={handleNext}
                   disabled={!canNext}
-                  className="rounded-md border border-gray-700 bg-gray-900 px-3 py-1.5 text-sm text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded-md border border-gray-700 bg-gray-900 px-3 py-1.5 text-[14px] text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Next
                 </button>
@@ -180,6 +203,6 @@ export default function GameRecordsSection({
           </>
         )}
       </div>
-    </section>
+    </div>
   );
 }

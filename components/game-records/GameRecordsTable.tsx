@@ -2,11 +2,17 @@
 
 import type { GameRecordRow } from '@/utils/buildGameRecordsFromSnapshots';
 import { formatRecordedAt } from '@/utils/formatRecordedAt';
-import {
-  formatMmrInteger,
-  formatPlacementOrdinal,
-  formatSignedMmrDelta,
-} from '@/utils/formatGameRecordDisplay';
+
+function formatSignedDelta(delta: number): string {
+  if (!Number.isFinite(delta)) return '—';
+  if (delta === 0) return '0';
+  return `${delta > 0 ? '+' : ''}${Math.round(delta)}`;
+}
+
+function formatPlacementPlain(value: number): string {
+  if (!Number.isFinite(value)) return '—';
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
 
 export interface GameRecordsTableProps {
   rows: GameRecordRow[];
@@ -18,40 +24,41 @@ export default function GameRecordsTable({
   compactTime = false,
 }: GameRecordsTableProps) {
   return (
-    <div className="w-full overflow-x-auto rounded-lg border border-gray-800 bg-gray-950/50">
-      <table className="w-full min-w-[520px] text-left text-sm">
+    <div className="overflow-x-auto">
+      <table className="w-full text-[14px] leading-normal">
         <thead>
-          <tr className="border-b border-gray-800 text-xs font-semibold uppercase tracking-wide text-gray-400">
-            <th className="px-3 py-2.5 sm:px-4 sm:py-3">Recorded At</th>
-            <th className="px-3 py-2.5 sm:px-4 sm:py-3 whitespace-nowrap">
-              Placement (est.)
-            </th>
-            <th className="px-3 py-2.5 sm:px-4 sm:py-3">Δ MMR</th>
-            <th className="px-3 py-2.5 sm:px-4 sm:py-3 text-right">Ending MMR</th>
+          <tr className="font-medium text-zinc-400 border-b border-gray-800">
+            <th className="px-4 py-2 text-left">Recorded At</th>
+            <th className="px-4 py-2 text-left">Placement (est.)</th>
+            <th className="px-4 py-2 text-left">Δ MMR</th>
+            <th className="px-4 py-2 text-left">Ending MMR</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-800/80">
+        <tbody>
           {rows.map((row) => (
-            <tr key={row.rowKey} className="text-gray-100">
-              <td className="px-3 py-2 sm:px-4 sm:py-2.5 font-mono text-xs sm:text-sm text-gray-300 whitespace-nowrap tabular-nums">
+            <tr
+              key={row.rowKey}
+              className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors"
+            >
+              <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">
                 {formatRecordedAt(row.recordedAt, { compact: compactTime })}
               </td>
-              <td className="px-3 py-2 sm:px-4 sm:py-2.5 text-gray-200">
-                {formatPlacementOrdinal(row.placement)}
+              <td className="px-4 py-3 text-white">
+                {formatPlacementPlain(row.placement)}
               </td>
               <td
-                className={`px-3 py-2 sm:px-4 sm:py-2.5 font-mono tabular-nums ${
+                className={`px-4 py-3 font-medium ${
                   row.deltaMmr > 0
                     ? 'text-emerald-400'
                     : row.deltaMmr < 0
                       ? 'text-red-400'
-                      : 'text-gray-300'
+                      : 'text-zinc-400'
                 }`}
               >
-                {formatSignedMmrDelta(row.deltaMmr)}
+                {formatSignedDelta(row.deltaMmr)}
               </td>
-              <td className="px-3 py-2 sm:px-4 sm:py-2.5 text-right font-mono text-gray-100 tabular-nums">
-                {formatMmrInteger(row.endingMmr)}
+              <td className="px-4 py-3 text-left font-semibold text-white">
+                {Number.isFinite(row.endingMmr) ? Math.round(row.endingMmr) : '—'}
               </td>
             </tr>
           ))}
