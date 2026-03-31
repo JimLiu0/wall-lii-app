@@ -13,13 +13,21 @@ import DatePicker from './DatePicker';
 import { Info } from 'lucide-react';
 import { normalizeUrlParams, toNewUrlParams } from '@/utils/urlParams';
 import { calculatePlacementsWithAverage } from '@/utils/calculatePlacements';
+import GameRecordsSection from '@/components/game-records/GameRecordsSection';
 
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
 
 interface PlayerData {
   name: string;
-  data: { game_mode: string, player_name: string, region: string, snapshot_time: string; rating: number }[];
+  data: {
+    game_mode: string;
+    player_name: string;
+    region: string;
+    snapshot_time: string;
+    rating: number;
+    id?: string;
+  }[];
   availableModes: {
     regions: string[];
     gameModes: string[];
@@ -225,6 +233,12 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   }, [playerData.data, currentView, selectedDate, currentRegion, gameMode]);
 
   filteredData = dedupData(filteredData);
+
+  const gameRecordsFilterKey = useMemo(() => {
+    const dateKey =
+      currentView === 'all' ? 'season' : selectedDate.toISODate() ?? '';
+    return `${player}-${currentRegion}-${gameMode}-${currentView}-${dateKey}`;
+  }, [player, currentRegion, gameMode, currentView, selectedDate]);
 
   // Calculate placements and average placement from filtered data
   const ratings = filteredData.map((d) => d.rating);
@@ -476,6 +490,11 @@ export default function PlayerProfile({ player, region, date, playerData, channe
             </div>
           )}
         </div>
+
+        <GameRecordsSection
+          filterKey={gameRecordsFilterKey}
+          snapshots={filteredData}
+        />
       </div>
     </div>
   );

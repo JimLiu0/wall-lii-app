@@ -36,7 +36,14 @@ interface PageProps {
 
 interface PlayerData {
   name: string;
-  data: { game_mode: string, player_name: string, region: string, snapshot_time: string; rating: number }[];
+  data: {
+    game_mode: string;
+    player_name: string;
+    region: string;
+    snapshot_time: string;
+    rating: number;
+    id?: string;
+  }[];
   availableModes: {
     regions: string[];
     gameModes: string[];
@@ -89,6 +96,7 @@ async function fetchPlayerData(player: string) {
     snapshot_time: string;
     region: string;
     game_mode: string;
+    id?: string;
   }> = [];
   let error: PostgrestError | null = null;
   let cursor: string | null = null;
