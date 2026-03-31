@@ -8,21 +8,62 @@ const validRegions = ['na', 'eu', 'ap', 'cn', 'all'];
 
 const blockedIPs = new Set(['98.92.59.8']);
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
-
-const ratelimit = new Ratelimit({
-  redis,
-  limiter: Ratelimit.slidingWindow(10, '1 m'),
-  analytics: false,
-  prefix: 'wallii_middleware_rl',
-});
-
 const AUTO_BLOCK_THRESHOLD = 3;
 const AUTO_BLOCK_WINDOW_SECONDS = 60 * 10;
 const AUTO_BLOCK_DURATION_SECONDS = 60 * 60 * 24;
+
+let redisClient: Redis | null | undefined;
+let ratelimitClient: Ratelimit | null | undefined;
+
+function getRedisClient(): Redis | null {
+  if (redisClient !== undefined) {
+    return redisClient;
+  }
+
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!url || !token) {
+    console.warn('Upstash Redis env vars are missing; skipping rate limiting');
+    redisClient = null;
+    return redisClient;
+  }
+
+  try {
+    redisClient = new Redis({ url, token });
+    return redisClient;
+  } catch (error) {
+    console.error('Failed to initialize Redis client; skipping rate limiting', error);
+    redisClient = null;
+    return redisClient;
+  }
+}
+
+function getRatelimitClient(): Ratelimit | null {
+  if (ratelimitClient !== undefined) {
+    return ratelimitClient;
+  }
+
+  const redis = getRedisClient();
+  if (!redis) {
+    ratelimitClient = null;
+    return ratelimitClient;
+  }
+
+  try {
+    ratelimitClient = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(10, '1 m'),
+      analytics: false,
+      prefix: 'wallii_middleware_rl',
+    });
+    return ratelimitClient;
+  } catch (error) {
+    console.error('Failed to initialize ratelimit client; skipping rate limiting', error);
+    ratelimitClient = null;
+    return ratelimitClient;
+  }
+}
 
 function getClientIP(request: NextRequest): string {
   const forwardedFor = request.headers.get('x-forwarded-for');
@@ -58,6 +99,11 @@ async function isEdgeConfigBlocked(ip: string): Promise<boolean> {
 
 async function isAutoBlocked(ip: string): Promise<boolean> {
   try {
+    const redis = getRedisClient();
+    if (!redis) {
+      return false;
+    }
+
     const blocked = await redis.get<string>(getAutoBlockKey(ip));
     return blocked === '1';
   } catch (error) {
@@ -68,6 +114,11 @@ async function isAutoBlocked(ip: string): Promise<boolean> {
 
 async function registerRateLimitViolation(ip: string): Promise<void> {
   try {
+    const redis = getRedisClient();
+    if (!redis) {
+      return;
+    }
+
     const strikeKey = getStrikeKey(ip);
     const strikes = await redis.incr(strikeKey);
 
@@ -104,20 +155,28 @@ export async function middleware(request: NextRequest) {
       return new NextResponse('Blocked', { status: 403 });
     }
 
-    const { success, limit, remaining, reset } = await ratelimit.limit(ip);
+    try {
+      const ratelimit = getRatelimitClient();
 
-    if (!success) {
-      await registerRateLimitViolation(ip);
+      if (ratelimit) {
+        const { success, limit, remaining, reset } = await ratelimit.limit(ip);
 
-      return new NextResponse('Too many requests', {
-        status: 429,
-        headers: {
-          'Retry-After': String(Math.max(1, Math.ceil((reset - Date.now()) / 1000))),
-          'X-RateLimit-Limit': String(limit),
-          'X-RateLimit-Remaining': String(remaining),
-          'X-RateLimit-Reset': String(reset),
-        },
-      });
+        if (!success) {
+          await registerRateLimitViolation(ip);
+
+          return new NextResponse('Too many requests', {
+            status: 429,
+            headers: {
+              'Retry-After': String(Math.max(1, Math.ceil((reset - Date.now()) / 1000))),
+              'X-RateLimit-Limit': String(limit),
+              'X-RateLimit-Remaining': String(remaining),
+              'X-RateLimit-Reset': String(reset),
+            },
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Rate limiting failed; allowing request through', error);
     }
   }
 
