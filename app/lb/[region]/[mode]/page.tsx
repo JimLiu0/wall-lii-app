@@ -1,6 +1,7 @@
 import LeaderboardContent from '@/components/LeaderboardContent';
 import NewsBanner from '@/components/NewsBanner';
 import SeasonResetBanner from '@/components/SeasonResetBanner';
+import TimedAnnouncementBanner from '@/components/TimedAnnouncementBanner';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -66,6 +67,7 @@ export default async function Page({ params }: PageProps) {
       <main className="container mx-auto px-0 py-8 [@media(min-width:431px)]:px-4">
         <div className="max-w-4xl mx-auto">
           <SeasonResetBanner />
+          <TimedAnnouncementBanner />
           <NewsBanner />
           <LeaderboardContent region={region.toLowerCase()} defaultSolo={defaultSolo} />
         </div>
