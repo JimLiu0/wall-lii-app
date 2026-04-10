@@ -12,22 +12,23 @@ export default function TimedAnnouncementBanner() {
 
   return (
     <div className="mb-6">
-      <div className="bg-gradient-to-r from-sky-900/80 to-indigo-900/80 border border-sky-700/50 rounded-lg p-4 shadow-lg">
+      <div className="bg-gray-800 border border-gray-600 rounded-lg p-3 shadow-md">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 mt-0.5">
-            <Megaphone className="w-5 h-5 text-sky-400" />
+            <Megaphone className="w-4 h-4 text-blue-400" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-white font-semibold text-base mb-1">
               Season 13 Pass+ Giveaway
             </h3>
-            <p className="text-white text-base font-medium leading-relaxed tracking-tight">
-              Thanks to Blizzard, I&apos;m giving away{' '} 3 codes in my{' '}
+            <p className="text-gray-300 text-sm leading-relaxed">
+              Thanks to Blizzard, I&apos;m giving away{' '}
+              <span className="font-medium text-gray-200">3 codes</span> in my{' '}
               <a
                 href="https://discord.gg/TsSswU76"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 font-bold text-amber-300 underline decoration-amber-400/80 decoration-2 underline-offset-[3px] transition-colors hover:text-amber-100 hover:decoration-amber-200"
+                className="font-semibold text-blue-400 underline decoration-blue-500/50 underline-offset-2 transition-colors hover:text-blue-300 hover:decoration-blue-400/60"
               >
                 Discord
               </a>
