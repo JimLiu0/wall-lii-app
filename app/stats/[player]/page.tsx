@@ -220,8 +220,8 @@ export async function generateStaticParams() {
 // ISR: Revalidate every 5 minutes
 export const revalidate = 300;
 
-export async function generateMetadata({ params, searchParams }: { params: Promise<PageParams>, searchParams: Promise<SearchParams> }): Promise<Metadata> {
-  const [resolvedParams] = await Promise.all([params, searchParams]);
+export async function generateMetadata({ params }: { params: Promise<PageParams> }): Promise<Metadata> {
+  const resolvedParams = await params;
   const decodedPlayer = decodeURIComponent(resolvedParams.player.toLowerCase());
 
   // Step 1: Get player_id efficiently
