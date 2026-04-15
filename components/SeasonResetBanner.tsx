@@ -2,7 +2,7 @@ import { AlertTriangle } from 'lucide-react';
 
 export default function SeasonResetBanner() {
   // Set the start date for the banner (adjust this to when you want it to start showing)
-  const bannerStartDate = new Date('2025-11-02'); // Adjust this date as needed
+  const bannerStartDate = new Date('2026-04-12'); // Adjust this date as needed
   const bannerEndDate = new Date(bannerStartDate.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days later
   const now = new Date();
 
@@ -20,10 +20,10 @@ export default function SeasonResetBanner() {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-white font-semibold text-base mb-1">
-              Season 11 Database Reset
+              Season 12 Database Reset
             </h3>
             <p className="text-orange-100 text-sm leading-relaxed">
-              Season 12 of Battlegrounds has started, so Wallii&apos;s database has been reset. 
+              Season 13 of Battlegrounds has started, so Wallii&apos;s database has been reset. 
             </p>
           </div>
         </div>
