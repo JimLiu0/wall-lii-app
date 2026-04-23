@@ -5,6 +5,7 @@ import Image from 'next/image';
 import CopyButton from '@/components/CopyButton';
 import { useState } from "react";
 import { Info, X } from 'lucide-react';
+import { Button } from "@/components/ui/button";
 
 const helpMessages = {
   rank: "Use !rank [player] [server]: Get the rank of a player. Use the optional 'duo' prefix for duos. Defaults to the channel name if no player is specified. Example: !rank lii NA or !duorank lii NA",
