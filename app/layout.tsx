@@ -59,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <meta name="google-site-verification" content="Qtz9PYfR7FFiM9dXZOWfJ4RKtztrWIU2Xx3M2Bt5sHU" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -71,7 +71,7 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
       </head>
-      <body className={`${inter.className} antialiased bg-black text-white min-h-screen`}>
+      <body className={`${inter.className} antialiased min-h-screen bg-background text-foreground`}>
         <NavBar />
         <main>
           {children}
