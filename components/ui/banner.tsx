@@ -1,6 +1,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { cva, type VariantProps } from "class-variance-authority"
+import { ExternalLink } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -17,7 +18,7 @@ const bannerVariants = cva(
       },
       clickable: {
         true:
-          "block transition duration-200 hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+          "group block cursor-pointer transition duration-200 hover:-translate-y-0.5 hover:shadow-md hover:brightness-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
         false: "",
       },
     },
@@ -58,15 +59,23 @@ function Banner({
 
   const content = (
     <div className="flex items-start gap-3">
-      {icon ? <div className="mt-0.5 shrink-0">{icon}</div> : null}
-      <div className="min-w-0 flex-1 text-center">
+      <div className={cn("min-w-0 flex-1 text-center", clickable && "text-left")}>
         {title && (
-          <div className="mb-1">
-            <h3 className="text-base font-semibold">{title}</h3>
+          <div className={cn("mb-1 flex items-center gap-2 justify-center", clickable && "justify-start")}>
+            {icon && <span className="mt-0.5 shrink-0">{icon}</span>}
+            <h3 className={cn("text-base font-semibold", clickable && "underline decoration-transparent underline-offset-4 transition group-hover:decoration-current")}>
+              {title}
+            </h3>
           </div>
         )}
         <div className="text-sm leading-relaxed">{children}</div>
       </div>
+      {clickable && (
+        <div className="hidden shrink-0 items-center gap-1 text-xs font-medium opacity-80 transition group-hover:opacity-100 sm:flex">
+          <span>Read more</span>
+          <ExternalLink className="h-3.5 w-3.5" />
+        </div>
+      )}
     </div>
   )
 

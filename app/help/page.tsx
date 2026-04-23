@@ -53,14 +53,7 @@ export default function HelpPage() {
         icon={<Info className="h-5 w-5 text-primary" />}
         title="Important for Wallii Bot Setup"
       >
-        <ul className="m-0 list-disc pl-5">
-          <li>
-            <strong>Wallii must be a mod or VIP</strong> in your channel if you have follower-only mode enabled, or the bot will not be able to chat.
-          </li>
-          <li>
-            <strong>Wallii only joins your channel when you go live.</strong> This is due to a 100 channel limit. If you do not see the bot, try going live and using a command in chat.
-          </li>
-        </ul>
+        Wallii must be a mod or VIP in your channel if follower-only mode is enabled, otherwise it cannot chat. The bot only joins when you go live due to a 100-channel limit—if it’s not present, go live and run a command in chat.
       </Banner>
       <Paper
         elevation={3}

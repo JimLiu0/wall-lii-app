@@ -48,7 +48,7 @@ export default async function NewsBanner() {
 
   return (
     <Banner
-      variant="accent"
+      variant="info"
       href={`/news/${latestPost.slug}`}
       target="_blank"
       rel="noopener noreferrer"
