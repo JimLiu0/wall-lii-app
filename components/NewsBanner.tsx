@@ -1,6 +1,6 @@
 import { supabase } from '@/utils/supabaseClient';
 import { Newspaper } from 'lucide-react';
-import { Banner } from '@/components/ui/banner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface NewsPost {
   id: number;
@@ -47,20 +47,25 @@ export default async function NewsBanner() {
   }
 
   return (
-    <Banner
+    <Alert
       variant="info"
       href={`/news/${latestPost.slug}`}
       target="_blank"
       rel="noopener noreferrer"
-      icon={<Newspaper className="h-4 w-4 text-primary" />}
-      title={latestPost.title}
+      className="text-left"
     >
-      <span className="mr-2 inline-block text-xs text-muted-foreground">
-        {new Date(latestPost.created_at).toLocaleDateString()}
-      </span>
-      <span className="hidden sm:inline text-sm text-muted-foreground">
-        {latestPost.summary}
-      </span>
-    </Banner>
+      <AlertTitle className="justify-start">
+        <Newspaper className="h-4 w-4 text-primary" />
+        {latestPost.title}
+      </AlertTitle>
+      <AlertDescription className="text-muted-foreground">
+        <span className="mr-2 inline-block text-xs">
+          {new Date(latestPost.created_at).toLocaleDateString()}
+        </span>
+        <span className="hidden sm:inline text-sm">
+          {latestPost.summary}
+        </span>
+      </AlertDescription>
+    </Alert>
   );
 } 

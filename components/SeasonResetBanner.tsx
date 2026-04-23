@@ -1,5 +1,5 @@
 import { AlertTriangle } from 'lucide-react';
-import { Banner } from '@/components/ui/banner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function isWithinWindow(startDate: string, endDate: string): boolean {
   const now = new Date();
@@ -23,11 +23,17 @@ export default function SeasonResetBanner() {
   }
 
   return (
-    <Banner
+    <Alert
       variant="warning"
-      icon={<AlertTriangle className="h-5 w-5" />}
-      title={"Season 13 Database Reset"}
+      className="text-center"
     >
-    </Banner>
+      <AlertTitle>
+        <AlertTriangle className="h-5 w-5" />
+        Season 13 Database Reset
+      </AlertTitle>
+      <AlertDescription>
+        Season 13 of Battlegrounds has started, so Wallii&apos;s database has been reset.
+      </AlertDescription>
+    </Alert>
   );
 }

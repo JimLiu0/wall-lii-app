@@ -4,7 +4,7 @@ import { Typography, Box, Paper, Divider } from "@mui/material";
 import Image from 'next/image';
 import CopyButton from '@/components/CopyButton';
 import { Info } from 'lucide-react';
-import { Banner } from "@/components/ui/banner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const helpMessages = {
   rank: "Use !rank [player] [server]: Get the rank of a player. Use the optional 'duo' prefix for duos. Defaults to the channel name if no player is specified. Example: !rank lii NA or !duorank lii NA",
@@ -48,13 +48,18 @@ const managementCommands = [
 export default function HelpPage() {
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1000, mx: "auto" }}>
-      <Banner
+      <Alert
         variant="info"
-        icon={<Info className="h-5 w-5 text-primary" />}
-        title="Important for Wallii Bot Setup"
+        className="text-center"
       >
-        Wallii must be a mod or VIP in your channel if follower-only mode is enabled, otherwise it cannot chat. The bot only joins when you go live due to a 100-channel limit—if it’s not present, go live and run a command in chat.
-      </Banner>
+        <AlertTitle>
+          <Info className="h-5 w-5 text-primary" />
+          Important for Wallii Bot Setup
+        </AlertTitle>
+        <AlertDescription>
+          Wallii must be a mod or VIP in your channel if follower-only mode is enabled, otherwise it cannot chat. The bot only joins when you go live due to a 100-channel limit—if it&apos;s not present, go live and run a command in chat.
+        </AlertDescription>
+      </Alert>
       <Paper
         elevation={3}
         sx={{
