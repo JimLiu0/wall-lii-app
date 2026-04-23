@@ -1,16 +1,8 @@
 import { supabase } from '@/utils/supabaseClient';
-import SocialIndicators from './SocialIndicators';
 import { unstable_noStore } from 'next/cache';
 import { DateTime } from 'luxon';
 import { AppLink } from '@/components/ui/app-link';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import LiveStreamsTableClient from './LiveStreamsTableClient';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -28,16 +20,6 @@ interface ChannelEntry {
   player: string;
   live: boolean;
   youtube?: string;
-}
-
-function getModeLabel(mode: string) {
-  return mode === '1' ? 'Duo' : 'Solo';
-}
-
-function getWallLiiLeaderboardLink(region: string, mode: string) {
-  const regionLower = region.toLowerCase();
-  const modeStr = mode === '1' ? 'duo' : 'solo';
-  return `/lb/${regionLower}/${modeStr}`;
 }
 
 export default async function LiveStreamsTable() {
@@ -193,14 +175,17 @@ export default async function LiveStreamsTable() {
         leaderboard: lbEntry || null,
       };
     })
-    .filter((row) => row.leaderboard !== null); // Only show players with leaderboard data
+    .filter((row) => row.leaderboard !== null) // Only show players with leaderboard data
+    .map((row) => ({
+      player_name: row.player_name,
+      rank: row.leaderboard!.rank,
+      rating: row.leaderboard!.rating,
+      game_mode: row.leaderboard!.game_mode,
+      region: row.leaderboard!.region,
+    }));
 
-  // Sort by rank ascending
   tableRows.sort((a, b) => {
-    if (a.leaderboard && b.leaderboard) {
-      return a.leaderboard.rank - b.leaderboard.rank;
-    }
-    return 0;
+    return a.rank - b.rank || a.rating - b.rating;
   });
 
   return (
@@ -216,59 +201,11 @@ export default async function LiveStreamsTable() {
           Add Your Twitch/Youtube →
         </AppLink>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Rank</TableHead>
-            <TableHead>Player</TableHead>
-            <TableHead>Rating</TableHead>
-            <TableHead>Mode</TableHead>
-            <TableHead>Region</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {tableRows.length === 0 ? (
-            <TableRow className="hover:bg-transparent">
-              <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                No live streamers currently on the leaderboard
-              </TableCell>
-            </TableRow>
-          ) : (
-            tableRows.map((row) => (
-              <TableRow key={row.player_name}>
-                <TableCell variant="emphasis">
-                  #{row.leaderboard!.rank}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <AppLink
-                      href={`/stats/${row.player_name}`}
-                      className="font-semibold"
-                      prefetch={false}
-                    >
-                      {row.player_name}
-                    </AppLink>
-                    <SocialIndicators playerName={row.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
-                  </div>
-                </TableCell>
-                <TableCell variant="emphasis">
-                  {row.leaderboard!.rating}
-                </TableCell>
-                <TableCell className="text-left">
-                  {getModeLabel(row.leaderboard!.game_mode)}
-                </TableCell>
-                <TableCell className="text-left">
-                  <AppLink
-                    href={getWallLiiLeaderboardLink(row.leaderboard!.region, row.leaderboard!.game_mode)}
-                  >
-                    {row.leaderboard!.region.toUpperCase()}
-                  </AppLink>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+      <LiveStreamsTableClient
+        rows={tableRows}
+        channelData={channelData}
+        chineseStreamerData={chineseStreamerData}
+      />
     </div>
   );
 } 
