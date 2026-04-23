@@ -6,7 +6,7 @@ import { ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const alertVariants = cva(
-  "group/alert my-3 w-full rounded-lg border p-4 shadow-sm text-sm leading-relaxed [&_svg:not([class*='h-'])]:h-4 [&_svg:not([class*='w-'])]:w-4",
+  "group/alert mb-3 w-full rounded-lg border p-4 shadow-sm text-sm leading-relaxed [&_svg:not([class*='h-'])]:h-4 [&_svg:not([class*='w-'])]:w-4",
   {
     variants: {
       variant: {
@@ -49,6 +49,8 @@ function Alert({
     showLinkIndicator?: boolean
   }) {
   const isClickable = clickable ?? Boolean(href)
+  const resolvedClassName = cn(alertVariants({ variant, clickable: isClickable }), className)
+
   const content = (
     <div className={cn("flex items-start gap-3", isClickable && "justify-between")}>
       <div className="min-w-0 flex-1">
@@ -70,7 +72,7 @@ function Alert({
           href={href}
           target={target}
           rel={rel}
-          className={cn(alertVariants({ variant, clickable: isClickable }), className)}
+          className={resolvedClassName}
           data-slot="alert"
           role="alert"
         >
@@ -84,7 +86,7 @@ function Alert({
     <div
       data-slot="alert"
       role="alert"
-      className={cn(alertVariants({ variant, clickable: isClickable }), className)}
+      className={resolvedClassName}
       {...props}
     >
       {content}
