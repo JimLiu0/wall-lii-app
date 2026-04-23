@@ -1,8 +1,16 @@
 import { supabase } from '@/utils/supabaseClient';
-import Link from 'next/link';
 import SocialIndicators from './SocialIndicators';
 import { unstable_noStore } from 'next/cache';
 import { DateTime } from 'luxon';
+import { AppLink } from '@/components/ui/app-link';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -51,11 +59,11 @@ export default async function LiveStreamsTable() {
   // Early return only if channels query returns zero rows
   if (channelData.length === 0) {
     return (
-      <div className="bg-gray-900 rounded-lg p-6 mt-6">
-        <h2 className="text-center text-xl font-bold text-white mb-4">
+      <div className="mt-6 rounded-lg border border-border bg-card p-6">
+        <h2 className="mb-4 text-center text-xl font-bold text-foreground">
           Top Ranked Livestreams
         </h2>
-        <div className="text-center text-gray-400 py-8">
+        <div className="py-8 text-center text-muted-foreground">
           <p className="text-lg">No streamers currently live who are on the leaderboard</p>
           <p className="text-sm mt-2">Check back later for live streams from top players</p>
         </div>
@@ -196,75 +204,71 @@ export default async function LiveStreamsTable() {
   });
 
   return (
-    <div className="bg-gray-900 rounded-lg p-6 mt-6">
+    <div className="mt-6 rounded-lg border border-border bg-card p-6">
       <div className="flex text-center flex-col">
-        <h2 className="text-center text-xl font-bold text-white">
+        <h2 className="text-center text-xl font-bold text-foreground">
           Top Ranked Livestreams
         </h2>
-        <Link
+        <AppLink
           href={'/help'}
-          className="text-blue-400 hover:underline font-semibold"
+          className="font-semibold"
         >
           Add Your Twitch/Youtube →
-        </Link>
+        </AppLink>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
-              <th className="px-4 py-2 text-left">Rank</th>
-              <th className="px-4 py-2 text-left">Player</th>
-              <th className="px-4 py-2 text-left">Rating</th>
-              <th className="px-4 py-2 text-left">Mode</th>
-              <th className="px-4 py-2 text-left">Region</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tableRows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                  No live streamers currently on the leaderboard
-                </td>
-              </tr>
-            ) : (
-              tableRows.map((row) => (
-                <tr key={row.player_name} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">
-                    #{row.leaderboard!.rank}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/stats/${row.player_name}`}
-                        className="text-blue-300 font-semibold hover:underline"
-                        prefetch={false}
-                        target="_blank"
-                      >
-                        {row.player_name}
-                      </Link>
-                      <SocialIndicators playerName={row.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-left text-lg font-semibold text-white">
-                    {row.leaderboard!.rating}
-                  </td>
-                  <td className="px-4 py-3 text-left text-white">
-                    {getModeLabel(row.leaderboard!.game_mode)}
-                  </td>
-                  <td className="px-4 py-3 text-left text-white">
-                    <Link
-                      href={getWallLiiLeaderboardLink(row.leaderboard!.region, row.leaderboard!.game_mode)}
-                      className="text-blue-400 hover:underline"
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Rank</TableHead>
+            <TableHead>Player</TableHead>
+            <TableHead>Rating</TableHead>
+            <TableHead>Mode</TableHead>
+            <TableHead>Region</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {tableRows.length === 0 ? (
+            <TableRow className="hover:bg-transparent">
+              <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                No live streamers currently on the leaderboard
+              </TableCell>
+            </TableRow>
+          ) : (
+            tableRows.map((row) => (
+              <TableRow key={row.player_name}>
+                <TableCell variant="emphasis">
+                  #{row.leaderboard!.rank}
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <AppLink
+                      href={`/stats/${row.player_name}`}
+                      className="font-semibold"
+                      prefetch={false}
                     >
-                      {row.leaderboard!.region.toUpperCase()}
-                    </Link>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                      {row.player_name}
+                    </AppLink>
+                    <SocialIndicators playerName={row.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
+                  </div>
+                </TableCell>
+                <TableCell variant="emphasis">
+                  {row.leaderboard!.rating}
+                </TableCell>
+                <TableCell className="text-left">
+                  {getModeLabel(row.leaderboard!.game_mode)}
+                </TableCell>
+                <TableCell className="text-left">
+                  <AppLink
+                    href={getWallLiiLeaderboardLink(row.leaderboard!.region, row.leaderboard!.game_mode)}
+                  >
+                    {row.leaderboard!.region.toUpperCase()}
+                  </AppLink>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 } 
