@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const bannerVariants = cva(
-  "rounded-lg border p-4 shadow-sm",
+  "mb-3 rounded-lg border p-4 shadow-sm",
   {
     variants: {
       variant: {
@@ -59,7 +59,7 @@ function Banner({
   const content = (
     <div className="flex items-start gap-3">
       {icon ? <div className="mt-0.5 shrink-0">{icon}</div> : null}
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 text-center">
         {title && (
           <div className="mb-1">
             <h3 className="text-base font-semibold">{title}</h3>

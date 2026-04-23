@@ -4,6 +4,7 @@ import TimedAnnouncementBanner from '@/components/TimedAnnouncementBanner';
 import LiveStreamsTable from '@/components/LiveStreamsTable';
 import LeaderboardPreview from '@/components/LeaderboardPreview';
 import PlayerSearch from '@/components/PlayerSearch';
+import { Banner } from '@/components/ui/banner';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,9 +19,9 @@ export default function HomePage() {
       <SeasonResetBanner />
       <TimedAnnouncementBanner />
       <NewsBanner />
-      <div className="bg-zinc-800 px-4 py-3 rounded-lg text-center text-zinc-300 mb-6">
+      <Banner variant="neutral">
         Track Hearthstone Battlegrounds leaderboards, player stats, livestreams, and stay updated with the latest patch notes.
-      </div>
+      </Banner>
       
       {/* Player Search Section */}
       <div className="text-center">

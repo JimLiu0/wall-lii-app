@@ -1,6 +1,6 @@
 import { supabase } from '@/utils/supabaseClient';
-import Link from 'next/link';
 import { Newspaper } from 'lucide-react';
+import { Banner } from '@/components/ui/banner';
 
 interface NewsPost {
   id: number;
@@ -47,36 +47,20 @@ export default async function NewsBanner() {
   }
 
   return (
-    <div className="mb-6">
-      <Link
-        href={`/news/${latestPost.slug}`}
-        target="_blank"
-        className="block bg-gray-900 border border-gray-700 rounded-lg p-3 hover:bg-gray-800 transition-all duration-200 shadow-md"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-gray-200 text-sm font-medium whitespace-nowrap">
-                <Newspaper className="w-4 h-4 text-blue-400" />
-                <span className="text-gray-400 text-xs whitespace-nowrap">
-                  {new Date(latestPost.created_at).toLocaleDateString()}
-                </span>
-              </div>
-              <h2 className="text-white font-semibold text-base line-clamp-1 flex-1">
-                {latestPost.title}
-              </h2>
-            </div>
-            <p className="text-gray-400 text-sm hidden sm:block line-clamp-1 mt-1">
-              {latestPost.summary}
-            </p>
-          </div>
-          <div className="ml-3 flex-shrink-0">
-            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </div>
-        </div>
-      </Link>
-    </div>
+    <Banner
+      variant="accent"
+      href={`/news/${latestPost.slug}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      icon={<Newspaper className="h-4 w-4 text-primary" />}
+      title={latestPost.title}
+    >
+      <span className="mr-2 inline-block text-xs text-muted-foreground">
+        {new Date(latestPost.created_at).toLocaleDateString()}
+      </span>
+      <span className="hidden sm:inline text-sm text-muted-foreground">
+        {latestPost.summary}
+      </span>
+    </Banner>
   );
 } 

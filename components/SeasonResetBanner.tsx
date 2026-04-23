@@ -24,10 +24,10 @@ export default function SeasonResetBanner() {
 
   return (
     <Banner
-      className="mb-6"
       variant="warning"
       icon={<AlertTriangle className="h-5 w-5" />}
-      title="The database has reset due to Season 13 starting"
-    />
+    >
+      The database has reset due to Season 13 starting
+    </Banner>
   );
 }
