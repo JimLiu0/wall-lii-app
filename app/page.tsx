@@ -3,7 +3,7 @@ import SeasonResetBanner from '@/components/SeasonResetBanner';
 import TimedAnnouncementBanner from '@/components/TimedAnnouncementBanner';
 import LiveStreamsTable from '@/components/home/LiveStreamsTable';
 import LeaderboardPreview from '@/components/home/LeaderboardPreview';
-import PlayerSearch from '@/components/PlayerSearch';
+import PlayerSearch from '@/components/shared/PlayerSearch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const dynamic = 'force-dynamic';

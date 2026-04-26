@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import PlayerSearch from './PlayerSearch';
+import PlayerSearch from '@/components/shared/PlayerSearch';
 
 interface PlayerHeaderProps {
   backUrl: string;

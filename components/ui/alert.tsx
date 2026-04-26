@@ -1,12 +1,12 @@
 import * as React from "react"
-import Link from "next/link"
 import { cva, type VariantProps } from "class-variance-authority"
 import { ExternalLink } from "lucide-react"
 
+import { AppLink } from "@/components/ui/app-link"
 import { cn } from "@/lib/utils"
 
 const alertVariants = cva(
-  "group/alert mb-3 w-full rounded-lg border p-4 shadow-sm text-sm leading-relaxed [&_svg:not([class*='h-'])]:h-4 [&_svg:not([class*='w-'])]:w-4",
+  "group/alert w-full rounded-lg border p-4 shadow-sm text-sm leading-relaxed [&_svg:not([class*='h-'])]:h-4 [&_svg:not([class*='w-'])]:w-4",
   {
     variants: {
       variant: {
@@ -68,7 +68,7 @@ function Alert({
   if (href) {
     return (
       <div data-slot="alert-wrapper" {...props}>
-        <Link
+        <AppLink
           href={href}
           target={target}
           rel={rel}
@@ -77,7 +77,7 @@ function Alert({
           role="alert"
         >
           {content}
-        </Link>
+        </AppLink>
       </div>
     )
   }
