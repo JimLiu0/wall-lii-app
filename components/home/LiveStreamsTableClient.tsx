@@ -90,7 +90,7 @@ export default function LiveStreamsTableClient({
                   <TableCell variant="emphasis">#{row.rank}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <AppLink href={`/stats/${row.player_name}`} className="font-semibold" prefetch={false}>
+                      <AppLink href={`/stats/${row.player_name}`}>
                         {row.player_name}
                       </AppLink>
                       <SocialIndicators
@@ -101,8 +101,8 @@ export default function LiveStreamsTableClient({
                     </div>
                   </TableCell>
                   <TableCell variant="emphasis">{row.rating}</TableCell>
-                  <TableCell className="text-left">{getModeLabel(row.game_mode)}</TableCell>
-                  <TableCell className="text-left">
+                  <TableCell>{getModeLabel(row.game_mode)}</TableCell>
+                  <TableCell>
                     <AppLink href={getWallLiiLeaderboardLink(row.region, row.game_mode)}>
                       {row.region.toUpperCase()}
                     </AppLink>
@@ -110,7 +110,7 @@ export default function LiveStreamsTableClient({
                 </TableRow>
               ))
             ) : (
-              <TableRow className="hover:bg-transparent">
+              <TableRow hover="none">
                 <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
                   No live streamers currently on the leaderboard
                 </TableCell>

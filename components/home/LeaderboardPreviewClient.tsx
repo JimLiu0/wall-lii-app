@@ -1,11 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import SocialIndicators from '../SocialIndicators';
 import ButtonGroup from '../ButtonGroup';
 import DashboardCard from '@/components/shared/DashboardCard';
 import { AppLink } from '@/components/ui/app-link';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 const regions = [
   { code: 'all', label: 'ALL'},
@@ -86,42 +93,48 @@ export default function LeaderboardPreviewClient({
           onChange={val => setSelectedMode(val as '0' | '1')}
         />
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
-              <th className="px-4 py-2 text-left">Rank</th>
-              <th className="px-4 py-2 text-left">Player</th>
-              <th className="px-4 py-2 text-left">Rating</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.length === 0 ? (
-              <tr><td colSpan={4} className="text-center text-gray-400 py-4">No data found.</td></tr>
-            ) : (
-              data.map((entry) => (
-                <tr key={entry.player_name + entry.rank} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">#{entry.rank}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/stats/${entry.player_name}?region=${selectedRegion}&mode=${selectedMode === '0' ? 'solo' : 'duo'}`}
-                        className="text-blue-300 font-semibold hover:underline"
-                        prefetch={false}
-                        target="_blank"
-                      >
-                        {entry.player_name} {entry.original_region && <span className="text-sm text-gray-400">({entry.original_region})</span>}
-                      </Link>
-                      <SocialIndicators playerName={entry.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-left text-lg font-semibold text-white">{entry.rating}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Rank</TableHead>
+            <TableHead>Player</TableHead>
+            <TableHead>Rating</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.length === 0 ? (
+            <TableRow hover="none">
+              <TableCell colSpan={3} className="py-8 text-center text-muted-foreground">
+                No data found.
+              </TableCell>
+            </TableRow>
+          ) : (
+            data.map((entry) => (
+              <TableRow key={entry.player_name + entry.rank}>
+                <TableCell variant="emphasis">#{entry.rank}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <AppLink
+                      href={`/stats/${entry.player_name}?region=${selectedRegion}&mode=${selectedMode === '0' ? 'solo' : 'duo'}`}
+                    >
+                      {entry.player_name}{' '}
+                      {entry.original_region && (
+                        <span className="text-sm text-muted-foreground">({entry.original_region})</span>
+                      )}
+                    </AppLink>
+                    <SocialIndicators
+                      playerName={entry.player_name}
+                      channelData={channelData}
+                      chineseStreamerData={chineseStreamerData}
+                    />
+                  </div>
+                </TableCell>
+                <TableCell variant="emphasis">{entry.rating}</TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </DashboardCard>
   );
 }

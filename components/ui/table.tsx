@@ -53,14 +53,30 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   )
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+const tableRowVariants = cva(
+  "border-b border-border/50 transition-colors has-aria-expanded:bg-muted/40 data-[state=selected]:bg-muted/40",
+  {
+    variants: {
+      hover: {
+        default: "hover:bg-muted/30",
+        none: "",
+      },
+    },
+    defaultVariants: {
+      hover: "default",
+    },
+  }
+)
+
+function TableRow({
+  className,
+  hover,
+  ...props
+}: React.ComponentProps<"tr"> & VariantProps<typeof tableRowVariants>) {
   return (
     <tr
       data-slot="table-row"
-      className={cn(
-        "border-b border-border/50 transition-colors hover:bg-muted/30 has-aria-expanded:bg-muted/40 data-[state=selected]:bg-muted/40",
-        className
-      )}
+      className={cn(tableRowVariants({ hover }), className)}
       {...props}
     />
   )
