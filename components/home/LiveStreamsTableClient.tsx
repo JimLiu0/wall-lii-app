@@ -62,7 +62,7 @@ export default function LiveStreamsTableClient({
     <DashboardCard
       title="Top Ranked Livestreams"
       description={
-        <AppLink href="/help" className="font-semibold">
+        <AppLink href="/help">
           Add Your Twitch/Youtube →
         </AppLink>
       }

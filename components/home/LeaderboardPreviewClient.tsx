@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import SocialIndicators from '../SocialIndicators';
-import ButtonGroup from '../ButtonGroup';
 import DashboardCard from '@/components/shared/DashboardCard';
 import { AppLink } from '@/components/ui/app-link';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
   Table,
   TableBody,
@@ -76,22 +76,38 @@ export default function LeaderboardPreviewClient({
     <DashboardCard
       title={`${selectedRegion === 'all' ? 'Global (No CN)' : selectedRegion.toUpperCase()} Leaderboard Preview`}
       description={
-        <AppLink href={getWallLiiLeaderboardLink(selectedRegion, selectedMode)} className="font-semibold">
+        <AppLink href={getWallLiiLeaderboardLink(selectedRegion, selectedMode)}>
           Full Leaderboards →
         </AppLink>
       }
     >
       <div className="flex flex-wrap justify-center gap-2 mb-4 items-center">
-        <ButtonGroup
-          options={regions.map(r => ({ label: r.label, value: r.code }))}
-          selected={selectedRegion}
-          onChange={setSelectedRegion}
-        />
-        <ButtonGroup
-          options={gameModes}
-          selected={selectedMode}
-          onChange={val => setSelectedMode(val as '0' | '1')}
-        />
+        <ToggleGroup
+          type="single"
+          value={selectedRegion}
+          onValueChange={(value) => {
+            if (value) setSelectedRegion(value);
+          }}
+        >
+          {regions.map((region) => (
+            <ToggleGroupItem key={region.code} value={region.code}>
+              {region.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
+        <ToggleGroup
+          type="single"
+          value={selectedMode}
+          onValueChange={(value) => {
+            if (value === '0' || value === '1') setSelectedMode(value);
+          }}
+        >
+          {gameModes.map((mode) => (
+            <ToggleGroupItem key={mode.value} value={mode.value}>
+              {mode.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </div>
       <Table>
         <TableHeader>
