@@ -9,51 +9,47 @@ export default function StatsSummary({ data, region, averagePlacement }: Props) 
   const games_played = ratings.length - 1;
   const net = ratings[ratings.length - 1] - ratings[0];
   const max = Math.max(...ratings);
-  const min = Math.min(...ratings);
+  const showAveragePlacement = region.toLowerCase() !== 'cn' && averagePlacement !== null;
+
+  const stats = [
+    ...(showAveragePlacement
+      ? [
+          {
+            label: 'Average Placement',
+            value: isNaN(averagePlacement!) ? 'N/A' : averagePlacement,
+            valueClassName: 'text-foreground',
+          },
+        ]
+      : []),
+    {
+      label: 'Rating Change',
+      value: net > 0 ? `+${net}` : net,
+      valueClassName: net >= 0 ? 'text-emerald-500' : 'text-rose-500',
+    },
+    { label: 'Games Played', value: games_played, valueClassName: 'text-foreground' },
+    { label: 'Starting', value: ratings[0], valueClassName: 'text-foreground' },
+    { label: 'Ending', value: ratings[ratings.length - 1], valueClassName: 'text-foreground' },
+    { label: 'Highest', value: max, valueClassName: 'text-emerald-500' },
+  ];
+
+  const wideColsClass = stats.length === 7 ? 'xl:grid-cols-7' : 'xl:grid-cols-6';
 
   return (
-    <div className="bg-gray-900 p-6 rounded-lg shadow-lg space-y-4 w-fit text-left">
-      <div className="text-2xl font-bold text-white">📊 Session Stats</div>
-
-      {region.toLowerCase() !== 'cn' && averagePlacement !== null && (
-        <div className="flex justify-between text-lg">
-          <span className="text-white pr-4">🏁 Average Placement</span>
-          <span className="font-bold text-white">
-            {isNaN(averagePlacement) ? 'N/A' : averagePlacement}
-          </span>
-        </div>
-      )}
-
-      <div className="flex justify-between text-lg">
-        <span className="text-white pr-4">🎮 Games Played</span>
-        <span className="font-bold text-white">{games_played}</span>
-      </div>
-  
-      <div className="flex justify-between text-lg">
-        <span className="text-white pr-4">🔄 Rating Change</span>
-        <span className={`font-bold ${net >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-          {net > 0 ? `+${net}` : net}
-        </span>
-      </div>
-      
-      <div className="flex justify-between text-lg">
-        <span className="text-white pr-4">🌱 Starting Rating</span>
-        <span className="font-bold">{ratings[0]}</span>
-      </div>
-
-      <div className="flex justify-between text-lg">
-        <span className="text-white pr-4">🌿 Ending Rating</span>
-        <span className="font-bold">{ratings[ratings.length - 1]}</span>
-      </div>
-  
-      <div className="flex justify-between text-lg">
-        <span className="text-white pr-4">🔥 Highest Rating</span>
-        <span className="font-bold text-green-300">{max}</span>
-      </div>
-  
-      <div className="flex justify-between text-lg">
-        <span className="text-white pr-4">💩 Lowest Rating</span>
-        <span className="font-bold text-red-300">{min}</span>
+    <div className="rounded-lg border border-border/50 bg-card/40">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${wideColsClass}`}>
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="flex min-h-14 flex-col justify-center rounded-md border border-border/50 bg-background/30 px-3 py-2"
+          >
+            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              {stat.label}
+            </span>
+            <span className={`text-sm font-semibold leading-tight break-words ${stat.valueClassName}`}>
+              {stat.value}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );

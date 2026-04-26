@@ -131,8 +131,6 @@ export default function PlayerProfile({ player, region, date, playerData, channe
     return `/lb/${currentRegion}/${gameModeParam}`;
   };
 
-  const peakRating = playerData.data.filter((row) => row.region.toLowerCase() === currentRegion).reduce((max, item) => Math.max(max, item.rating), 0);
-
   // Calculate offset from selectedDate for internal use
   const calculatedOffset = useMemo(() => {
     if (currentView === 'all') return 0;
@@ -386,93 +384,96 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   return (
     <div className="container mx-auto py-4 px-0 [@media(min-width:431px)]:px-4">
       <div className="bg-gray-900 rounded-lg p-6">
-        <div>
-          <div className="mb-2 flex flex-row flex-wrap items-center gap-4">
-            <ToggleGroup
-              type="single"
-              value={gameMode}
-              onValueChange={(value) => {
-                if (value === 's' || value === 'd') updateGameMode(value);
-              }}
-            >
-              {showSoloButton && <ToggleGroupItem value="s">Solo</ToggleGroupItem>}
-              {showDuoButton && <ToggleGroupItem value="d">Duo</ToggleGroupItem>}
-            </ToggleGroup>
-
-            <ToggleGroup
-              type="single"
-              value={currentRegion}
-              onValueChange={(value) => {
-                if (value) updateRegion(value);
-              }}
-            >
-              {showRegionButtons.map((regionOption) => (
-                <ToggleGroupItem key={regionOption} value={regionOption}>
-                  {regionOption.toUpperCase()}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-
-            <ToggleGroup
-              type="single"
-              value={currentView}
-              onValueChange={(value) => {
-                if (value === 'all' || value === 'week' || value === 'day') updateView(value);
-              }}
-            >
-              <ToggleGroupItem value="all">Season</ToggleGroupItem>
-              <ToggleGroupItem value="week">Week</ToggleGroupItem>
-              <ToggleGroupItem value="day">Day</ToggleGroupItem>
-            </ToggleGroup>
-
-            {currentView !== 'all' && (
-              <div className="flex flex-row items-center gap-2">
-                <DatePicker
-                  selectedDate={selectedDate}
-                  onDateChange={handleDateChange}
-                  maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
-                  minDate={calculatedMinDate}
-                  weekNavigation={currentView === 'week'}
-                />
-
-                <Info onClick={handleInfoClick} className="cursor-pointer" />
-              </div>
-            )}
-          </div>
-          {showTimeModal && (
-            <div className="mt-2">
-              All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.
-            </div>
-          )}
-        </div>
         <div className="flex flex-col gap-4 mb-8">
           <PlayerHeader backUrl={getBackUrl()} />
-
           {/* Player name with social indicators */}
-          <div className="flex items-center gap-2">
-            <h1 className="text-4xl sm:text-4xl font-bold text-white break-all">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-4xl font-bold text-foreground break-all">
               {playerData.name}
             </h1>
             <SocialIndicators playerName={playerData.name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
-          </div>
-          <div className="flex gap-8">
-            <div>
-              <div className="text-gray-400 text-sm">Rank</div>
-              <div className="text-2xl text-white">{currentRank || 'N/A'}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-sm">Rating</div>
-              <div className="text-2xl text-white">{currentRating}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-sm">Peak</div>
-              <div className="text-2xl text-white">{peakRating}</div>
+            <div className="inline-flex items-center gap-5 rounded-lg border border-border/50 bg-card/40 px-4 py-2">
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Rank</p>
+                <p className="text-xl font-semibold text-foreground">{currentRank || 'N/A'}</p>
+              </div>
+              <div className="h-5 w-px bg-border/60" aria-hidden="true" />
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Rating</p>
+                <p className="text-xl font-semibold text-foreground">{currentRating}</p>
+              </div>
             </div>
           </div>
+          <div>
+            <div className="mb-2 flex flex-row flex-wrap items-center gap-4">
+              <ToggleGroup
+                type="single"
+                value={gameMode}
+                onValueChange={(value) => {
+                  if (value === 's' || value === 'd') updateGameMode(value);
+                }}
+              >
+                {showSoloButton && <ToggleGroupItem value="s">Solo</ToggleGroupItem>}
+                {showDuoButton && <ToggleGroupItem value="d">Duo</ToggleGroupItem>}
+              </ToggleGroup>
+
+              <ToggleGroup
+                type="single"
+                value={currentRegion}
+                onValueChange={(value) => {
+                  if (value) updateRegion(value);
+                }}
+              >
+                {showRegionButtons.map((regionOption) => (
+                  <ToggleGroupItem key={regionOption} value={regionOption}>
+                    {regionOption.toUpperCase()}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+
+              <ToggleGroup
+                type="single"
+                value={currentView}
+                onValueChange={(value) => {
+                  if (value === 'all' || value === 'week' || value === 'day') updateView(value);
+                }}
+              >
+                <ToggleGroupItem value="all">Season</ToggleGroupItem>
+                <ToggleGroupItem value="week">Week</ToggleGroupItem>
+                <ToggleGroupItem value="day">Day</ToggleGroupItem>
+              </ToggleGroup>
+
+              {currentView !== 'all' && (
+                <div className="flex flex-row items-center gap-2">
+                  <DatePicker
+                    selectedDate={selectedDate}
+                    onDateChange={handleDateChange}
+                    maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
+                    minDate={calculatedMinDate}
+                    weekNavigation={currentView === 'week'}
+                  />
+
+                  <Info onClick={handleInfoClick} className="cursor-pointer" />
+                </div>
+              )}
+            </div>
+            {showTimeModal && (
+              <div className="mt-2">
+                All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.
+              </div>
+            )}
+          </div>
+          {filteredData.length > 0 && (
+            <StatsSummary
+              data={filteredData}
+              region={currentRegion}
+              averagePlacement={averagePlacement}
+            />
+          )}
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-3/4">
+        <div className="flex flex-col gap-6">
+          <div className="w-full">
             <div className="mb-6">
               <div className="text-xl font-bold text-white mt-4">
                 {currentView === 'all'
@@ -491,16 +492,6 @@ export default function PlayerProfile({ player, region, date, playerData, channe
               )}
             </div>
           </div>
-
-          {filteredData.length > 0 && (
-            <div className="w-full md:w-1/4 flex justify-center items-center">
-              <StatsSummary 
-                data={filteredData} 
-                region={currentRegion}
-                averagePlacement={averagePlacement}
-              />
-            </div>
-          )}
         </div>
 
         <GameRecordsSection
