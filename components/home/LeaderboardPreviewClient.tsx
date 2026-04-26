@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import SocialIndicators from './SocialIndicators';
-import ButtonGroup from './ButtonGroup';
+import SocialIndicators from '../SocialIndicators';
+import ButtonGroup from '../ButtonGroup';
+import DashboardCard from '@/components/shared/DashboardCard';
+import { AppLink } from '@/components/ui/app-link';
 
 const regions = [
   { code: 'all', label: 'ALL'},
@@ -64,21 +66,14 @@ export default function LeaderboardPreviewClient({
   );
 
   return (
-    <div className="bg-gray-900 rounded-lg p-6 mt-6">
-      {/* Desktop / md and up */}
-      <div className="flex flex-col items-center mb-2">
-        <h2 className="flex items-center text-xl font-bold text-white text-center">
-          {selectedRegion === 'all' ? 'Global (No CN)' : selectedRegion.toUpperCase()} Leaderboard Preview
-        </h2>
-        <Link
-          href={getWallLiiLeaderboardLink(selectedRegion, selectedMode)}
-          className="text-blue-400 hover:underline font-semibold"
-        >
+    <DashboardCard
+      title={`${selectedRegion === 'all' ? 'Global (No CN)' : selectedRegion.toUpperCase()} Leaderboard Preview`}
+      description={
+        <AppLink href={getWallLiiLeaderboardLink(selectedRegion, selectedMode)} className="font-semibold">
           Full Leaderboards →
-        </Link>
-      </div>
-
-      {/* Mobile / below md */}
+        </AppLink>
+      }
+    >
       <div className="flex flex-wrap justify-center gap-2 mb-4 items-center">
         <ButtonGroup
           options={regions.map(r => ({ label: r.label, value: r.code }))}
@@ -127,7 +122,7 @@ export default function LeaderboardPreviewClient({
           </tbody>
         </table>
       </div>
-    </div>
+    </DashboardCard>
   );
 }
 

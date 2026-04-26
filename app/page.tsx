@@ -1,8 +1,8 @@
 import NewsBanner from '@/components/NewsBanner';
 import SeasonResetBanner from '@/components/SeasonResetBanner';
 import TimedAnnouncementBanner from '@/components/TimedAnnouncementBanner';
-import LiveStreamsTable from '@/components/LiveStreamsTable';
-import LeaderboardPreview from '@/components/LeaderboardPreview';
+import LiveStreamsTable from '@/components/home/LiveStreamsTable';
+import LeaderboardPreview from '@/components/home/LeaderboardPreview';
 import PlayerSearch from '@/components/PlayerSearch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -16,26 +16,28 @@ export const metadata = {
 export default function HomePage() {
   return (
     <div className="container mx-auto py-4 px-0 max-w-7xl [@media(min-width:431px)]:px-4">
-      <SeasonResetBanner />
-      <TimedAnnouncementBanner />
-      <NewsBanner />
-      <Alert variant="neutral" className="text-center">
-        <AlertDescription>
-          Track Hearthstone Battlegrounds leaderboards, player stats, livestreams, and stay updated with the latest patch notes.
-        </AlertDescription>
-      </Alert>
-      
-      {/* Player Search Section */}
-      <div className="text-center">
-        <PlayerSearch />
-      </div>
-      
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="lg:w-1/2">
-          <LiveStreamsTable />
+      <div className="space-y-6">
+        <SeasonResetBanner />
+        <TimedAnnouncementBanner />
+        <NewsBanner />
+        <Alert variant="neutral" className="text-center">
+          <AlertDescription>
+            Track Hearthstone Battlegrounds leaderboards, player stats, livestreams, and stay updated with the latest patch notes.
+          </AlertDescription>
+        </Alert>
+        
+        {/* Player Search Section */}
+        <div className="text-center">
+          <PlayerSearch />
         </div>
-        <div className="lg:w-1/2">
-          <LeaderboardPreview />
+        
+        <div className="flex flex-col lg:flex-row gap-6">
+          <div className="lg:w-1/2">
+            <LiveStreamsTable />
+          </div>
+          <div className="lg:w-1/2">
+            <LeaderboardPreview />
+          </div>
         </div>
       </div>
     </div>

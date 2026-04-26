@@ -1,7 +1,6 @@
 import { supabase } from '@/utils/supabaseClient';
 import { unstable_noStore } from 'next/cache';
 import { DateTime } from 'luxon';
-import { AppLink } from '@/components/ui/app-link';
 import LiveStreamsTableClient from './LiveStreamsTableClient';
 
 interface LeaderboardEntry {
@@ -37,21 +36,7 @@ export default async function LiveStreamsTable() {
   }
   
   const channelData = fetchedChannels || [];
-  
-  // Early return only if channels query returns zero rows
-  if (channelData.length === 0) {
-    return (
-      <div className="mt-6 rounded-lg border border-border bg-card p-6">
-        <h2 className="mb-4 text-center text-xl font-bold text-foreground">
-          Top Ranked Livestreams
-        </h2>
-        <div className="py-8 text-center text-muted-foreground">
-          <p className="text-lg">No streamers currently live who are on the leaderboard</p>
-          <p className="text-sm mt-2">Check back later for live streams from top players</p>
-        </div>
-      </div>
-    );
-  }
+  const hasLiveChannels = channelData.length > 0;
 
   // Fetch Chinese streamer data
   const { data: fetchedChinese, error: chineseError } = await supabase
@@ -189,23 +174,11 @@ export default async function LiveStreamsTable() {
   });
 
   return (
-    <div className="mt-6 rounded-lg border border-border bg-card p-6">
-      <div className="flex text-center flex-col">
-        <h2 className="text-center text-xl font-bold text-foreground">
-          Top Ranked Livestreams
-        </h2>
-        <AppLink
-          href={'/help'}
-          className="font-semibold"
-        >
-          Add Your Twitch/Youtube →
-        </AppLink>
-      </div>
-      <LiveStreamsTableClient
-        rows={tableRows}
-        channelData={channelData}
-        chineseStreamerData={chineseStreamerData}
-      />
-    </div>
+    <LiveStreamsTableClient
+      rows={tableRows}
+      channelData={channelData}
+      chineseStreamerData={chineseStreamerData}
+      hasLiveChannels={hasLiveChannels}
+    />
   );
 } 
