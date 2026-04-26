@@ -7,13 +7,13 @@ import PlayerGraph from '@/components/PlayerGraph';
 import StatsSummary from '@/components/StatsSummary';
 import getPeriodLabel from '@/utils/getPeriodLabel';
 import { dedupData } from '@/utils/getDedupData';
-import ButtonGroup from './ButtonGroup';
 import PlayerHeader from './PlayerHeader';
 import DatePicker from './DatePicker';
 import { Info } from 'lucide-react';
 import { normalizeUrlParams, toNewUrlParams } from '@/utils/urlParams';
 import { calculatePlacementsWithAverage } from '@/utils/calculatePlacements';
 import GameRecordsSection from '@/components/game-records/GameRecordsSection';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
@@ -386,6 +386,65 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   return (
     <div className="container mx-auto py-4 px-0 [@media(min-width:431px)]:px-4">
       <div className="bg-gray-900 rounded-lg p-6">
+        <div>
+          <div className="mb-2 flex flex-row flex-wrap items-center gap-4">
+            <ToggleGroup
+              type="single"
+              value={gameMode}
+              onValueChange={(value) => {
+                if (value === 's' || value === 'd') updateGameMode(value);
+              }}
+            >
+              {showSoloButton && <ToggleGroupItem value="s">Solo</ToggleGroupItem>}
+              {showDuoButton && <ToggleGroupItem value="d">Duo</ToggleGroupItem>}
+            </ToggleGroup>
+
+            <ToggleGroup
+              type="single"
+              value={currentRegion}
+              onValueChange={(value) => {
+                if (value) updateRegion(value);
+              }}
+            >
+              {showRegionButtons.map((regionOption) => (
+                <ToggleGroupItem key={regionOption} value={regionOption}>
+                  {regionOption.toUpperCase()}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+
+            <ToggleGroup
+              type="single"
+              value={currentView}
+              onValueChange={(value) => {
+                if (value === 'all' || value === 'week' || value === 'day') updateView(value);
+              }}
+            >
+              <ToggleGroupItem value="all">Season</ToggleGroupItem>
+              <ToggleGroupItem value="week">Week</ToggleGroupItem>
+              <ToggleGroupItem value="day">Day</ToggleGroupItem>
+            </ToggleGroup>
+
+            {currentView !== 'all' && (
+              <div className="flex flex-row items-center gap-2">
+                <DatePicker
+                  selectedDate={selectedDate}
+                  onDateChange={handleDateChange}
+                  maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
+                  minDate={calculatedMinDate}
+                  weekNavigation={currentView === 'week'}
+                />
+
+                <Info onClick={handleInfoClick} className="cursor-pointer" />
+              </div>
+            )}
+          </div>
+          {showTimeModal && (
+            <div className="mt-2">
+              All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.
+            </div>
+          )}
+        </div>
         <div className="flex flex-col gap-4 mb-8">
           <PlayerHeader backUrl={getBackUrl()} />
 
@@ -415,53 +474,6 @@ export default function PlayerProfile({ player, region, date, playerData, channe
         <div className="flex flex-col md:flex-row gap-6">
           <div className="w-full md:w-3/4">
             <div className="mb-6">
-              <div className="flex flex-wrap gap-4 items-center mb-4">
-                <ButtonGroup
-                  options={[
-                    ...(showSoloButton ? [{ label: 'Solo', value: 's' as const }] : []),
-                    ...(showDuoButton ? [{ label: 'Duo', value: 'd' as const }] : []),
-                  ]}
-                  selected={gameMode}
-                  onChange={updateGameMode}
-                />
-                <ButtonGroup
-                  options={showRegionButtons.map(r => ({ label: r.toUpperCase(), value: r }))}
-                  selected={currentRegion}
-                  onChange={updateRegion}
-                />
-              </div>
-
-              <div className="flex gap-2 mt-4 items-center">
-                <ButtonGroup
-                  options={['all', 'week', 'day'].map(v => ({
-                    label: v === 'all' ? 'Season' : v.charAt(0).toUpperCase() + v.slice(1),
-                    value: v as TimeView
-                  }))}
-                  selected={currentView}
-                  onChange={updateView}
-                />
-                <Info onClick={handleInfoClick} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
-              </div>
-
-              {currentView !== 'all' && (
-                <div className="flex items-center gap-1 mt-4">
-
-
-                  {/* Date picker */}
-                  <DatePicker
-                    selectedDate={selectedDate}
-                    onDateChange={handleDateChange}
-                    maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
-                    minDate={calculatedMinDate}
-                    weekNavigation={currentView === 'week'}
-                  />
-                </div>
-              )}
-
-              {showTimeModal && (
-                <div className="text-xs text-gray-400 mt-2">All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
-              )}
-
               <div className="text-xl font-bold text-white mt-4">
                 {currentView === 'all'
                   ? 'Season Rating Record'
