@@ -241,8 +241,16 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   const ratings = filteredData.map((d) => d.rating);
   const { placements, average: averagePlacement } = calculatePlacementsWithAverage(ratings);
 
-  // Calculate derived stats from filtered data
-  const currentRating = filteredData.length > 0 ? filteredData[filteredData.length - 1]?.rating : 0;
+  // Always show the latest rating for the selected region/mode, independent of timeframe filters.
+  const currentRating = useMemo(() => {
+    const gameModeEnum = gameMode === 'd' ? '1' : '0';
+    const regionModeSnapshots = playerData.data.filter(
+      (row) =>
+        row.game_mode === gameModeEnum &&
+        row.region.toLowerCase() === currentRegion
+    );
+    return regionModeSnapshots[regionModeSnapshots.length - 1]?.rating ?? 0;
+  }, [playerData.data, currentRegion, gameMode]);
 
   const replaceUrlWithoutNavigation = useCallback((newParams: {
     region: string;
