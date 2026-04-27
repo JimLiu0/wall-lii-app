@@ -12,6 +12,7 @@ import ProfileHeader from '@/components/player-profile/ProfileHeader';
 import ProfileInfo from '@/components/player-profile/ProfileInfo';
 import ProfileControls from '@/components/player-profile/ProfileControls';
 import SessionStats from '@/components/player-profile/SessionStats';
+import DashboardCard from './shared/DashboardCard';
 
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
@@ -380,8 +381,8 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   }, [currentRegion]);
 
   return (
-    <div className="container mx-auto py-4 px-0 [@media(min-width:431px)]:px-4">
-      <div className="bg-gray-900 rounded-lg p-6">
+    <div className="container mx-auto py-4 px-0 max-w-7xl [@media(min-width:431px)]:px-4">
+      <DashboardCard>
         <div className="flex flex-col gap-4">
           <ProfileHeader backUrl={getBackUrl()} />
           <ProfileInfo
@@ -442,7 +443,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
           filterKey={gameRecordsFilterKey}
           snapshots={filteredData}
         />
-      </div>
+      </DashboardCard>
     </div>
   );
 }

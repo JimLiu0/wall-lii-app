@@ -28,6 +28,7 @@ export function useGameRecordsPaginated(
   }, [allRecords, safePage, pageSize]);
 
   return {
+    allRecords,
     pageRecords,
     totalCount,
     totalPages,
