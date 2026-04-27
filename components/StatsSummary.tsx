@@ -32,11 +32,9 @@ export default function StatsSummary({ data, region, averagePlacement }: Props) 
     { label: 'Highest', value: max, valueClassName: 'text-emerald-500' },
   ];
 
-  const wideColsClass = stats.length === 7 ? 'xl:grid-cols-7' : 'xl:grid-cols-6';
-
   return (
-    <div className="rounded-lg border border-border/50 bg-card/40">
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 ${wideColsClass}`}>
+    <div className="inline-block w-fit max-w-full">
+      <div className="flex flex-row flex-wrap">
         {stats.map((stat) => (
           <div
             key={stat.label}
