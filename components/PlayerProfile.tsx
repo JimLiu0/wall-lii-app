@@ -3,15 +3,15 @@ import { useSearchParams } from 'next/navigation';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
 import PlayerGraph from '@/components/PlayerGraph';
-import StatsSummary from '@/components/StatsSummary';
 import getPeriodLabel from '@/utils/getPeriodLabel';
 import { dedupData } from '@/utils/getDedupData';
-import PlayerHeader from './PlayerHeader';
 import { normalizeUrlParams, toNewUrlParams } from '@/utils/urlParams';
 import { calculatePlacementsWithAverage } from '@/utils/calculatePlacements';
 import GameRecordsSection from '@/components/game-records/GameRecordsSection';
-import PlayerInfoSection from '@/components/player-profile/PlayerInfoSection';
-import PlayerProfileToggles from '@/components/player-profile/PlayerProfileToggles';
+import ProfileHeader from '@/components/player-profile/ProfileHeader';
+import ProfileInfo from '@/components/player-profile/ProfileInfo';
+import ProfileControls from '@/components/player-profile/ProfileControls';
+import SessionStats from '@/components/player-profile/SessionStats';
 
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
@@ -383,15 +383,15 @@ export default function PlayerProfile({ player, region, date, playerData, channe
     <div className="container mx-auto py-4 px-0 [@media(min-width:431px)]:px-4">
       <div className="bg-gray-900 rounded-lg p-6">
         <div className="flex flex-col gap-4">
-          <PlayerHeader backUrl={getBackUrl()} />
-          <PlayerInfoSection
+          <ProfileHeader backUrl={getBackUrl()} />
+          <ProfileInfo
             playerName={playerData.name}
             channelData={channelData}
             chineseStreamerData={chineseStreamerData}
             currentRank={currentRank}
             currentRating={currentRating}
           />
-          <PlayerProfileToggles
+          <ProfileControls
             gameMode={gameMode}
             currentRegion={currentRegion}
             currentView={currentView}
@@ -408,7 +408,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
             onInfoClick={handleInfoClick}
           />
           {filteredData.length > 0 && (
-            <StatsSummary
+            <SessionStats
               data={filteredData}
               region={currentRegion}
               averagePlacement={averagePlacement}

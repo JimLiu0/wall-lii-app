@@ -24,7 +24,7 @@ interface Props {
   onInfoClick: () => void;
 }
 
-export default function PlayerProfileToggles({
+export default function ProfileControls({
   gameMode,
   currentRegion,
   currentView,

@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import PlayerSearch from '@/components/shared/PlayerSearch';
 
-interface PlayerHeaderProps {
+interface ProfileHeaderProps {
   backUrl: string;
 }
 
-export default function PlayerHeader({ backUrl }: PlayerHeaderProps) {
+export default function ProfileHeader({ backUrl }: ProfileHeaderProps) {
   return (
     <div className="flex flex-col sm:flex-row items-start gap-2">
       <Link
@@ -33,4 +33,4 @@ export default function PlayerHeader({ backUrl }: PlayerHeaderProps) {
       <PlayerSearch />
     </div>
   );
-} 
+}

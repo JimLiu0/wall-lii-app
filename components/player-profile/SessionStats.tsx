@@ -1,10 +1,12 @@
+import StatCell from '@/components/shared/StatCell';
+
 interface Props {
   data: { rating: number }[];
   region: string;
   averagePlacement: number | null;
 }
 
-export default function StatsSummary({ data, region, averagePlacement }: Props) {
+export default function SessionStats({ data, region, averagePlacement }: Props) {
   const ratings = data.map((d: { rating: number }) => d.rating);
   const games_played = ratings.length - 1;
   const net = ratings[ratings.length - 1] - ratings[0];
@@ -36,17 +38,12 @@ export default function StatsSummary({ data, region, averagePlacement }: Props) 
     <div className="inline-block w-fit max-w-full">
       <div className="flex flex-row flex-wrap">
         {stats.map((stat) => (
-          <div
+          <StatCell
             key={stat.label}
-            className="flex min-h-14 flex-col justify-center rounded-md border border-border/50 bg-background/30 px-3 py-2"
-          >
-            <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              {stat.label}
-            </span>
-            <span className={`text-sm font-semibold leading-tight break-words ${stat.valueClassName}`}>
-              {stat.value}
-            </span>
-          </div>
+            label={stat.label}
+            value={stat.value}
+            valueClassName={stat.valueClassName}
+          />
         ))}
       </div>
     </div>

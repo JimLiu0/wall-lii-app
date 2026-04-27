@@ -1,4 +1,5 @@
 import SocialIndicators from '../SocialIndicators';
+import StatCell from '@/components/shared/StatCell';
 
 interface ChannelEntry {
   channel: string;
@@ -20,7 +21,7 @@ interface Props {
   currentRating: number;
 }
 
-export default function PlayerInfoSection({
+export default function ProfileInfo({
   playerName,
   channelData,
   chineseStreamerData,
@@ -38,14 +39,8 @@ export default function PlayerInfoSection({
             chineseStreamerData={chineseStreamerData}
           />
         </div>
-        <div className="flex min-h-14 flex-col justify-center rounded-md border border-border/50 bg-background/30 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Rank</p>
-          <p className="text-sm font-semibold leading-tight text-foreground">{currentRank || 'N/A'}</p>
-        </div>
-        <div className="flex min-h-14 flex-col justify-center rounded-md border border-border/50 bg-background/30 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Rating</p>
-          <p className="text-sm font-semibold leading-tight text-foreground">{currentRating}</p>
-        </div>
+        <StatCell label="Rank" value={currentRank || 'N/A'} />
+        <StatCell label="Rating" value={currentRating} />
       </div>
     </div>
   );
