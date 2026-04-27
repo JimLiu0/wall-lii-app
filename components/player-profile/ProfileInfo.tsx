@@ -1,5 +1,6 @@
 import SocialIndicators from '../SocialIndicators';
 import StatCell from '@/components/shared/StatCell';
+import ShareStatsActions from '@/components/player-profile/ShareStatsActions';
 
 interface ChannelEntry {
   channel: string;
@@ -19,6 +20,10 @@ interface Props {
   chineseStreamerData: ChineseChannelEntry[];
   currentRank: number | null;
   currentRating: number;
+  region: string;
+  mode: 'solo' | 'duo';
+  view: 'all' | 'week' | 'day';
+  selectedDate?: string | null;
 }
 
 export default function ProfileInfo({
@@ -27,9 +32,13 @@ export default function ProfileInfo({
   chineseStreamerData,
   currentRank,
   currentRating,
+  region,
+  mode,
+  view,
+  selectedDate,
 }: Props) {
   return (
-    <div className="inline-block w-fit max-w-full">
+    <div className="w-fit max-w-full inline-block">
       <div className="flex flex-row flex-wrap">
         <div className="flex min-h-14 flex-wrap items-center gap-3 rounded-md border border-border/50 bg-background/30 px-3 py-2">
           <h1 className="text-2xl font-semibold leading-tight text-foreground break-words">{playerName}</h1>
@@ -41,6 +50,13 @@ export default function ProfileInfo({
         </div>
         <StatCell label="Rank" value={currentRank || 'N/A'} />
         <StatCell label="Rating" value={currentRating} />
+        <ShareStatsActions
+        playerName={playerName}
+        region={region}
+        mode={mode}
+        view={view}
+        selectedDate={selectedDate}
+      />
       </div>
     </div>
   );

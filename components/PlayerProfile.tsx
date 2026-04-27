@@ -399,6 +399,10 @@ export default function PlayerProfile({ player, region, date, playerData, channe
             chineseStreamerData={chineseStreamerData}
             currentRank={currentRank}
             currentRating={currentRating}
+            region={currentRegion}
+            mode={gameMode === 'd' ? 'duo' : 'solo'}
+            view={currentView}
+            selectedDate={currentView === 'all' ? null : selectedDate.toISODate()}
           />
           <ProfileControls
             gameMode={gameMode}
