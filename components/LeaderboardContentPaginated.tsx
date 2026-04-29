@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useState, type ComponentProps } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -17,16 +17,15 @@ import {
   ChevronsRight,
   ChevronLeft,
   ChevronRight,
-  ChevronsUpDown,
+  ArrowDown,
+  ArrowUp,
   Info,
-  Search,
-  X,
 } from 'lucide-react';
 
 import DatePicker from './DatePicker';
 import SocialIndicators from './SocialIndicators';
+import PlayerSearch from '@/components/shared/PlayerSearch';
 import { Button } from '@/components/ui/button';
-import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -37,7 +36,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { cn } from '@/lib/utils';
 import { getLeaderboardDateRange } from '@/utils/dateUtils';
 import { inMemoryCache } from '@/utils/inMemoryCache';
 import { supabase } from '@/utils/supabaseClient';
@@ -115,9 +113,9 @@ const regionNames = {
 } as const;
 
 function formatDelta(value: number) {
-  if (value > 0) return <span className="text-green-400">+{value}</span>;
-  if (value < 0) return <span className="text-red-400">{value}</span>;
-  return <span className="text-muted-foreground">-</span>;
+  if (value > 0) return <span className="font-medium text-success">+{value}</span>;
+  if (value < 0) return <span className="font-medium text-destructive">{value}</span>;
+  return <span className="font-medium text-muted-foreground">—</span>;
 }
 
 function getCacheKey(context: FetchContext) {
@@ -135,6 +133,130 @@ function getCacheKey(context: FetchContext) {
 
 function getPageCount(totalRows: number) {
   return Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+}
+
+function getInitialSortDesc(columnId: string) {
+  return !['rank', 'player_name', 'placement'].includes(columnId);
+}
+
+function LeaderboardPaginationBar({
+  totalPages,
+  pageDraft,
+  onPageDraftChange,
+  onCommitPageDraft,
+  onFirstPage,
+  onLastPage,
+  onPrev,
+  onNext,
+  canPrev,
+  canNext,
+  canFirst,
+  canLast,
+  disabled,
+}: {
+  totalPages: number;
+  pageDraft: string;
+  onPageDraftChange: (value: string) => void;
+  onCommitPageDraft: () => void;
+  onFirstPage: () => void;
+  onLastPage: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  canPrev: boolean;
+  canNext: boolean;
+  canFirst: boolean;
+  canLast: boolean;
+  disabled: boolean;
+}) {
+  const inputId = useId();
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-2 text-sm text-muted-foreground">
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-lg"
+        aria-label="First page"
+        onClick={onFirstPage}
+        disabled={!canFirst || disabled}
+      >
+        <ChevronsLeft className="h-4 w-4" aria-hidden />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-lg"
+        aria-label="Previous page"
+        onClick={onPrev}
+        disabled={!canPrev || disabled}
+      >
+        <ChevronLeft className="h-4 w-4" aria-hidden />
+      </Button>
+
+      <span className="flex flex-wrap items-center justify-center gap-2 px-1">
+        <span>Page</span>
+        <label htmlFor={inputId} className="sr-only">
+          Page number (1 to {totalPages})
+        </label>
+        <Input
+          id={inputId}
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          value={pageDraft}
+          onChange={(event) => onPageDraftChange(event.target.value.replace(/\D/g, ''))}
+          onBlur={onCommitPageDraft}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              onCommitPageDraft();
+            }
+          }}
+          disabled={totalPages < 1 || disabled}
+          className="h-8 min-h-8 w-14 bg-background px-2 py-1 text-center text-sm text-foreground tabular-nums"
+        />
+        <span>of {totalPages}</span>
+      </span>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-lg"
+        aria-label="Next page"
+        onClick={onNext}
+        disabled={!canNext || disabled}
+      >
+        <ChevronRight className="h-4 w-4" aria-hidden />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon-lg"
+        aria-label="Last page"
+        onClick={onLastPage}
+        disabled={!canLast || disabled}
+      >
+        <ChevronsRight className="h-4 w-4" aria-hidden />
+      </Button>
+    </div>
+  );
+}
+
+function LeaderboardPaginationRow({
+  summary,
+  paginationBarProps,
+}: {
+  summary: string;
+  paginationBarProps: ComponentProps<typeof LeaderboardPaginationBar>;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
+      <LeaderboardPaginationBar {...paginationBarProps} />
+      <span className="text-center text-sm text-muted-foreground sm:text-right">
+        {summary}
+      </span>
+    </div>
+  );
 }
 
 export default function LeaderboardContentPaginated({ region, defaultSolo = true }: Props) {
@@ -155,10 +277,8 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
   const [executedSearch, setExecutedSearch] = useState('');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'rank', desc: false }]);
   const [loading, setLoading] = useState(true);
-  const [prefetching, setPrefetching] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
-  const [showPlacementInfo, setShowPlacementInfo] = useState(false);
 
   const pageCount = getPageCount(totalRows);
   const solo = mode === 'solo';
@@ -197,7 +317,6 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     search: string,
   ): Promise<number> => {
     const trimmedSearch = search.trim();
-    const numericRank = /^\d+$/.test(trimmedSearch) ? Number(trimmedSearch) : null;
 
     if (!trimmedSearch && region !== 'all') {
       const { data, error } = await supabase
@@ -226,11 +345,7 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     }
 
     if (trimmedSearch) {
-      if (numericRank !== null && region !== 'all') {
-        query = query.eq('rank', numericRank);
-      } else {
-        query = query.ilike('players.player_name', `%${trimmedSearch}%`);
-      }
+      query = query.ilike('players.player_name', `%${trimmedSearch}%`);
     }
 
     const { count, error } = await query;
@@ -268,7 +383,6 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     const from = context.pageIndex * context.pageSize;
     const to = from + context.pageSize - 1;
     const trimmedSearch = context.search.trim();
-    const numericRank = /^\d+$/.test(trimmedSearch) ? Number(trimmedSearch) : null;
 
     let query = supabase
       .from('daily_leaderboard_stats')
@@ -297,11 +411,7 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     }
 
     if (trimmedSearch) {
-      if (numericRank !== null && context.region !== 'all') {
-        query = query.eq('rank', numericRank);
-      } else {
-        query = query.ilike('players.player_name', `%${trimmedSearch}%`);
-      }
+      query = query.ilike('players.player_name', `%${trimmedSearch}%`);
     }
 
     const { data, error } = await query.range(from, to);
@@ -439,10 +549,8 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
 
       const nextPage = nextPageIndex + 1;
       if (nextPage < getPageCount(result.totalRows)) {
-        setPrefetching(true);
         void fetchLeaderboardPage({ ...context, pageIndex: nextPage }, { prefetch: true })
-          .catch((error) => console.warn('Leaderboard prefetch failed:', error))
-          .finally(() => setPrefetching(false));
+          .catch((error) => console.warn('Leaderboard prefetch failed:', error));
       }
     } catch (error) {
       console.error('Error fetching leaderboard:', error);
@@ -491,16 +599,16 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     router.push(`/lb/${region}/${nextMode}`);
   };
 
-  const executeSearch = () => {
-    setExecutedSearch(searchInput.trim());
+  const executeSearch = (value: string) => {
+    setExecutedSearch(value.trim());
     setPageIndex(0);
     setSorting([{ id: 'rank', desc: false }]);
   };
 
   const clearSearch = () => {
-    setSearchInput('');
     setExecutedSearch('');
     setPageIndex(0);
+    setSorting([{ id: 'rank', desc: false }]);
   };
 
   const submitPage = () => {
@@ -530,13 +638,16 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
         accessorKey: 'rank',
         header: 'Rank',
         cell: ({ row }) => <span className="font-medium text-muted-foreground">#{row.original.rank}</span>,
+        meta: {
+          variant: 'emphasis',
+        },
       },
     ];
 
     if (region !== 'all') {
       baseColumns.push({
         accessorKey: 'rank_delta',
-        header: 'Delta Rank',
+        header: 'Δ Rank',
         cell: ({ row }) => formatDelta(row.original.rank_delta),
       });
     }
@@ -570,10 +681,13 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
         accessorKey: 'rating',
         header: 'Rating',
         cell: ({ row }) => <span className="text-base font-semibold text-foreground">{row.original.rating}</span>,
+        meta: {
+          variant: 'emphasis',
+        },
       },
       {
         accessorKey: 'rating_delta',
-        header: 'Delta Rating',
+        header: 'Δ Rating',
         cell: ({ row }) => formatDelta(row.original.rating_delta),
       },
       {
@@ -607,6 +721,8 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     columns,
     state: { sorting },
     onSortingChange: setSorting,
+    enableMultiSort: false,
+    enableSortingRemoval: false,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
@@ -615,6 +731,30 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     ? 'https://hs.blizzard.cn/community/leaderboards/'
     : `https://hearthstone.blizzard.com/en-us/community/leaderboards?region=${region.toUpperCase()}&leaderboardId=battlegrounds${solo ? '' : 'duo'}`;
 
+  const canPrev = pageIndex > 0 && pageCount > 0;
+  const canNext = pageCount > 0 && pageIndex < pageCount - 1;
+  const paginationBarProps = {
+    totalPages: pageCount,
+    pageDraft: pageInput,
+    onPageDraftChange: setPageInput,
+    onCommitPageDraft: submitPage,
+    onFirstPage: () => setPageIndex(0),
+    onLastPage: () => setPageIndex(pageCount - 1),
+    onPrev: () => setPageIndex((value) => Math.max(0, value - 1)),
+    onNext: () => setPageIndex((value) => Math.min(pageCount - 1, value + 1)),
+    canPrev,
+    canNext,
+    canFirst: canPrev,
+    canLast: canNext,
+    disabled: loading,
+  };
+  const rangeStart = totalRows === 0 ? 0 : pageIndex * PAGE_SIZE + 1;
+  const rangeEnd = totalRows === 0 ? 0 : Math.min(pageIndex * PAGE_SIZE + entries.length, totalRows);
+  const resultSummary = loading
+    ? 'Loading players...'
+    : totalRows > PAGE_SIZE 
+      ? `Showing ${rangeStart} to ${rangeEnd} of ${totalRows} players${executedSearch ? ` for "${executedSearch}"` : ''}`
+      : `Showing ${totalRows} player${totalRows > 1 ? 's' : ''}`;
   return (
     <section className="container mx-auto max-w-4xl px-0 py-4 [@media(min-width:431px)]:px-4">
       <div className="flex flex-col gap-5 rounded-lg bg-card px-0 py-5 text-card-foreground [@media(min-width:431px)]:px-5">
@@ -692,55 +832,23 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
               every 5 minutes. All stats and resets use Pacific Time midnight.
             </p>
             {region === 'cn' && <p className="mt-2">Blizzard CN only updates their leaderboards every hour.</p>}
-          </div>
-        )}
-
-        <form
-          className="flex flex-col gap-2 sm:flex-row"
-          onSubmit={(event) => {
-            event.preventDefault();
-            executeSearch();
-          }}
-        >
-          <div className="relative flex-1">
-            <Input
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search player name or rank..."
-              className="pr-9"
-            />
-            {searchInput && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2"
-                onClick={clearSearch}
-              >
-                <X />
-              </Button>
+            {solo && region !== 'cn' && (
+              <p className="mt-2">
+                Placement average is shown when starting rating is above 9000 and the player has enough games: 5 for day, 10 for week.
+              </p>
             )}
           </div>
-          <Button type="submit" size="lg">
-            <Search data-icon="inline-start" />
-            Search
-          </Button>
-        </form>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 px-3 text-sm text-muted-foreground [@media(min-width:431px)]:px-0">
-          <span>
-            {loading ? 'Loading players...' : `Showing ${entries.length} of ${totalRows} players`}
-            {executedSearch && ` for "${executedSearch}"`}
-          </span>
-          <span>{prefetching ? 'Prefetching next page...' : 'Next page ready when cached'}</span>
-        </div>
-
-        {solo && region !== 'cn' && showPlacementInfo && (
-          <div className="rounded-md border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-            <p>Placement average is shown when starting rating is above 9000 and the player has enough games: 5 for day, 10 for week.</p>
-          </div>
         )}
+
+        <PlayerSearch
+          value={searchInput}
+          onValueChange={setSearchInput}
+          onSearch={executeSearch}
+          onClear={clearSearch}
+          placeholder="Search by player name..."
+          disabled={loading}
+          inputClassName="rounded-r-none"
+        />
 
         {errorMessage && (
           <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
@@ -748,33 +856,42 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
           </div>
         )}
 
+        {totalRows > 0 && (
+          <LeaderboardPaginationRow
+            summary={resultSummary}
+            paginationBarProps={paginationBarProps}
+          />
+        )}
+
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} hover="none">
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} className={cn(header.column.id === 'rank' && 'sticky left-0 bg-card')}>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1 whitespace-nowrap"
-                      onClick={header.column.getToggleSortingHandler()}
-                    >
-                      {flexRender(header.column.columnDef.header, header.getContext())}
-                      <ChevronsUpDown />
-                    </button>
-                    {header.column.id === 'placement' && (
-                      <Button
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  const sorted = header.column.getIsSorted();
+
+                  return (
+                    <TableHead key={header.id}>
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="icon-xs"
-                        aria-label="Placement information"
-                        onClick={() => setShowPlacementInfo((value) => !value)}
+                        className="flex size-full items-center gap-1 text-left whitespace-nowrap"
+                        onClick={() => {
+                          const sorted = header.column.getIsSorted();
+                          setSorting([{
+                            id: header.column.id,
+                            desc: sorted ? sorted === 'asc' : getInitialSortDesc(header.column.id),
+                          }]);
+                        }}
                       >
-                        <Info />
-                      </Button>
-                    )}
-                  </TableHead>
-                ))}
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                        {sorted === 'asc' && <ArrowUp className="h-3.5 w-3.5" aria-hidden />}
+                        {sorted === 'desc' && <ArrowDown className="h-3.5 w-3.5" aria-hidden />}
+                      </button>
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             ))}
           </TableHeader>
@@ -788,14 +905,28 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
             ) : table.getRowModel().rows.length > 0 ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow key={`${row.original.player_name}-${row.original.region}-${row.original.rank}`}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(cell.column.id === 'rank' && 'sticky left-0 bg-card')}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const meta = cell.column.columnDef.meta as
+                      | {
+                          variant?: 'default' | 'emphasis';
+                          cellClassName?: string | ((row: LeaderboardEntry) => string);
+                        }
+                      | undefined;
+                    const cellClassName =
+                      typeof meta?.cellClassName === 'function'
+                        ? meta.cellClassName(row.original)
+                        : meta?.cellClassName;
+
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        variant={meta?.variant ?? 'default'}
+                        className={cellClassName}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               ))
             ) : (
@@ -808,72 +939,12 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
           </TableBody>
         </Table>
 
-        <div className="flex flex-col items-center justify-between gap-3 px-3 sm:flex-row [@media(min-width:431px)]:px-0">
-          <ButtonGroup>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="First page"
-              disabled={pageIndex === 0 || loading}
-              onClick={() => setPageIndex(0)}
-            >
-              <ChevronsLeft />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Previous page"
-              disabled={pageIndex === 0 || loading}
-              onClick={() => setPageIndex((value) => Math.max(0, value - 1))}
-            >
-              <ChevronLeft />
-            </Button>
-            <ButtonGroupText>
-              Page {pageIndex + 1} of {pageCount}
-            </ButtonGroupText>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Next page"
-              disabled={pageIndex >= pageCount - 1 || loading}
-              onClick={() => setPageIndex((value) => Math.min(pageCount - 1, value + 1))}
-            >
-              <ChevronRight />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              aria-label="Last page"
-              disabled={pageIndex >= pageCount - 1 || loading}
-              onClick={() => setPageIndex(pageCount - 1)}
-            >
-              <ChevronsRight />
-            </Button>
-          </ButtonGroup>
-
-          <form
-            className="flex items-center gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              submitPage();
-            }}
-          >
-            <Input
-              aria-label="Page number"
-              inputMode="numeric"
-              value={pageInput}
-              onChange={(event) => setPageInput(event.target.value)}
-              className="h-8 w-20"
-            />
-            <Button type="submit" variant="outline" disabled={loading}>
-              Go
-            </Button>
-          </form>
-        </div>
+        {totalRows > 0 && (
+          <LeaderboardPaginationRow
+            summary={resultSummary}
+            paginationBarProps={paginationBarProps}
+          />
+        )}
       </div>
     </section>
   );
