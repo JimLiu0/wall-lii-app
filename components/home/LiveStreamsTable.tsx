@@ -1,8 +1,7 @@
 import { supabase } from '@/utils/supabaseClient';
-import Link from 'next/link';
-import SocialIndicators from './SocialIndicators';
 import { unstable_noStore } from 'next/cache';
 import { DateTime } from 'luxon';
+import LiveStreamsTableClient from './LiveStreamsTableClient';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -22,16 +21,6 @@ interface ChannelEntry {
   youtube?: string;
 }
 
-function getModeLabel(mode: string) {
-  return mode === '1' ? 'Duo' : 'Solo';
-}
-
-function getWallLiiLeaderboardLink(region: string, mode: string) {
-  const regionLower = region.toLowerCase();
-  const modeStr = mode === '1' ? 'duo' : 'solo';
-  return `/lb/${regionLower}/${modeStr}`;
-}
-
 export default async function LiveStreamsTable() {
   // Prevent caching for live data
   unstable_noStore();
@@ -47,21 +36,7 @@ export default async function LiveStreamsTable() {
   }
   
   const channelData = fetchedChannels || [];
-  
-  // Early return only if channels query returns zero rows
-  if (channelData.length === 0) {
-    return (
-      <div className="bg-gray-900 rounded-lg p-6 mt-6">
-        <h2 className="text-center text-xl font-bold text-white mb-4">
-          Top Ranked Livestreams
-        </h2>
-        <div className="text-center text-gray-400 py-8">
-          <p className="text-lg">No streamers currently live who are on the leaderboard</p>
-          <p className="text-sm mt-2">Check back later for live streams from top players</p>
-        </div>
-      </div>
-    );
-  }
+  const hasLiveChannels = channelData.length > 0;
 
   // Fetch Chinese streamer data
   const { data: fetchedChinese, error: chineseError } = await supabase
@@ -185,86 +160,25 @@ export default async function LiveStreamsTable() {
         leaderboard: lbEntry || null,
       };
     })
-    .filter((row) => row.leaderboard !== null); // Only show players with leaderboard data
+    .filter((row) => row.leaderboard !== null) // Only show players with leaderboard data
+    .map((row) => ({
+      player_name: row.player_name,
+      rank: row.leaderboard!.rank,
+      rating: row.leaderboard!.rating,
+      game_mode: row.leaderboard!.game_mode,
+      region: row.leaderboard!.region,
+    }));
 
-  // Sort by rank ascending
   tableRows.sort((a, b) => {
-    if (a.leaderboard && b.leaderboard) {
-      return a.leaderboard.rank - b.leaderboard.rank;
-    }
-    return 0;
+    return a.rank - b.rank || a.rating - b.rating;
   });
 
   return (
-    <div className="bg-gray-900 rounded-lg p-6 mt-6">
-      <div className="flex text-center flex-col">
-        <h2 className="text-center text-xl font-bold text-white">
-          Top Ranked Livestreams
-        </h2>
-        <Link
-          href={'/help'}
-          className="text-blue-400 hover:underline font-semibold"
-        >
-          Add Your Twitch/Youtube →
-        </Link>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="text-sm font-medium text-zinc-400 border-b border-gray-800">
-              <th className="px-4 py-2 text-left">Rank</th>
-              <th className="px-4 py-2 text-left">Player</th>
-              <th className="px-4 py-2 text-left">Rating</th>
-              <th className="px-4 py-2 text-left">Mode</th>
-              <th className="px-4 py-2 text-left">Region</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tableRows.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                  No live streamers currently on the leaderboard
-                </td>
-              </tr>
-            ) : (
-              tableRows.map((row) => (
-                <tr key={row.player_name} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-zinc-400">
-                    #{row.leaderboard!.rank}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/stats/${row.player_name}`}
-                        className="text-blue-300 font-semibold hover:underline"
-                        prefetch={false}
-                        target="_blank"
-                      >
-                        {row.player_name}
-                      </Link>
-                      <SocialIndicators playerName={row.player_name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-left text-lg font-semibold text-white">
-                    {row.leaderboard!.rating}
-                  </td>
-                  <td className="px-4 py-3 text-left text-white">
-                    {getModeLabel(row.leaderboard!.game_mode)}
-                  </td>
-                  <td className="px-4 py-3 text-left text-white">
-                    <Link
-                      href={getWallLiiLeaderboardLink(row.leaderboard!.region, row.leaderboard!.game_mode)}
-                      className="text-blue-400 hover:underline"
-                    >
-                      {row.leaderboard!.region.toUpperCase()}
-                    </Link>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <LiveStreamsTableClient
+      rows={tableRows}
+      channelData={channelData}
+      chineseStreamerData={chineseStreamerData}
+      hasLiveChannels={hasLiveChannels}
+    />
   );
 } 

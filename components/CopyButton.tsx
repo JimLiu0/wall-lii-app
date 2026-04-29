@@ -1,13 +1,26 @@
 'use client';
 
 import { useState } from 'react';
+import { Button } from './ui/button';
+import { Copy, Check } from 'lucide-react';
+import type { VariantProps } from 'class-variance-authority';
+import { buttonVariants } from './ui/button';
 
 interface CopyButtonProps {
   text: string;
-  className?: string;
+  label?: string;
+  ariaLabel?: string;
+  variant?: VariantProps<typeof buttonVariants>['variant'];
+  size?: VariantProps<typeof buttonVariants>['size'];
 }
 
-export default function CopyButton({ text, className = '' }: CopyButtonProps) {
+export default function CopyButton({
+  text,
+  label,
+  ariaLabel,
+  variant = 'secondary',
+  size = 'icon',
+}: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -17,15 +30,14 @@ export default function CopyButton({ text, className = '' }: CopyButtonProps) {
   };
 
   return (
-    <button
+    <Button
       onClick={handleCopy}
-      className={`px-2 py-1 text-sm rounded-md transition-colors ${
-        copied
-          ? 'bg-green-600 text-white'
-          : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-      } ${className}`}
+      variant={copied ? 'success' : variant}
+      size={size}
+      aria-label={copied ? 'Copied' : (ariaLabel ?? label ?? 'Copy')}
     >
-      {copied ? 'Copied!' : 'Copy'}
-    </button>
+      {copied ? <Check /> : <Copy />}
+      {label ? <span>{copied ? 'Copied' : label}</span> : null}
+    </Button>
   );
 } 

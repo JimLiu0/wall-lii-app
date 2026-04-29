@@ -3,12 +3,45 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
-import { Heart, Newspaper, HelpCircle, Trophy } from 'lucide-react';
+import { Heart, Newspaper, HelpCircle, Trophy, Sun, Moon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+type Theme = 'light' | 'dark';
+
+function getResolvedTheme(): Theme {
+  const storedTheme = localStorage.getItem('theme');
+
+  if (storedTheme === 'light' || storedTheme === 'dark') {
+    return storedTheme;
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(nextTheme: Theme, disableTransitions = false) {
+  const root = document.documentElement;
+
+  if (disableTransitions) {
+    root.classList.add('theme-transition-disabled');
+  }
+
+  root.classList.toggle('dark', nextTheme === 'dark');
+  root.style.colorScheme = nextTheme;
+
+  if (disableTransitions) {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        root.classList.remove('theme-transition-disabled');
+      });
+    });
+  }
+}
 
 export default function NavBar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [leaderboardUrl, setLeaderboardUrl] = useState('/lb/all/solo');
+  const [theme, setTheme] = useState<Theme>('dark');
   const supportRef = useRef<HTMLDivElement>(null);
   const helpRef = useRef<HTMLDivElement>(null);
 
@@ -18,6 +51,12 @@ export default function NavBar() {
     const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
     return `/lb/${storedRegion}/${storedGameMode}`;
   }
+
+  useEffect(() => {
+    const initialTheme = getResolvedTheme();
+    setTheme(initialTheme);
+    applyTheme(initialTheme);
+  }, []);
 
   useEffect(() => {
     setLeaderboardUrl(getLeaderboardUrlFromStorage());
@@ -75,6 +114,13 @@ export default function NavBar() {
     }
     return () => document.removeEventListener('mousedown', handleClick);
   }, [isSupportOpen, isDropdownOpen]);
+
+  function toggleTheme() {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    applyTheme(nextTheme, true);
+    localStorage.setItem('theme', nextTheme);
+  }
 
   return (
     <nav className="bg-gray-900 border-b border-gray-800">
@@ -242,6 +288,17 @@ export default function NavBar() {
                 </div>
               )}
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </Button>
           </div>
         </div>
       </div>

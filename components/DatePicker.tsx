@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { DateTime } from 'luxon';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DatePickerProps {
   selectedDate: DateTime;
@@ -61,8 +62,6 @@ export default function DatePicker({
   };
 
   const handleDateSelect = (date: DateTime) => {
-    console.log(date)
-    console.log(maxDate)
     if (date >= minDate && date <= maxDate) {
       onDateChange(date);
       setIsOpen(false);
@@ -103,8 +102,8 @@ export default function DatePicker({
       ? selectedDate.minus({ days: increment })
       : selectedDate.plus({ days: increment });
     
-    // Cap the date to maxDate if it goes into the future
-    const cappedDate = newDate > maxDate ? maxDate : newDate;
+    // Clamp navigation so weekly jumps can still land exactly on bounds.
+    const cappedDate = newDate < minDate ? minDate : newDate > maxDate ? maxDate : newDate;
     
     if (cappedDate >= minDate && cappedDate <= maxDate) {
       onDateChange(cappedDate);
@@ -115,12 +114,12 @@ export default function DatePicker({
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   return (
-    <div className="relative flex items-center gap-1" ref={dropdownRef}>
+    <div className="relative flex items-center" ref={dropdownRef}>
       {/* Left arrow button */}
       <button
         onClick={() => navigateDay('prev')}
-        disabled={selectedDate.minus({ days: 1 }) < minDate}
-        className="inline-flex items-center justify-center w-8 h-8 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800"
+        disabled={selectedDate <= minDate}
+        className="inline-flex items-center justify-center w-8 h-8 text-sm border border-border bg-transparent shadow-xs rounded-l-md rounded-r-none hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
       >
         <ChevronLeft className="w-4 h-4" />
       </button>
@@ -128,7 +127,7 @@ export default function DatePicker({
       {/* Date picker button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1 px-2 py-1 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors"
+        className="inline-flex items-center gap-1 px-2 py-1 h-8 text-sm border-y border-border bg-transparent shadow-xs rounded-none hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 transition-colors"
       >
         <Calendar className="w-4 h-4" />
         <span>{selectedDate.toFormat('MMM dd, yyyy')}</span>
@@ -137,39 +136,39 @@ export default function DatePicker({
       {/* Right arrow button */}
       <button
         onClick={() => navigateDay('next')}
-        disabled={selectedDate.plus({ days: weekNavigation ? 7 : 1 }) > maxDate}
-        className="inline-flex items-center justify-center w-8 h-8 text-sm bg-gray-800 text-white rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-800"
+        disabled={selectedDate >= maxDate}
+        className="inline-flex items-center justify-center w-8 h-8 text-sm border border-border bg-transparent shadow-xs rounded-r-md rounded-l-none hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
       >
         <ChevronRight className="w-4 h-4" />
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-gray-900 border border-gray-700 rounded-lg shadow-lg p-4 min-w-[280px]">
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 z-50 bg-popover text-popover-foreground border border-border rounded-lg shadow-lg p-4 min-w-[280px]">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={() => navigateMonth('prev')}
               disabled={!canNavigatePrevMonth}
-              className="p-1 hover:bg-gray-800 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="p-1 hover:bg-accent rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
-              <ChevronLeft className="w-4 h-4 text-gray-400" />
+              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
             </button>
-            <h3 className="text-white font-medium">
+            <h3 className="text-foreground font-medium">
               {currentMonth.toFormat('MMMM yyyy')}
             </h3>
             <button
               onClick={() => navigateMonth('next')}
               disabled={!canNavigateNextMonth}
-              className="p-1 hover:bg-gray-800 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="p-1 hover:bg-accent rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
-              <ChevronRight className="w-4 h-4 text-gray-400" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>
 
           {/* Week days */}
           <div className="grid grid-cols-7 gap-1 mb-2">
             {weekDays.map(day => (
-              <div key={day} className="text-center text-xs text-gray-400 py-1">
+              <div key={day} className="text-center text-xs text-muted-foreground py-1">
                 {day}
               </div>
             ))}
@@ -188,13 +187,13 @@ export default function DatePicker({
                   key={index}
                   onClick={() => handleDateSelect(day)}
                   disabled={isDisabled}
-                  className={`
-                    w-8 h-8 text-sm rounded transition-colors
-                    ${isCurrentMonth ? 'text-white' : 'text-gray-600'}
-                    ${isSelected ? 'bg-blue-500 text-white' : 'hover:bg-gray-800'}
-                    ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                    ${isToday && !isSelected ? 'bg-blue-500/20 text-blue-400' : ''}
-                  `}
+                  className={cn(
+                    'w-8 h-8 text-sm rounded transition-colors',
+                    isCurrentMonth ? 'text-foreground' : 'text-muted-foreground/60',
+                    isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
+                    isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                    isToday && !isSelected ? 'bg-link/15 text-link' : ''
+                  )}
                 >
                   {day.day}
                 </button>
@@ -203,16 +202,16 @@ export default function DatePicker({
           </div>
 
           {/* Quick actions */}
-          <div className="flex gap-2 mt-4 pt-3 border-t border-gray-700">
+          <div className="flex gap-2 mt-4 pt-3 border-t border-border">
             <button
               onClick={() => handleDateSelect(DateTime.now().setZone('America/Los_Angeles'))}
-              className="flex-1 px-3 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors"
+              className="flex-1 px-3 py-1 text-xs bg-muted text-foreground rounded hover:bg-accent transition-colors"
             >
               Today
             </button>
             <button
               onClick={() => handleDateSelect(DateTime.now().setZone('America/Los_Angeles').minus({ days: 1 }))}
-              className="flex-1 px-3 py-1 text-xs bg-gray-800 text-white rounded hover:bg-gray-700 transition-colors"
+              className="flex-1 px-3 py-1 text-xs bg-muted text-foreground rounded hover:bg-accent transition-colors"
             >
               Yesterday
             </button>

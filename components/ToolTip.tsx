@@ -33,13 +33,13 @@ export default function RatingTooltip({ active, payload }: TooltipProps) {
       : '±0';
 
   const deltaColor =
-    delta === null ? 'text-gray-400' : delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-gray-400';
+    delta === null ? 'text-muted-foreground' : delta > 0 ? 'text-success' : delta < 0 ? 'text-destructive' : 'text-muted-foreground';
 
   const local = DateTime.fromISO(point.snapshot_time).toLocal();
   const timeLabel = local.toFormat('ccc, MMM d – HH:mm ZZZZ'); // e.g. Mon, Apr 15 – 22:45 PDT
 
   return (
-    <div className="bg-white text-black p-3 rounded shadow-md space-y-1">
+    <div className="bg-card text-card-foreground border border-border p-3 rounded shadow-md space-y-1">
       <div className="font-medium">{timeLabel}</div>
       <div className="text-sm">
         Rating: <span className="font-mono">{current}</span>{' '}

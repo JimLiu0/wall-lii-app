@@ -1,19 +1,18 @@
 'use client';
-import SocialIndicators from './SocialIndicators';
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
 import PlayerGraph from '@/components/PlayerGraph';
-import StatsSummary from '@/components/StatsSummary';
 import getPeriodLabel from '@/utils/getPeriodLabel';
 import { dedupData } from '@/utils/getDedupData';
-import ButtonGroup from './ButtonGroup';
-import PlayerHeader from './PlayerHeader';
-import DatePicker from './DatePicker';
-import { Info } from 'lucide-react';
 import { normalizeUrlParams, toNewUrlParams } from '@/utils/urlParams';
 import { calculatePlacementsWithAverage } from '@/utils/calculatePlacements';
 import GameRecordsSection from '@/components/game-records/GameRecordsSection';
+import ProfileHeader from '@/components/player-profile/ProfileHeader';
+import ProfileInfo from '@/components/player-profile/ProfileInfo';
+import ProfileControls from '@/components/player-profile/ProfileControls';
+import SessionStats from '@/components/player-profile/SessionStats';
+import DashboardCard from './shared/DashboardCard';
 
 type TimeView = 'all' | 'week' | 'day';
 type GameMode = 's' | 'd';
@@ -131,8 +130,6 @@ export default function PlayerProfile({ player, region, date, playerData, channe
     return `/lb/${currentRegion}/${gameModeParam}`;
   };
 
-  const peakRating = playerData.data.filter((row) => row.region.toLowerCase() === currentRegion).reduce((max, item) => Math.max(max, item.rating), 0);
-
   // Calculate offset from selectedDate for internal use
   const calculatedOffset = useMemo(() => {
     if (currentView === 'all') return 0;
@@ -244,8 +241,16 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   const ratings = filteredData.map((d) => d.rating);
   const { placements, average: averagePlacement } = calculatePlacementsWithAverage(ratings);
 
-  // Calculate derived stats from filtered data
-  const currentRating = filteredData.length > 0 ? filteredData[filteredData.length - 1]?.rating : 0;
+  // Always show the latest rating for the selected region/mode, independent of timeframe filters.
+  const currentRating = useMemo(() => {
+    const gameModeEnum = gameMode === 'd' ? '1' : '0';
+    const regionModeSnapshots = playerData.data.filter(
+      (row) =>
+        row.game_mode === gameModeEnum &&
+        row.region.toLowerCase() === currentRegion
+    );
+    return regionModeSnapshots[regionModeSnapshots.length - 1]?.rating ?? 0;
+  }, [playerData.data, currentRegion, gameMode]);
 
   const replaceUrlWithoutNavigation = useCallback((newParams: {
     region: string;
@@ -384,85 +389,50 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   }, [currentRegion]);
 
   return (
-    <div className="container mx-auto py-4 px-0 [@media(min-width:431px)]:px-4">
-      <div className="bg-gray-900 rounded-lg p-6">
-        <div className="flex flex-col gap-4 mb-8">
-          <PlayerHeader backUrl={getBackUrl()} />
-
-          {/* Player name with social indicators */}
-          <div className="flex items-center gap-2">
-            <h1 className="text-4xl sm:text-4xl font-bold text-white break-all">
-              {playerData.name}
-            </h1>
-            <SocialIndicators playerName={playerData.name} channelData={channelData} chineseStreamerData={chineseStreamerData} />
-          </div>
-          <div className="flex gap-8">
-            <div>
-              <div className="text-gray-400 text-sm">Rank</div>
-              <div className="text-2xl text-white">{currentRank || 'N/A'}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-sm">Rating</div>
-              <div className="text-2xl text-white">{currentRating}</div>
-            </div>
-            <div>
-              <div className="text-gray-400 text-sm">Peak</div>
-              <div className="text-2xl text-white">{peakRating}</div>
-            </div>
-          </div>
+    <div className="container mx-auto py-4 px-0 max-w-7xl [@media(min-width:431px)]:px-4">
+      <DashboardCard>
+        <div className="flex flex-col gap-4">
+          <ProfileHeader backUrl={getBackUrl()} />
+          <ProfileInfo
+            playerName={playerData.name}
+            channelData={channelData}
+            chineseStreamerData={chineseStreamerData}
+            currentRank={currentRank}
+            currentRating={currentRating}
+            region={currentRegion}
+            mode={gameMode === 'd' ? 'duo' : 'solo'}
+            view={currentView}
+            selectedDate={currentView === 'all' ? null : selectedDate.toISODate()}
+          />
+          <ProfileControls
+            gameMode={gameMode}
+            currentRegion={currentRegion}
+            currentView={currentView}
+            showSoloButton={showSoloButton}
+            showDuoButton={showDuoButton}
+            showRegionButtons={showRegionButtons}
+            selectedDate={selectedDate}
+            calculatedMinDate={calculatedMinDate}
+            showTimeModal={showTimeModal}
+            onGameModeChange={updateGameMode}
+            onRegionChange={updateRegion}
+            onViewChange={updateView}
+            onDateChange={handleDateChange}
+            onInfoClick={handleInfoClick}
+          />
+          {filteredData.length > 0 && (
+            <SessionStats
+              data={filteredData}
+              region={currentRegion}
+              averagePlacement={averagePlacement}
+            />
+          )}
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-3/4">
+        <div className="flex flex-col gap-6">
+          <div className="w-full">
             <div className="mb-6">
-              <div className="flex flex-wrap gap-4 items-center mb-4">
-                <ButtonGroup
-                  options={[
-                    ...(showSoloButton ? [{ label: 'Solo', value: 's' as const }] : []),
-                    ...(showDuoButton ? [{ label: 'Duo', value: 'd' as const }] : []),
-                  ]}
-                  selected={gameMode}
-                  onChange={updateGameMode}
-                />
-                <ButtonGroup
-                  options={showRegionButtons.map(r => ({ label: r.toUpperCase(), value: r }))}
-                  selected={currentRegion}
-                  onChange={updateRegion}
-                />
-              </div>
-
-              <div className="flex gap-2 mt-4 items-center">
-                <ButtonGroup
-                  options={['all', 'week', 'day'].map(v => ({
-                    label: v === 'all' ? 'Season' : v.charAt(0).toUpperCase() + v.slice(1),
-                    value: v as TimeView
-                  }))}
-                  selected={currentView}
-                  onChange={updateView}
-                />
-                <Info onClick={handleInfoClick} className='text-blue-400 hover:text-blue-300 cursor-pointer' />
-              </div>
-
-              {currentView !== 'all' && (
-                <div className="flex items-center gap-1 mt-4">
-
-
-                  {/* Date picker */}
-                  <DatePicker
-                    selectedDate={selectedDate}
-                    onDateChange={handleDateChange}
-                    maxDate={DateTime.now().setZone('America/Los_Angeles').endOf('day')}
-                    minDate={calculatedMinDate}
-                    weekNavigation={currentView === 'week'}
-                  />
-                </div>
-              )}
-
-              {showTimeModal && (
-                <div className="text-xs text-gray-400 mt-2">All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.</div>
-              )}
-
-              <div className="text-xl font-bold text-white mt-4">
+              <div className="text-xl font-bold mt-4 text-center">
                 {currentView === 'all'
                   ? 'Season Rating Record'
                   : `${currentView === 'week' ? 'Week' : 'Day'} - ${getPeriodLabel(currentView, calculatedOffset)}`}
@@ -479,23 +449,13 @@ export default function PlayerProfile({ player, region, date, playerData, channe
               )}
             </div>
           </div>
-
-          {filteredData.length > 0 && (
-            <div className="w-full md:w-1/4 flex justify-center items-center">
-              <StatsSummary 
-                data={filteredData} 
-                region={currentRegion}
-                averagePlacement={averagePlacement}
-              />
-            </div>
-          )}
         </div>
 
         <GameRecordsSection
           filterKey={gameRecordsFilterKey}
           snapshots={filteredData}
         />
-      </div>
+      </DashboardCard>
     </div>
   );
 }

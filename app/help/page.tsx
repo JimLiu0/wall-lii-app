@@ -1,10 +1,10 @@
 'use client';
 
-import { Typography, Box, Paper, Divider, Alert, AlertTitle } from "@mui/material";
+import { Typography, Box, Paper, Divider } from "@mui/material";
 import Image from 'next/image';
 import CopyButton from '@/components/CopyButton';
-import { useState } from "react";
-import { Info, X } from 'lucide-react';
+import { Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const helpMessages = {
   rank: "Use !rank [player] [server]: Get the rank of a player. Use the optional 'duo' prefix for duos. Defaults to the channel name if no player is specified. Example: !rank lii NA or !duorank lii NA",
@@ -46,52 +46,20 @@ const managementCommands = [
 ];
 
 export default function HelpPage() {
-  const [showBotInfo, setShowBotInfo] = useState(true);
-
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1000, mx: "auto" }}>
-      {showBotInfo && (
-        <Alert
-          severity="info"
-          icon={<Info className="w-5 h-5" />}
-          sx={{
-            mb: 3,
-            backgroundColor: "#1e293b",
-            color: "#cbd5e1",
-            borderRadius: "8px",
-            border: "1px solid #2563eb",
-            alignItems: "flex-start"
-          }}
-          action={
-            <button
-              aria-label="close"
-              onClick={() => setShowBotInfo(false)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "inherit",
-                cursor: "pointer",
-                padding: 0,
-                marginLeft: 8,
-                display: "flex",
-                alignItems: "center"
-              }}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          }
-        >
-          <AlertTitle sx={{ color: "#60a5fa" }}>Important for Wallii Bot Setup</AlertTitle>
-          <ul style={{ margin: 0, paddingLeft: "1.2em" }}>
-            <li>
-              <strong>Wallii must be a mod or VIP</strong> in your channel if you have follower-only mode enabled, or the bot will not be able to chat.
-            </li>
-            <li>
-              <strong>Wallii only joins your channel when you go live.</strong> This is due to a 100 channel limit. If you do not see the bot, try going live and using a command in chat.
-            </li>
-          </ul>
-        </Alert>
-      )}
+      <Alert
+        variant="info"
+        className="text-center"
+      >
+        <AlertTitle>
+          <Info className="h-5 w-5 text-primary" />
+          Important for Wallii Bot Setup
+        </AlertTitle>
+        <AlertDescription>
+          Wallii must be a mod or VIP in your channel if follower-only mode is enabled, otherwise it cannot chat. The bot only joins when you go live due to a 100-channel limit—if it&apos;s not present, go live and run a command in chat.
+        </AlertDescription>
+      </Alert>
       <Paper
         elevation={3}
         sx={{

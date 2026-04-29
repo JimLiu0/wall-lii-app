@@ -1,21 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useState, type ReactNode } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
-  Info,
 } from 'lucide-react';
 import GameRecordsTable from '@/components/game-records/GameRecordsTable';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useGameRecordsPaginated } from '@/hooks/useGameRecordsPaginated';
 import type { SnapshotRowForGames } from '@/utils/buildGameRecordsFromSnapshots';
 
 const PAGE_SIZE = 25;
-
-const paginationIconBtnClass =
-  'inline-flex shrink-0 items-center justify-center rounded-md border border-gray-700 bg-gray-900 p-2 text-zinc-300 transition hover:bg-gray-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-40';
 
 function GameRecordsPaginationBar({
   totalPages,
@@ -47,32 +53,34 @@ function GameRecordsPaginationBar({
   const inputId = useId();
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-[14px] text-gray-400">
-      <button
+    <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-2 text-sm text-muted-foreground">
+      <Button
         type="button"
+        variant="outline"
+        size="icon-lg"
         aria-label="First page"
         onClick={onFirstPage}
         disabled={!canFirst}
-        className={paginationIconBtnClass}
       >
         <ChevronsLeft className="h-4 w-4" aria-hidden />
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="outline"
+        size="icon-lg"
         aria-label="Previous page"
         onClick={onPrev}
         disabled={!canPrev}
-        className={paginationIconBtnClass}
       >
         <ChevronLeft className="h-4 w-4" aria-hidden />
-      </button>
+      </Button>
 
       <span className="flex flex-wrap items-center justify-center gap-2 px-1">
         <span>Page</span>
         <label htmlFor={inputId} className="sr-only">
           Page number (1 to {totalPages})
         </label>
-        <input
+        <Input
           id={inputId}
           type="text"
           inputMode="numeric"
@@ -87,29 +95,31 @@ function GameRecordsPaginationBar({
             }
           }}
           disabled={totalPages < 1}
-          className="w-14 rounded border border-gray-700 bg-gray-900 px-2 py-1 text-center text-[14px] text-white tabular-nums disabled:opacity-40"
+          className="h-8 min-h-8 w-14 bg-background px-2 py-1 text-center text-sm text-foreground tabular-nums"
         />
         <span>of {totalPages}</span>
       </span>
 
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="icon-lg"
         aria-label="Next page"
         onClick={onNext}
         disabled={!canNext}
-        className={paginationIconBtnClass}
       >
         <ChevronRight className="h-4 w-4" aria-hidden />
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="outline"
+        size="icon-lg"
         aria-label="Last page"
         onClick={onLastPage}
         disabled={!canLast}
-        className={paginationIconBtnClass}
       >
         <ChevronsRight className="h-4 w-4" aria-hidden />
-      </button>
+      </Button>
     </div>
   );
 }
@@ -125,63 +135,40 @@ function useRelativeTimeRerender(intervalMs = 60_000) {
   }, [intervalMs]);
 }
 
-function GameRecordsHeading({
-  showTimeInfo,
-  onToggleTimeInfo,
-}: {
-  showTimeInfo: boolean;
-  onToggleTimeInfo: () => void;
-}) {
-  return (
-    <>
-      <div className="flex gap-2 items-center">
-        <h2 className="text-xl font-bold text-white">Game Records</h2>
-        <Info
-          onClick={onToggleTimeInfo}
-          className="text-blue-400 hover:text-blue-300 cursor-pointer shrink-0"
-        />
-      </div>
-      {showTimeInfo && (
-        <div className="text-xs text-gray-400 mt-2">
-          All stats and resets use Pacific Time (PT) midnight as the daily/weekly reset.
-        </div>
-      )}
-    </>
-  );
+function StateMessage({ children }: { children: ReactNode }) {
+  return <div className="py-8 text-center text-sm text-muted-foreground">{children}</div>;
 }
 
 function TableSkeleton() {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-[14px] leading-normal">
-        <thead>
-          <tr className="font-medium text-zinc-400 border-b border-gray-800">
-            <th className="px-4 py-2 text-left">Recorded At</th>
-            <th className="px-4 py-2 text-left">Placement (est.)</th>
-            <th className="px-4 py-2 text-left">Δ MMR</th>
-            <th className="px-4 py-2 text-left">Ending MMR</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Array.from({ length: 8 }).map((_, i) => (
-            <tr key={`sk-${i}`} className="border-b border-gray-800 animate-pulse">
-              <td className="px-4 py-3">
-                <div className="h-4 rounded bg-gray-800/90" />
-              </td>
-              <td className="px-4 py-3">
-                <div className="h-4 w-10 rounded bg-gray-800/90" />
-              </td>
-              <td className="px-4 py-3">
-                <div className="h-4 w-8 rounded bg-gray-800/90" />
-              </td>
-              <td className="px-4 py-3">
-                <div className="h-4 w-14 rounded bg-gray-800/90" />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Recorded At</TableHead>
+          <TableHead>Placement (est.)</TableHead>
+          <TableHead>Δ MMR</TableHead>
+          <TableHead>Ending MMR</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <TableRow key={`sk-${i}`} hover="none" className="animate-pulse">
+            <TableCell>
+              <div className="h-4 rounded bg-muted/70" />
+            </TableCell>
+            <TableCell>
+              <div className="h-4 w-10 rounded bg-muted/70" />
+            </TableCell>
+            <TableCell>
+              <div className="h-4 w-8 rounded bg-muted/70" />
+            </TableCell>
+            <TableCell>
+              <div className="h-4 w-14 rounded bg-muted/70" />
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -201,7 +188,6 @@ export default function GameRecordsSection({
 }: GameRecordsSectionProps) {
   const [page, setPage] = useState(1);
   const [pageDraft, setPageDraft] = useState('1');
-  const [showTimeInfo, setShowTimeInfo] = useState(false);
   useRelativeTimeRerender();
 
   useEffect(() => {
@@ -270,51 +256,30 @@ export default function GameRecordsSection({
     canLast: canOldest,
   };
 
-  const toggleTimeInfo = useCallback(() => {
-    setShowTimeInfo((v) => !v);
-  }, []);
-
+  let content: ReactNode;
   if (error) {
-    return (
-      <div className="mt-6">
-        <GameRecordsHeading showTimeInfo={showTimeInfo} onToggleTimeInfo={toggleTimeInfo} />
-        <p className="mt-4 text-[14px] text-gray-400">Unable to load game records.</p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="mt-6">
-        <GameRecordsHeading showTimeInfo={showTimeInfo} onToggleTimeInfo={toggleTimeInfo} />
+    content = <StateMessage>Unable to load game records.</StateMessage>;
+  } else if (isLoading) {
+    content = <TableSkeleton />;
+  } else if (totalCount === 0) {
+    content = <StateMessage>No recorded games for this filter.</StateMessage>;
+  } else {
+    content = (
+      <>
+        <GameRecordsPaginationBar {...paginationBarProps} />
         <div className="mt-4">
-          <TableSkeleton />
+          <GameRecordsTable rows={pageRecords} />
         </div>
-      </div>
+        <div className="mt-4">
+          <GameRecordsPaginationBar {...paginationBarProps} />
+        </div>
+      </>
     );
   }
 
   return (
     <div className="mt-6">
-      <GameRecordsHeading showTimeInfo={showTimeInfo} onToggleTimeInfo={toggleTimeInfo} />
-
-      <div className="mt-4">
-        {totalCount === 0 ? (
-          <div className="text-center text-[14px] text-gray-400 py-8">
-            <p>No recorded games for this filter.</p>
-          </div>
-        ) : (
-          <>
-            <GameRecordsPaginationBar {...paginationBarProps} />
-            <div className="mt-4">
-              <GameRecordsTable rows={pageRecords} />
-            </div>
-            <div className="mt-4">
-              <GameRecordsPaginationBar {...paginationBarProps} />
-            </div>
-          </>
-        )}
-      </div>
+      {content}
     </div>
   );
 }
