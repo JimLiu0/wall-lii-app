@@ -1,4 +1,4 @@
-import LeaderboardContent from '@/components/LeaderboardContent';
+import LeaderboardContentPaginated from '@/components/LeaderboardContentPaginated';
 import NewsBanner from '@/components/NewsBanner';
 import SeasonResetBanner from '@/components/SeasonResetBanner';
 import TimedAnnouncementBanner from '@/components/TimedAnnouncementBanner';
@@ -69,10 +69,9 @@ export default async function Page({ params }: PageProps) {
           <SeasonResetBanner />
           <TimedAnnouncementBanner />
           <NewsBanner />
-          <LeaderboardContent region={region.toLowerCase()} defaultSolo={defaultSolo} />
+          <LeaderboardContentPaginated region={region.toLowerCase()} defaultSolo={defaultSolo} />
         </div>
       </main>
     </div>
   );
 }
-
