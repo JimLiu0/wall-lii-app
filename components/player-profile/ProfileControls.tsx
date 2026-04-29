@@ -2,6 +2,7 @@ import { DateTime } from 'luxon';
 import { Info } from 'lucide-react';
 
 import DatePicker from '../DatePicker';
+import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 type TimeView = 'all' | 'week' | 'day';
@@ -90,7 +91,16 @@ export default function ProfileControls({
               weekNavigation={currentView === 'week'}
             />
 
-            <Info onClick={onInfoClick} className="cursor-pointer" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              onClick={onInfoClick}
+              className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              aria-label="Open reset timing information"
+            >
+              <Info className="h-4 w-4" />
+            </Button>
           </div>
         )}
       </div>

@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
-import { Heart, Newspaper, HelpCircle, Trophy } from 'lucide-react';
+import { Heart, Newspaper, HelpCircle, Trophy, Sun, Moon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function NavBar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [leaderboardUrl, setLeaderboardUrl] = useState('/lb/all/solo');
+  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
   const supportRef = useRef<HTMLDivElement>(null);
   const helpRef = useRef<HTMLDivElement>(null);
 
@@ -18,6 +20,20 @@ export default function NavBar() {
     const storedGameMode = localStorage.getItem('preferredGameMode') || 'solo';
     return `/lb/${storedRegion}/${storedGameMode}`;
   }
+
+  useEffect(() => {
+    const storedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialTheme =
+      storedTheme === 'light' || storedTheme === 'dark'
+        ? storedTheme
+        : prefersDark
+          ? 'dark'
+          : 'light';
+
+    setTheme(initialTheme);
+    document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+  }, []);
 
   useEffect(() => {
     setLeaderboardUrl(getLeaderboardUrlFromStorage());
@@ -75,6 +91,13 @@ export default function NavBar() {
     }
     return () => document.removeEventListener('mousedown', handleClick);
   }, [isSupportOpen, isDropdownOpen]);
+
+  function toggleTheme() {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+    localStorage.setItem('theme', nextTheme);
+  }
 
   return (
     <nav className="bg-gray-900 border-b border-gray-800">
@@ -242,6 +265,17 @@ export default function NavBar() {
                 </div>
               )}
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </Button>
           </div>
         </div>
       </div>

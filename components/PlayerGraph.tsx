@@ -28,6 +28,8 @@ function useIsSmallScreen() {
 
 export default function PlayerGraph({ data, playerName, placements }: Props) {
   data = dedupData(data);
+  const linkColor = 'var(--link)';
+  const mutedForegroundColor = 'var(--muted-foreground)';
   // Check if all ratings are the same
   const allSameRating = data.every(d => d.rating === data[0].rating);
   const isSmallScreen = useIsSmallScreen();
@@ -50,7 +52,7 @@ export default function PlayerGraph({ data, playerName, placements }: Props) {
     });
 
     return (
-      <div className="flex items-center justify-center h-full text-gray-300 text-center px-4">
+      <div className="flex items-center justify-center h-full text-muted-foreground text-center px-4">
         {playerName} didn&apos;t play any games during this period but they achieved rating {earliestEntry.rating} on {formattedDate}
       </div>
     );
@@ -116,6 +118,9 @@ export default function PlayerGraph({ data, playerName, placements }: Props) {
       >
         <XAxis
           dataKey="date"
+          tick={{ fill: mutedForegroundColor }}
+          axisLine={{ stroke: mutedForegroundColor }}
+          tickLine={{ stroke: mutedForegroundColor }}
           tickFormatter={(value, index) => {
             if (viewMode === 'hour') {
               return (index > 0 && formattedData[index - 1].date !== value) ? value : '';
@@ -128,14 +133,17 @@ export default function PlayerGraph({ data, playerName, placements }: Props) {
           interval={viewMode === 'monthDay' ? tickInterval : 0}
           angle={isSmallScreen ? -30 : 0}
         >
-          <Label value={axisLabel} position="insideBottom" dy={10} />
+          <Label value={axisLabel} position="insideBottom" dy={10} fill={mutedForegroundColor} />
         </XAxis>
         <YAxis
           domain={['dataMin', 'dataMax']}
+          tick={{ fill: mutedForegroundColor }}
+          axisLine={{ stroke: mutedForegroundColor }}
+          tickLine={{ stroke: mutedForegroundColor }}
           tickFormatter={(value) => Math.round(value).toString()}
         />
         <Tooltip content={<RatingTooltip />} />
-        <Line type="monotone" dataKey="rating" stroke="#00BFFF" dot />
+        <Line type="monotone" dataKey="rating" stroke={linkColor} dot={{ fill: linkColor, stroke: linkColor }} activeDot={{ fill: linkColor, stroke: linkColor }} />
       </LineChart>
     </ResponsiveContainer>
   );

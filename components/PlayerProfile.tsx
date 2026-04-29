@@ -432,7 +432,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
         <div className="flex flex-col gap-6">
           <div className="w-full">
             <div className="mb-6">
-              <div className="text-xl font-bold text-white mt-4">
+              <div className="text-xl font-bold mt-4 text-center">
                 {currentView === 'all'
                   ? 'Season Rating Record'
                   : `${currentView === 'week' ? 'Week' : 'Day'} - ${getPeriodLabel(currentView, calculatedOffset)}`}

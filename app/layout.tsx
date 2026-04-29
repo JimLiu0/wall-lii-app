@@ -59,8 +59,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(() => {
+            try {
+              const storedTheme = localStorage.getItem('theme');
+              const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              const resolvedTheme = storedTheme === 'light' || storedTheme === 'dark'
+                ? storedTheme
+                : (prefersDark ? 'dark' : 'light');
+              document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
+            } catch (_) {}
+          })();`}
+        </Script>
         <meta name="google-site-verification" content="Qtz9PYfR7FFiM9dXZOWfJ4RKtztrWIU2Xx3M2Bt5sHU" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="google-adsense-account" content="ca-pub-6613952474052415" />

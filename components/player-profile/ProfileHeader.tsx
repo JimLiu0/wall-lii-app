@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import PlayerSearch from '@/components/shared/PlayerSearch';
+import { Button } from '../ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 interface ProfileHeaderProps {
   backUrl: string;
@@ -9,27 +11,13 @@ interface ProfileHeaderProps {
 
 export default function ProfileHeader({ backUrl }: ProfileHeaderProps) {
   return (
-    <div className="flex flex-col sm:flex-row items-start gap-2">
-      <Link
-        href={backUrl}
-        prefetch={false}
-        className="inline-flex items-center justify-center mt-1 text-blue-400 hover:text-blue-300 transition-colors px-3 py-2 rounded-lg hover:bg-gray-800 whitespace-nowrap"
-      >
-        <svg
-          className="w-5 h-5 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M10 19l-7-7m0 0l7-7m-7 7h18"
-          />
-        </svg>
-        <span>Back to Leaderboard</span>
-      </Link>
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+      <Button asChild size="lg" className="h-10 whitespace-nowrap">
+        <Link href={backUrl} prefetch={false}>
+          <ArrowLeft />
+          Back to Leaderboard
+        </Link>
+      </Button>
       <PlayerSearch />
     </div>
   );

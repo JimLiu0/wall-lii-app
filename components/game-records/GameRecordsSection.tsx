@@ -53,7 +53,7 @@ function GameRecordsPaginationBar({
   const inputId = useId();
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-sm text-muted-foreground">
+    <div className="flex flex-wrap items-center justify-center gap-x-1 gap-y-2 text-sm text-muted-foreground">
       <Button
         type="button"
         variant="outline"
