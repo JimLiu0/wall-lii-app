@@ -90,7 +90,7 @@ export default function LiveStreamsTableClient({
                   <TableCell variant="emphasis">#{row.rank}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <AppLink href={`/stats/${row.player_name}`}>
+                      <AppLink href={`/stats/${row.player_name}`} prefetch={false}>
                         {row.player_name}
                       </AppLink>
                       <SocialIndicators

@@ -132,6 +132,7 @@ export default function LeaderboardPreviewClient({
                   <div className="flex items-center gap-2">
                     <AppLink
                       href={`/stats/${entry.player_name}?region=${selectedRegion}&mode=${selectedMode === '0' ? 'solo' : 'duo'}`}
+                      prefetch={false}
                     >
                       {entry.player_name}{' '}
                       {entry.original_region && (
@@ -154,4 +155,3 @@ export default function LeaderboardPreviewClient({
     </DashboardCard>
   );
 }
-

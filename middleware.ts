@@ -87,6 +87,14 @@ function getStrikeKey(ip: string): string {
   return `autoblock:strikes:${ip}`;
 }
 
+function isPrefetchRequest(request: NextRequest): boolean {
+  return (
+    request.headers.get('next-router-prefetch') === '1' ||
+    request.headers.get('purpose') === 'prefetch' ||
+    request.headers.get('sec-purpose') === 'prefetch'
+  );
+}
+
 async function isEdgeConfigBlocked(ip: string): Promise<boolean> {
   try {
     const edgeBlockedIPs = await get<string[]>('blocked_ips');
@@ -139,10 +147,11 @@ async function registerRateLimitViolation(ip: string): Promise<void> {
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
   const ip = getClientIP(request);
+  const isPrefetch = isPrefetchRequest(request);
 
   const shouldProtect = pathname.startsWith('/stats/');
 
-  if (shouldProtect) {
+  if (shouldProtect && !isPrefetch) {
     if (blockedIPs.has(ip)) {
       return new NextResponse('Blocked', { status: 403 });
     }
