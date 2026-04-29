@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useId, useMemo, useState, type ComponentProps } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ComponentProps } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -102,6 +102,9 @@ interface FetchResult {
 }
 
 const PAGE_SIZE = 50;
+const VIRTUAL_ROW_HEIGHT = 49;
+const VIRTUAL_OVERSCAN = 8;
+const QUERY_CHUNK_SIZE = 100;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const regions = ['na', 'eu', 'ap', 'cn'] as const;
 const regionNames = {
@@ -137,6 +140,14 @@ function getPageCount(totalRows: number) {
 
 function getInitialSortDesc(columnId: string) {
   return !['rank', 'player_name', 'placement'].includes(columnId);
+}
+
+function chunkArray<T>(items: T[], size: number) {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
 }
 
 function LeaderboardPaginationBar({
@@ -242,25 +253,47 @@ function LeaderboardPaginationBar({
   );
 }
 
-function LeaderboardPaginationRow({
+function LeaderboardControlsRow({
   summary,
+  showPagination,
   paginationBarProps,
+  showLoadAll,
+  onLoadAll,
+  isLoadingAll,
 }: {
   summary: string;
+  showPagination: boolean;
   paginationBarProps: ComponentProps<typeof LeaderboardPaginationBar>;
+  showLoadAll: boolean;
+  onLoadAll: () => void;
+  isLoadingAll: boolean;
 }) {
   return (
     <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
-      <LeaderboardPaginationBar {...paginationBarProps} />
-      <span className="text-center text-sm text-muted-foreground sm:text-right">
-        {summary}
-      </span>
+      {showPagination ? <LeaderboardPaginationBar {...paginationBarProps} /> : <div />}
+      <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-end">
+        {showLoadAll && (
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            onClick={onLoadAll}
+            disabled={isLoadingAll}
+          >
+            {isLoadingAll ? 'Loading all...' : 'Load all'}
+          </Button>
+        )}
+        <span className="text-center text-sm text-muted-foreground sm:text-right">
+          {summary}
+        </span>
+      </div>
     </div>
   );
 }
 
 export default function LeaderboardContentPaginated({ region, defaultSolo = true }: Props) {
   const router = useRouter();
+  const tableContainerRef = useRef<HTMLDivElement>(null);
   const ptNow = useMemo(() => DateTime.now().setZone('America/Los_Angeles').startOf('day'), []);
   const [mode, setMode] = useState<Mode>(defaultSolo ? 'solo' : 'duo');
   const [timeframe, setTimeframe] = useState<Timeframe>('day');
@@ -277,6 +310,9 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
   const [executedSearch, setExecutedSearch] = useState('');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'rank', desc: false }]);
   const [loading, setLoading] = useState(true);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [allRowsLoaded, setAllRowsLoaded] = useState(false);
+  const [virtualWindow, setVirtualWindow] = useState({ start: 0, count: 0 });
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
 
@@ -294,6 +330,7 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     setSelectedDate(date);
     setDateOffset(calculateDateOffset(date));
     setPageIndex(0);
+    setAllRowsLoaded(false);
   }, [calculateDateOffset]);
 
   const fetchMinDate = useCallback(async () => {
@@ -361,10 +398,18 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
       return;
     }
 
-    const [{ data: channels }, { data: chineseStreamers }] = await Promise.all([
-      supabase.from('channels').select('player, channel, youtube, live').in('player', names),
-      supabase.from('chinese_streamers').select('player, url').in('player', names),
+    const nameChunks = chunkArray(names, QUERY_CHUNK_SIZE);
+    const [channelResults, chineseStreamerResults] = await Promise.all([
+      Promise.all(nameChunks.map((chunk) => (
+        supabase.from('channels').select('player, channel, youtube, live').in('player', chunk)
+      ))),
+      Promise.all(nameChunks.map((chunk) => (
+        supabase.from('chinese_streamers').select('player, url').in('player', chunk)
+      ))),
     ]);
+
+    const channels = channelResults.flatMap((result) => result.data ?? []);
+    const chineseStreamers = chineseStreamerResults.flatMap((result) => result.data ?? []);
 
     setChannelData((channels ?? []) as ChannelEntry[]);
     setChineseStreamerData((chineseStreamers ?? []) as ChineseChannelEntry[]);
@@ -449,29 +494,33 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     let baselineData: RawLeaderboardEntry[] = [];
 
     if (playerIds.length > 0) {
-      let baselineQuery = supabase
-        .from('daily_leaderboard_stats')
-        .select(`
-          player_id,
-          rating,
-          rank,
-          region,
-          players!inner(player_name)
-        `)
-        .eq('game_mode', context.mode === 'solo' ? '0' : '1')
-        .eq('day_start', prevStart)
-        .in('player_id', playerIds);
+      const baselineResults = await Promise.all(chunkArray(playerIds, QUERY_CHUNK_SIZE).map((chunk) => {
+        let baselineQuery = supabase
+          .from('daily_leaderboard_stats')
+          .select(`
+            player_id,
+            rating,
+            rank,
+            region,
+            players!inner(player_name)
+          `)
+          .eq('game_mode', context.mode === 'solo' ? '0' : '1')
+          .eq('day_start', prevStart)
+          .in('player_id', chunk);
 
-      if (context.region === 'all') {
-        baselineQuery = baselineQuery.not('region', 'eq', 'CN');
-      } else {
-        baselineQuery = baselineQuery.eq('region', context.region.toUpperCase());
-      }
+        if (context.region === 'all') {
+          baselineQuery = baselineQuery.not('region', 'eq', 'CN');
+        } else {
+          baselineQuery = baselineQuery.eq('region', context.region.toUpperCase());
+        }
 
-      const { data: baseline, error: baselineError } = await baselineQuery;
+        return baselineQuery;
+      }));
+
+      const baselineError = baselineResults.find((result) => result.error)?.error;
       if (baselineError) throw baselineError;
 
-      baselineData = ((baseline ?? []) as unknown[]).map((row) => {
+      baselineData = baselineResults.flatMap((result) => result.data ?? []).map((row) => {
         const record = row as {
           player_id?: string;
           rating?: number;
@@ -529,6 +578,8 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
   }, [fetchSocialData, fetchTotalRows]);
 
   const loadPage = useCallback(async (nextPageIndex: number) => {
+    if (allRowsLoaded) return;
+
     const context = {
       region,
       mode,
@@ -560,7 +611,7 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     } finally {
       setLoading(false);
     }
-  }, [dateOffset, executedSearch, fetchLeaderboardPage, mode, region, timeframe]);
+  }, [allRowsLoaded, dateOffset, executedSearch, fetchLeaderboardPage, mode, region, timeframe]);
 
   useEffect(() => {
     setMode(defaultSolo ? 'solo' : 'duo');
@@ -582,6 +633,47 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     void loadPage(pageIndex);
   }, [loadPage, pageIndex]);
 
+  useEffect(() => {
+    setAllRowsLoaded(false);
+    setVirtualWindow({ start: 0, count: 0 });
+  }, [region, mode, timeframe, dateOffset, executedSearch]);
+
+  useEffect(() => {
+    if (!allRowsLoaded) return;
+
+    let frameId = 0;
+    const updateVirtualWindow = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const tableContainer = tableContainerRef.current;
+        if (!tableContainer) return;
+
+        const rect = tableContainer.getBoundingClientRect();
+        const tableTop = rect.top + window.scrollY;
+        const scrollOffset = Math.max(0, window.scrollY - tableTop);
+        const visibleHeight = window.innerHeight;
+        const start = Math.max(0, Math.floor(scrollOffset / VIRTUAL_ROW_HEIGHT) - VIRTUAL_OVERSCAN);
+        const count = Math.ceil(visibleHeight / VIRTUAL_ROW_HEIGHT) + VIRTUAL_OVERSCAN * 2;
+
+        setVirtualWindow((current) => (
+          current.start === start && current.count === count
+            ? current
+            : { start, count }
+        ));
+      });
+    };
+
+    updateVirtualWindow();
+    window.addEventListener('scroll', updateVirtualWindow, { passive: true });
+    window.addEventListener('resize', updateVirtualWindow);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('scroll', updateVirtualWindow);
+      window.removeEventListener('resize', updateVirtualWindow);
+    };
+  }, [allRowsLoaded]);
+
   const handleRegionChange = (nextRegion: string) => {
     if (region === nextRegion) return;
     if (typeof window !== 'undefined') {
@@ -593,6 +685,7 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
   const handleModeChange = (nextMode: Mode) => {
     setMode(nextMode);
     setPageIndex(0);
+    setAllRowsLoaded(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferredGameMode', nextMode);
     }
@@ -602,14 +695,49 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
   const executeSearch = (value: string) => {
     setExecutedSearch(value.trim());
     setPageIndex(0);
+    setAllRowsLoaded(false);
     setSorting([{ id: 'rank', desc: false }]);
   };
 
   const clearSearch = () => {
     setExecutedSearch('');
     setPageIndex(0);
+    setAllRowsLoaded(false);
     setSorting([{ id: 'rank', desc: false }]);
   };
+
+  const loadAllRows = useCallback(async () => {
+    if (loadingAll || totalRows === 0) return;
+
+    const context = {
+      region,
+      mode,
+      timeframe,
+      dateOffset,
+      pageIndex: 0,
+      pageSize: totalRows,
+      search: executedSearch,
+    };
+
+    try {
+      setLoadingAll(true);
+      setLoading(true);
+      setErrorMessage(null);
+      const result = await fetchLeaderboardPage(context);
+      setEntries(result.entries);
+      setTotalRows(result.totalRows);
+      setPageIndex(0);
+      setPageInput('1');
+      setAllRowsLoaded(true);
+      setVirtualWindow({ start: 0, count: 0 });
+    } catch (error) {
+      console.error('Error loading all leaderboard rows:', error);
+      setErrorMessage('Unable to load all leaderboard data.');
+    } finally {
+      setLoading(false);
+      setLoadingAll(false);
+    }
+  }, [dateOffset, executedSearch, fetchLeaderboardPage, loadingAll, mode, region, timeframe, totalRows]);
 
   const submitPage = () => {
     const parsed = Number(pageInput);
@@ -726,6 +854,23 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
+  const tableRows = table.getRowModel().rows;
+  const virtualStartIndex = allRowsLoaded
+    ? virtualWindow.start
+    : 0;
+  const virtualVisibleCount = allRowsLoaded
+    ? virtualWindow.count
+    : tableRows.length;
+  const virtualEndIndex = allRowsLoaded
+    ? Math.min(tableRows.length, virtualStartIndex + virtualVisibleCount)
+    : tableRows.length;
+  const visibleRows = allRowsLoaded
+    ? tableRows.slice(virtualStartIndex, virtualEndIndex)
+    : tableRows;
+  const topSpacerHeight = allRowsLoaded ? virtualStartIndex * VIRTUAL_ROW_HEIGHT : 0;
+  const bottomSpacerHeight = allRowsLoaded
+    ? Math.max(0, (tableRows.length - virtualEndIndex) * VIRTUAL_ROW_HEIGHT)
+    : 0;
 
   const leaderboardLink = region === 'cn'
     ? 'https://hs.blizzard.cn/community/leaderboards/'
@@ -752,12 +897,16 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
   const rangeEnd = totalRows === 0 ? 0 : Math.min(pageIndex * PAGE_SIZE + entries.length, totalRows);
   const resultSummary = loading
     ? 'Loading players...'
-    : totalRows > PAGE_SIZE 
+    : allRowsLoaded
+      ? `Showing ${entries.length} players${executedSearch ? ` for "${executedSearch}"` : ''}`
+    : totalRows > PAGE_SIZE
       ? `Showing ${rangeStart} to ${rangeEnd} of ${totalRows} players${executedSearch ? ` for "${executedSearch}"` : ''}`
       : `Showing ${totalRows} player${totalRows > 1 ? 's' : ''}`;
+  const showPagination = totalRows > 0 && !allRowsLoaded && !loadingAll;
+  const showLoadAll = totalRows > PAGE_SIZE && !allRowsLoaded && !loadingAll;
   return (
     <section className="container mx-auto max-w-4xl px-0 py-4 [@media(min-width:431px)]:px-4">
-      <div className="flex flex-col gap-5 rounded-lg bg-card px-0 py-5 text-card-foreground [@media(min-width:431px)]:px-5">
+      <div className="flex flex-col gap-5 overflow-hidden rounded-lg bg-card px-0 py-5 text-card-foreground ring-1 ring-foreground/10 [@media(min-width:431px)]:px-5">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="flex flex-wrap items-center justify-center gap-2">
             <h1 className="text-xl font-semibold text-foreground sm:text-2xl">
@@ -766,7 +915,7 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
             <Button
               type="button"
               variant="ghost"
-              size="icon-sm"
+              size="icon-lg"
               aria-label="Leaderboard information"
               onClick={() => setShowInfo((value) => !value)}
             >
@@ -847,7 +996,6 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
           onClear={clearSearch}
           placeholder="Search by player name..."
           disabled={loading}
-          inputClassName="rounded-r-none"
         />
 
         {errorMessage && (
@@ -857,92 +1005,120 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
         )}
 
         {totalRows > 0 && (
-          <LeaderboardPaginationRow
+          <LeaderboardControlsRow
             summary={resultSummary}
+            showPagination={showPagination}
             paginationBarProps={paginationBarProps}
+            showLoadAll={showLoadAll}
+            onLoadAll={loadAllRows}
+            isLoadingAll={loadingAll}
           />
         )}
 
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const sorted = header.column.getIsSorted();
-
-                  return (
-                    <TableHead key={header.id}>
-                      <button
-                        type="button"
-                        className="flex size-full items-center gap-1 text-left whitespace-nowrap"
-                        onClick={() => {
-                          const sorted = header.column.getIsSorted();
-                          setSorting([{
-                            id: header.column.id,
-                            desc: sorted ? sorted === 'asc' : getInitialSortDesc(header.column.id),
-                          }]);
-                        }}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                        {sorted === 'asc' && <ArrowUp className="h-3.5 w-3.5" aria-hidden />}
-                        {sorted === 'desc' && <ArrowDown className="h-3.5 w-3.5" aria-hidden />}
-                      </button>
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow hover="none">
-                <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
-                  Loading...
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={`${row.original.player_name}-${row.original.region}-${row.original.rank}`}>
-                  {row.getVisibleCells().map((cell) => {
-                    const meta = cell.column.columnDef.meta as
-                      | {
-                          variant?: 'default' | 'emphasis';
-                          cellClassName?: string | ((row: LeaderboardEntry) => string);
-                        }
-                      | undefined;
-                    const cellClassName =
-                      typeof meta?.cellClassName === 'function'
-                        ? meta.cellClassName(row.original)
-                        : meta?.cellClassName;
+        <div
+          ref={tableContainerRef}
+        >
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const sorted = header.column.getIsSorted();
 
                     return (
-                      <TableCell
-                        key={cell.id}
-                        variant={meta?.variant ?? 'default'}
-                        className={cellClassName}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+                      <TableHead key={header.id} className="cursor-pointer">
+                        <button
+                          type="button"
+                          className="flex size-full items-center gap-1 text-left whitespace-nowrap cursor-pointer"
+                          onClick={() => {
+                            const sorted = header.column.getIsSorted();
+                            setSorting([{
+                              id: header.column.id,
+                              desc: sorted ? sorted === 'asc' : getInitialSortDesc(header.column.id),
+                            }]);
+                          }}
+                        >
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                          {sorted === 'asc' && <ArrowUp className="h-3.5 w-3.5" aria-hidden />}
+                          {sorted === 'desc' && <ArrowDown className="h-3.5 w-3.5" aria-hidden />}
+                        </button>
+                      </TableHead>
                     );
                   })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow hover="none">
-                <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
-                  No results found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow hover="none">
+                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                    {loadingAll ? 'Loading all players...' : 'Loading...'}
+                  </TableCell>
+                </TableRow>
+              ) : tableRows.length > 0 ? (
+                <>
+                  {topSpacerHeight > 0 && (
+                    <TableRow hover="none" aria-hidden>
+                      <TableCell colSpan={columns.length} className="p-0">
+                        <div style={{ height: topSpacerHeight }} />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {visibleRows.map((row) => (
+                    <TableRow key={`${row.original.player_name}-${row.original.region}-${row.original.rank}`}>
+                      {row.getVisibleCells().map((cell) => {
+                        const meta = cell.column.columnDef.meta as
+                          | {
+                              variant?: 'default' | 'emphasis';
+                              cellClassName?: string | ((row: LeaderboardEntry) => string);
+                            }
+                          | undefined;
+                        const cellClassName =
+                          typeof meta?.cellClassName === 'function'
+                            ? meta.cellClassName(row.original)
+                            : meta?.cellClassName;
+
+                        return (
+                          <TableCell
+                            key={cell.id}
+                            variant={meta?.variant ?? 'default'}
+                            className={cellClassName}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        );
+                      })}
+                    </TableRow>
+                  ))}
+                  {bottomSpacerHeight > 0 && (
+                    <TableRow hover="none" aria-hidden>
+                      <TableCell colSpan={columns.length} className="p-0">
+                        <div style={{ height: bottomSpacerHeight }} />
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </>
+              ) : (
+                <TableRow hover="none">
+                  <TableCell colSpan={columns.length} className="h-32 text-center text-muted-foreground">
+                    No results found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
         {totalRows > 0 && (
-          <LeaderboardPaginationRow
+          <LeaderboardControlsRow
             summary={resultSummary}
+            showPagination={showPagination}
             paginationBarProps={paginationBarProps}
+            showLoadAll={showLoadAll}
+            onLoadAll={loadAllRows}
+            isLoadingAll={loadingAll}
           />
         )}
       </div>

@@ -56,12 +56,12 @@ export default async function NewsBanner() {
     >
       <AlertTitle className="justify-start">
         <Newspaper className="h-4 w-4 text-primary" />
+        <span className="mr-2 text-xs text-muted-foreground">
+          {new Date(latestPost.created_at).toLocaleDateString()}
+        </span>
         {latestPost.title}
       </AlertTitle>
       <AlertDescription className="text-muted-foreground">
-        <span className="mr-2 inline-block text-xs">
-          {new Date(latestPost.created_at).toLocaleDateString()}
-        </span>
         <span className="hidden sm:inline text-sm">
           {latestPost.summary}
         </span>

@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
 import { Field, FieldError } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
 
 interface PlayerSearchProps {
   value?: string;
@@ -22,7 +21,6 @@ interface PlayerSearchProps {
   inputId?: string;
   disabled?: boolean;
   className?: string;
-  inputClassName?: string;
 }
 
 export default function PlayerSearch({
@@ -35,7 +33,6 @@ export default function PlayerSearch({
   inputId = 'player-search',
   disabled = false,
   className,
-  inputClassName,
 }: PlayerSearchProps = {}) {
   const router = useRouter();
   const clearPointerHandledRef = useRef(false);
@@ -119,7 +116,7 @@ export default function PlayerSearch({
               }}
               disabled={disabled || isLoading}
               aria-invalid={Boolean(error)}
-              className={cn("bg-background pr-9 autofill:bg-background", inputClassName)}
+              className="rounded-r-none bg-background pr-9 autofill:bg-background"
             />
             {inputValue && (
               <Button
