@@ -62,6 +62,20 @@ body {
     @apply text-white;
 }
 
+html {
+    color-scheme: light;
+}
+
+html.dark {
+    color-scheme: dark;
+}
+
+html.theme-transition-disabled *,
+html.theme-transition-disabled *::before,
+html.theme-transition-disabled *::after {
+    transition: none !important;
+}
+
 @layer components {
     .prose h2 {
         @apply text-3xl font-extrabold mt-12 mb-4 border-b pb-2;

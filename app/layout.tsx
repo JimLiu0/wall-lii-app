@@ -7,6 +7,20 @@ import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ['latin'] });
 
+const themeInitScript = `(() => {
+  try {
+    const storedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const resolvedTheme = storedTheme === 'light' || storedTheme === 'dark'
+      ? storedTheme
+      : (prefersDark ? 'dark' : 'light');
+    const root = document.documentElement;
+
+    root.classList.toggle('dark', resolvedTheme === 'dark');
+    root.style.colorScheme = resolvedTheme;
+  } catch (_) {}
+})();`;
+
 export const metadata: Metadata = {
   title: {
     default: 'wallii - Hearthstone Battlegrounds Leaderboard & Stats Tracker',
@@ -61,18 +75,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {`(() => {
-            try {
-              const storedTheme = localStorage.getItem('theme');
-              const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-              const resolvedTheme = storedTheme === 'light' || storedTheme === 'dark'
-                ? storedTheme
-                : (prefersDark ? 'dark' : 'light');
-              document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
-            } catch (_) {}
-          })();`}
-        </Script>
+        <meta name="color-scheme" content="light dark" />
+        <script id="theme-init" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <meta name="google-site-verification" content="Qtz9PYfR7FFiM9dXZOWfJ4RKtztrWIU2Xx3M2Bt5sHU" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="google-adsense-account" content="ca-pub-6613952474052415" />

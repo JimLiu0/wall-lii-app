@@ -6,11 +6,42 @@ import { useState, useEffect, useRef } from 'react';
 import { Heart, Newspaper, HelpCircle, Trophy, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+type Theme = 'light' | 'dark';
+
+function getResolvedTheme(): Theme {
+  const storedTheme = localStorage.getItem('theme');
+
+  if (storedTheme === 'light' || storedTheme === 'dark') {
+    return storedTheme;
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(nextTheme: Theme, disableTransitions = false) {
+  const root = document.documentElement;
+
+  if (disableTransitions) {
+    root.classList.add('theme-transition-disabled');
+  }
+
+  root.classList.toggle('dark', nextTheme === 'dark');
+  root.style.colorScheme = nextTheme;
+
+  if (disableTransitions) {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        root.classList.remove('theme-transition-disabled');
+      });
+    });
+  }
+}
+
 export default function NavBar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
   const [leaderboardUrl, setLeaderboardUrl] = useState('/lb/all/solo');
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<Theme>('dark');
   const supportRef = useRef<HTMLDivElement>(null);
   const helpRef = useRef<HTMLDivElement>(null);
 
@@ -22,17 +53,9 @@ export default function NavBar() {
   }
 
   useEffect(() => {
-    const storedTheme = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initialTheme =
-      storedTheme === 'light' || storedTheme === 'dark'
-        ? storedTheme
-        : prefersDark
-          ? 'dark'
-          : 'light';
-
+    const initialTheme = getResolvedTheme();
     setTheme(initialTheme);
-    document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+    applyTheme(initialTheme);
   }, []);
 
   useEffect(() => {
@@ -95,7 +118,7 @@ export default function NavBar() {
   function toggleTheme() {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
-    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+    applyTheme(nextTheme, true);
     localStorage.setItem('theme', nextTheme);
   }
 
