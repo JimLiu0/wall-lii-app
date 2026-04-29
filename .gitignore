@@ -43,3 +43,7 @@ next-env.d.ts
 
 # random artifacts
 wallii-app@*
+
+# Cursor/Agent generated metadata
+.agents/
+.Agents/
