@@ -47,3 +47,4 @@ wallii-app@*
 # Cursor/Agent generated metadata
 .agents/
 .Agents/
+.cursor/
