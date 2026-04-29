@@ -5,7 +5,6 @@ import { supabase } from '@/utils/supabaseClient';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import ButtonGroup from './ButtonGroup';
 import SocialIndicators from './SocialIndicators';
 import DatePicker from './DatePicker';
 import { getLeaderboardDateRange } from '@/utils/dateUtils';
@@ -13,6 +12,7 @@ import { Info, X } from 'lucide-react';
 import { inMemoryCache } from '@/utils/inMemoryCache';
 import { DateTime } from 'luxon';
 import { toNewUrlParams } from '@/utils/urlParams';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface LeaderboardEntry {
   player_name: string;
@@ -641,7 +641,53 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
             />
           </h1>
         </div>
-        
+
+        <div className="mb-6">
+          <div className="mt-4 flex flex-row flex-wrap justify-center gap-4 lg:flex-row lg:justify-center lg:gap-6">
+            <ToggleGroup
+              type="single"
+              value={region || 'all'}
+              onValueChange={(value) => {
+                if (value) handleRegionChange(value);
+              }}
+            >
+              <ToggleGroupItem value="all">ALL</ToggleGroupItem>
+              {regions.map((r) => (
+                <ToggleGroupItem key={r} value={r}>
+                  {r.toUpperCase()}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <div className="flex flex-row gap-4">
+              <ToggleGroup
+                type="single"
+                value={solo ? 'solo' : 'duo'}
+                onValueChange={(value) => {
+                  if (value === 'solo' || value === 'duo') {
+                    handleGameModeChange(value === 'solo');
+                  }
+                }}
+              >
+                <ToggleGroupItem value="solo">Solo</ToggleGroupItem>
+                <ToggleGroupItem value="duo">Duo</ToggleGroupItem>
+              </ToggleGroup>
+
+              <ToggleGroup
+                type="single"
+                value={timeframe}
+                onValueChange={(value) => {
+                  if (value === 'day' || value === 'week') {
+                    setTimeframe(value);
+                  }
+                }}
+              >
+                <ToggleGroupItem value="day">Day</ToggleGroupItem>
+                <ToggleGroupItem value="week">Week</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+          </div>
+        </div>
+
         {/* Expandable Info Section */}
         {showInfoModal && (
           <div className="mb-4 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
@@ -665,28 +711,6 @@ export default function LeaderboardContent({ region, defaultSolo = true }: Props
             </div>
           </div>
         )}
-
-        <div className="text-xl sm:text-2xl font-semibold mb-6 text-center">
-          <div className="mt-4 flex flex-col lg:flex-row lg:items-center lg:justify-center lg:gap-6 gap-4 items-center">
-            <ButtonGroup
-              options={[{ label: 'ALL', value: 'all' }, ...regions.map(r => ({ label: r.toUpperCase(), value: r }))]}
-              selected={region || 'all'}
-              onChange={handleRegionChange}
-            />
-            <div className="flex items-center gap-4">
-              <ButtonGroup
-                options={[{ label: 'Solo', value: true }, { label: 'Duo', value: false }]}
-                selected={solo}
-                onChange={handleGameModeChange}
-              />
-              <ButtonGroup
-                options={['day', 'week'].map(v => ({ label: v[0].toUpperCase() + v.slice(1), value: v }))}
-                selected={timeframe}
-                onChange={(val) => setTimeframe(val as 'day' | 'week')}
-              />
-            </div>
-          </div>
-        </div>
 
         <div className="mb-6 relative">
           <input

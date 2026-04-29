@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import PlayerNotFound from '@/components/PlayerNotFound';
 import { normalizeUrlParams, toNewUrlParams, hasOldFormat } from '@/utils/urlParams';
 import { fetchPlayerData, generatePlayerMetadata, PlayerData, resolveSelection } from './playerPageData';
+import DashboardCard from '@/components/shared/DashboardCard';
 
 
 interface PageParams {
@@ -147,9 +148,9 @@ export default async function PlayerPage({
   return (
     <Suspense fallback={
       <div className="container mx-auto p-4">
-        <div className="bg-gray-900 rounded-lg p-6">
-          <div className="text-2xl font-bold text-white mb-4 text-center">Loading...</div>
-        </div>
+        <DashboardCard>
+          <div className="text-2xl font-bold text-center">Loading...</div>
+        </DashboardCard>
       </div>
     }>
       <PlayerProfile
