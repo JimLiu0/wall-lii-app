@@ -39,9 +39,9 @@ export const gameRecordsColumns: ColumnDef<GameRecordRow>[] = [
     meta: {
       cellClassName: (row: GameRecordRow) =>
         row.deltaMmr > 0
-          ? 'font-medium text-emerald-500'
+          ? 'font-medium text-success'
           : row.deltaMmr < 0
-            ? 'font-medium text-red-500'
+            ? 'font-medium text-destructive'
             : 'font-medium text-muted-foreground',
     },
   },
