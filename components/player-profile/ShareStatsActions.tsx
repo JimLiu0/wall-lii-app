@@ -45,7 +45,7 @@ export default function ShareStatsActions({
     <div className="flex min-h-14 flex-wrap items-center gap-2 rounded-md border border-border/50 bg-background/30 px-3 py-2">
       <CopyButton
         text={profileUrl}
-        label="Profile Link"
+        label="Player Link"
         ariaLabel="Copy player profile link"
         variant="outline"
         size="lg"
