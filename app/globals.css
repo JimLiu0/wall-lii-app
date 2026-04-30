@@ -77,6 +77,10 @@ html.theme-transition-disabled *::after {
 }
 
 @layer components {
+    .stack-compact > :not([hidden]) ~ :not([hidden]) {
+        margin-top: var(--stack-compact-spacing);
+    }
+
     .prose h2 {
         @apply text-3xl font-extrabold mt-12 mb-4 border-b pb-2;
     }
@@ -158,6 +162,7 @@ html.theme-transition-disabled *::after {
 }
 
 :root {
+    --stack-compact-spacing: 1rem;
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
     --card: oklch(1 0 0);

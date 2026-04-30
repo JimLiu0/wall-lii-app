@@ -25,6 +25,7 @@ import {
 import DatePicker from './DatePicker';
 import SocialIndicators from './SocialIndicators';
 import PlayerSearch from '@/components/shared/PlayerSearch';
+import InlineAd from '@/components/ads/InlineAd';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -37,6 +38,7 @@ import {
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { getLeaderboardDateRange } from '@/utils/dateUtils';
+import { adSlots } from '@/components/ads/adSlots';
 import { inMemoryCache } from '@/utils/inMemoryCache';
 import { supabase } from '@/utils/supabaseClient';
 import { toNewUrlParams } from '@/utils/urlParams';
@@ -1120,6 +1122,10 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
             onLoadAll={loadAllRows}
             isLoadingAll={loadingAll}
           />
+        )}
+
+        {!loading && tableRows.length >= 20 && (
+          <InlineAd slot={adSlots.inline} tabletAndBelow />
         )}
       </div>
     </section>

@@ -2,6 +2,8 @@ import LeaderboardContentPaginated from '@/components/LeaderboardContentPaginate
 import NewsBanner from '@/components/NewsBanner';
 import SeasonResetBanner from '@/components/SeasonResetBanner';
 import TimedAnnouncementBanner from '@/components/TimedAnnouncementBanner';
+import AdPageShell from '@/components/ads/AdPageShell';
+import { adSlots } from '@/components/ads/adSlots';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -64,13 +66,16 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div className="min-h-screen">
-      <main className="container mx-auto px-0 py-8 [@media(min-width:431px)]:px-4">
-        <div className="max-w-4xl mx-auto">
+      <main>
+        <AdPageShell
+          topSlot={adSlots.top}
+          contentMaxWidth="56rem"
+        >
           <SeasonResetBanner />
           <TimedAnnouncementBanner />
           <NewsBanner />
           <LeaderboardContentPaginated region={region.toLowerCase()} defaultSolo={defaultSolo} />
-        </div>
+        </AdPageShell>
       </main>
     </div>
   );

@@ -13,7 +13,7 @@ export default function AboutPage() {
           <div className="bg-gray-900 rounded-lg p-6">
             <h1 className="text-3xl font-bold text-white mb-6">About Wallii</h1>
             
-            <div className="space-y-6 text-gray-300">
+            <div className="stack-compact text-gray-300">
               <section>
                 <h2 className="text-2xl font-semibold text-white mb-3">What is Wallii?</h2>
                 <p>

@@ -12,6 +12,9 @@ import ProfileHeader from '@/components/player-profile/ProfileHeader';
 import ProfileInfo from '@/components/player-profile/ProfileInfo';
 import ProfileControls from '@/components/player-profile/ProfileControls';
 import SessionStats from '@/components/player-profile/SessionStats';
+import AdPageShell from '@/components/ads/AdPageShell';
+import InlineAd from '@/components/ads/InlineAd';
+import { adSlots } from '@/components/ads/adSlots';
 import DashboardCard from './shared/DashboardCard';
 
 type TimeView = 'all' | 'week' | 'day';
@@ -389,7 +392,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   }, [currentRegion]);
 
   return (
-    <div className="container mx-auto py-4 px-0 max-w-7xl [@media(min-width:431px)]:px-4">
+    <AdPageShell topSlot={adSlots.top} contentMaxWidth="80rem">
       <DashboardCard>
         <div className="flex flex-col gap-4">
           <ProfileHeader backUrl={getBackUrl()} />
@@ -429,7 +432,11 @@ export default function PlayerProfile({ player, region, date, playerData, channe
           )}
         </div>
 
-        <div className="flex flex-col gap-6">
+        {filteredData.length > 1 && (
+          <InlineAd slot={adSlots.inline} tabletAndBelow />
+        )}
+
+        <div className="flex flex-col stack-compact">
           <div className="w-full">
             <div className="mb-6">
               <div className="text-xl font-bold mt-4 text-center">
@@ -456,6 +463,6 @@ export default function PlayerProfile({ player, region, date, playerData, channe
           snapshots={filteredData}
         />
       </DashboardCard>
-    </div>
+    </AdPageShell>
   );
 }

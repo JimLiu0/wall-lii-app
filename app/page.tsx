@@ -5,6 +5,9 @@ import LiveStreamsTable from '@/components/home/LiveStreamsTable';
 import LeaderboardPreview from '@/components/home/LeaderboardPreview';
 import PlayerSearch from '@/components/shared/PlayerSearch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import AdPageShell from '@/components/ads/AdPageShell';
+import InlineAd from '@/components/ads/InlineAd';
+import { adSlots } from '@/components/ads/adSlots';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,8 +18,8 @@ export const metadata = {
 
 export default function HomePage() {
   return (
-    <div className="container mx-auto py-4 px-0 max-w-7xl [@media(min-width:431px)]:px-4">
-      <div className="space-y-6">
+    <AdPageShell topSlot={adSlots.top} contentMaxWidth="80rem">
+      <div className="stack-compact">
         <SeasonResetBanner />
         <TimedAnnouncementBanner />
         <NewsBanner />
@@ -35,11 +38,12 @@ export default function HomePage() {
           <div className="lg:w-1/2">
             <LiveStreamsTable />
           </div>
+          <InlineAd slot={adSlots.inline} tabletAndBelow />
           <div className="lg:w-1/2">
             <LeaderboardPreview />
           </div>
         </div>
       </div>
-    </div>
+    </AdPageShell>
   );
 }
