@@ -15,18 +15,19 @@ export function trackEvent({ eventName, surface, target }: TrackEventParams) {
 
   try {
     // Fire-and-forget analytics; UI should never wait on this.
-    void supabase
-      .from('analytics_events')
-      .insert({
-        event_name: eventName,
-        surface,
-        target,
-        path: window.location.pathname,
-        user_agent: navigator.userAgent,
-      })
-      .catch(() => {
+    void (async () => {
+      try {
+        await supabase.from('analytics_events').insert({
+          event_name: eventName,
+          surface,
+          target,
+          path: window.location.pathname,
+          user_agent: navigator.userAgent,
+        });
+      } catch {
         // Swallow async analytics errors.
-      });
+      }
+    })();
   } catch {
     // Swallow analytics errors.
   }
