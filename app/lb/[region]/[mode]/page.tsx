@@ -6,6 +6,7 @@ import AdPageShell from '@/components/ads/AdPageShell';
 import { adSlots } from '@/components/ads/adSlots';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { normalizeUrlParams } from '@/utils/urlParams';
 
 interface PageParams {
   region: string;
@@ -14,6 +15,10 @@ interface PageParams {
 
 interface PageProps {
   params: Promise<PageParams>;
+  searchParams: Promise<{
+    view?: string;
+    date?: string;
+  }>;
 }
 
 const validRegions = ['na', 'eu', 'ap', 'cn', 'all'];
@@ -52,8 +57,8 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   };
 }
 
-export default async function Page({ params }: PageProps) {
-  const resolvedParams = await params;
+export default async function Page({ params, searchParams }: PageProps) {
+  const [resolvedParams, resolvedSearchParams] = await Promise.all([params, searchParams]);
   const { region, mode } = resolvedParams;
   const validRegions = ['all', 'na', 'eu', 'ap', 'cn'];
   const validModes = ['solo', 'duo'];
@@ -63,6 +68,12 @@ export default async function Page({ params }: PageProps) {
   }
 
   const defaultSolo = mode.toLowerCase() === 'solo';
+  const normalizedParams = normalizeUrlParams({
+    ...resolvedSearchParams,
+    region: region.toLowerCase(),
+    mode: defaultSolo ? 'solo' : 'duo',
+  });
+  const initialView = normalizedParams.view === 'week' ? 'week' : 'day';
 
   return (
     <div className="min-h-screen">
@@ -74,7 +85,12 @@ export default async function Page({ params }: PageProps) {
           <SeasonResetBanner />
           <TimedAnnouncementBanner />
           <NewsBanner />
-          <LeaderboardContentPaginated region={region.toLowerCase()} defaultSolo={defaultSolo} />
+          <LeaderboardContentPaginated
+            region={region.toLowerCase()}
+            defaultSolo={defaultSolo}
+            initialView={initialView}
+            initialDate={normalizedParams.date}
+          />
         </AdPageShell>
       </main>
     </div>

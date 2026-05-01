@@ -23,6 +23,8 @@ export default function DatePicker({
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(selectedDate.startOf('month'));
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const minDay = minDate.startOf('day');
+  const maxDay = maxDate.endOf('day');
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -62,7 +64,8 @@ export default function DatePicker({
   };
 
   const handleDateSelect = (date: DateTime) => {
-    if (date >= minDate && date <= maxDate) {
+    const day = date.startOf('day');
+    if (day >= minDay && day <= maxDay) {
       onDateChange(date);
       setIsOpen(false);
     }
@@ -79,12 +82,12 @@ export default function DatePicker({
       const monthEnd = newMonth.endOf('month');
       
       // If going to previous month, check if month start is before minDate
-      if (direction === 'prev' && monthEnd < minDate.startOf('day')) {
+      if (direction === 'prev' && monthEnd < minDay) {
         return prev; // Don't navigate if month would be before minDate
       }
       
       // If going to next month, check if month start is after maxDate
-      if (direction === 'next' && monthStart > maxDate.endOf('day')) {
+      if (direction === 'next' && monthStart > maxDay) {
         return prev; // Don't navigate if month would be after maxDate
       }
       
@@ -93,8 +96,8 @@ export default function DatePicker({
   };
 
   // Check if we can navigate to previous/next month
-  const canNavigatePrevMonth = currentMonth.startOf('month').minus({ months: 1 }).endOf('month') >= minDate.startOf('day');
-  const canNavigateNextMonth = currentMonth.startOf('month').plus({ months: 1 }).startOf('month') <= maxDate.endOf('day');
+  const canNavigatePrevMonth = currentMonth.startOf('month').minus({ months: 1 }).endOf('month') >= minDay;
+  const canNavigateNextMonth = currentMonth.startOf('month').plus({ months: 1 }).startOf('month') <= maxDay;
 
   const navigateDay = (direction: 'prev' | 'next') => {
     const increment = weekNavigation ? 7 : 1;
@@ -105,7 +108,7 @@ export default function DatePicker({
     // Clamp navigation so weekly jumps can still land exactly on bounds.
     const cappedDate = newDate < minDate ? minDate : newDate > maxDate ? maxDate : newDate;
     
-    if (cappedDate >= minDate && cappedDate <= maxDate) {
+    if (cappedDate.startOf('day') >= minDay && cappedDate.startOf('day') <= maxDay) {
       onDateChange(cappedDate);
     }
   };
@@ -118,7 +121,7 @@ export default function DatePicker({
       {/* Left arrow button */}
       <button
         onClick={() => navigateDay('prev')}
-        disabled={selectedDate <= minDate}
+        disabled={selectedDate.startOf('day') <= minDay}
         className="inline-flex items-center justify-center w-8 h-8 text-sm border border-border bg-transparent shadow-xs rounded-l-md rounded-r-none hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
       >
         <ChevronLeft className="w-4 h-4" />
@@ -136,7 +139,7 @@ export default function DatePicker({
       {/* Right arrow button */}
       <button
         onClick={() => navigateDay('next')}
-        disabled={selectedDate >= maxDate}
+        disabled={selectedDate.startOf('day') >= maxDay.startOf('day')}
         className="inline-flex items-center justify-center w-8 h-8 text-sm border border-border bg-transparent shadow-xs rounded-r-md rounded-l-none hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
       >
         <ChevronRight className="w-4 h-4" />
@@ -179,7 +182,7 @@ export default function DatePicker({
             {days.map((day, index) => {
               const isCurrentMonth = day.month === currentMonth.month;
               const isSelected = day.hasSame(selectedDate, 'day');
-              const isDisabled = day < minDate || day > maxDate;
+              const isDisabled = day.startOf('day') < minDay || day.startOf('day') > maxDay;
               const isToday = day.hasSame(DateTime.now().setZone('America/Los_Angeles'), 'day');
 
               return (
@@ -189,7 +192,7 @@ export default function DatePicker({
                   disabled={isDisabled}
                   className={cn(
                     'w-8 h-8 text-sm rounded transition-colors',
-                    isCurrentMonth ? 'text-foreground' : 'text-muted-foreground/60',
+                    isDisabled ? 'text-muted-foreground/60' : isCurrentMonth ? 'text-foreground' : 'text-foreground/80',
                     isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-accent',
                     isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                     isToday && !isSelected ? 'bg-link/15 text-link' : ''

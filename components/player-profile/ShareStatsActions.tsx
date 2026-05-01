@@ -45,17 +45,19 @@ export default function ShareStatsActions({
     <div className="flex min-h-14 flex-wrap items-center gap-2 rounded-md border border-border/50 bg-background/30 px-3 py-2">
       <CopyButton
         text={profileUrl}
-        label="Player Link"
-        ariaLabel="Copy player profile link"
+        label="Player"
+        ariaLabel="Copy player profile URL"
         variant="outline"
         size="lg"
+        showCopiedPreview
       />
       <CopyButton
         text={currentViewUrl}
-        label="View Link"
-        ariaLabel="Copy current player stats view link"
+        label="Current View"
+        ariaLabel="Copy current player stats view URL"
         variant="outline"
         size="lg"
+        showCopiedPreview
       />
     </div>
   );

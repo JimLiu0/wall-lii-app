@@ -22,6 +22,7 @@ import {
   Info,
 } from 'lucide-react';
 
+import CopyButton from '@/components/CopyButton';
 import DatePicker from './DatePicker';
 import SocialIndicators from './SocialIndicators';
 import PlayerSearch from '@/components/shared/PlayerSearch';
@@ -86,6 +87,8 @@ interface ChineseChannelEntry {
 interface Props {
   region: string;
   defaultSolo?: boolean;
+  initialView?: Timeframe;
+  initialDate?: string | null;
 }
 
 interface FetchContext {
@@ -293,14 +296,26 @@ function LeaderboardControlsRow({
   );
 }
 
-export default function LeaderboardContentPaginated({ region, defaultSolo = true }: Props) {
+export default function LeaderboardContentPaginated({
+  region,
+  defaultSolo = true,
+  initialView = 'day',
+  initialDate = null,
+}: Props) {
   const router = useRouter();
   const tableContainerRef = useRef<HTMLDivElement>(null);
   const ptNow = useMemo(() => DateTime.now().setZone('America/Los_Angeles').startOf('day'), []);
   const [mode, setMode] = useState<Mode>(defaultSolo ? 'solo' : 'duo');
-  const [timeframe, setTimeframe] = useState<Timeframe>('day');
-  const [selectedDate, setSelectedDate] = useState<DateTime>(ptNow);
-  const [dateOffset, setDateOffset] = useState(0);
+  const initialSelectedDate = useMemo(() => {
+    if (!initialDate) return ptNow;
+    const parsedDate = DateTime.fromISO(initialDate, { zone: 'America/Los_Angeles' }).startOf('day');
+    return parsedDate.isValid ? parsedDate : ptNow;
+  }, [initialDate, ptNow]);
+  const [timeframe, setTimeframe] = useState<Timeframe>(initialView);
+  const [selectedDate, setSelectedDate] = useState<DateTime>(initialSelectedDate);
+  const [dateOffset, setDateOffset] = useState(() => (
+    Math.max(0, Math.round(ptNow.diff(initialSelectedDate.startOf('day'), 'days').days))
+  ));
   const [minDate, setMinDate] = useState<DateTime>(DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }));
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
@@ -322,6 +337,28 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
   const solo = mode === 'solo';
   const gameMode = solo ? '0' : '1';
   const regionName = regionNames[region as keyof typeof regionNames] ?? region.toUpperCase();
+  const selectedDateParam = selectedDate.startOf('day').toISODate();
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://wallii.gg';
+  const leaderboardUrl = `${origin}/lb/${region}/${mode}`;
+  const leaderboardViewPathFor = useCallback((
+    nextRegion = region,
+    nextMode = mode,
+    nextTimeframe = timeframe,
+    nextDate = selectedDateParam,
+  ) => {
+    const params = new URLSearchParams({
+      view: nextTimeframe,
+    });
+
+    if (nextDate) {
+      params.set('date', nextDate);
+    }
+
+    return `/lb/${nextRegion}/${nextMode}?${params.toString()}`;
+  }, [mode, region, selectedDateParam, timeframe]);
+  const currentViewUrl = useMemo(() => (
+    `${origin}${leaderboardViewPathFor(region, mode, timeframe, selectedDateParam)}`
+  ), [leaderboardViewPathFor, mode, origin, region, selectedDateParam, timeframe]);
 
   const calculateDateOffset = useCallback((date: DateTime) => {
     const today = ptNow.startOf('day');
@@ -333,7 +370,8 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     setDateOffset(calculateDateOffset(date));
     setPageIndex(0);
     setAllRowsLoaded(false);
-  }, [calculateDateOffset]);
+    router.replace(leaderboardViewPathFor(region, mode, timeframe, date.startOf('day').toISODate()), { scroll: false });
+  }, [calculateDateOffset, leaderboardViewPathFor, mode, region, router, timeframe]);
 
   const fetchMinDate = useCallback(async () => {
     let query = supabase
@@ -620,6 +658,15 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
   }, [defaultSolo]);
 
   useEffect(() => {
+    setTimeframe(initialView);
+  }, [initialView]);
+
+  useEffect(() => {
+    setSelectedDate(initialSelectedDate);
+    setDateOffset(calculateDateOffset(initialSelectedDate));
+  }, [calculateDateOffset, initialSelectedDate]);
+
+  useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferredRegion', region);
       localStorage.setItem('preferredGameMode', mode);
@@ -681,7 +728,7 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferredRegion', nextRegion);
     }
-    router.push(`/lb/${nextRegion}/${mode}`);
+    router.push(leaderboardViewPathFor(nextRegion, mode));
   };
 
   const handleModeChange = (nextMode: Mode) => {
@@ -691,7 +738,7 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferredGameMode', nextMode);
     }
-    router.push(`/lb/${region}/${nextMode}`);
+    router.push(leaderboardViewPathFor(region, nextMode));
   };
 
   const executeSearch = (value: string) => {
@@ -964,12 +1011,33 @@ export default function LeaderboardContentPaginated({ region, defaultSolo = true
                 if (value === 'day' || value === 'week') {
                   setTimeframe(value);
                   setPageIndex(0);
+                  setAllRowsLoaded(false);
+                  router.replace(leaderboardViewPathFor(region, mode, value), { scroll: false });
                 }
               }}
             >
               <ToggleGroupItem value="day">Day</ToggleGroupItem>
               <ToggleGroupItem value="week">Week</ToggleGroupItem>
             </ToggleGroup>
+
+            <div className="flex flex-wrap items-center rounded-md border border-border/50 bg-background/30">
+              <CopyButton
+                text={leaderboardUrl}
+                label="Leaderboard"
+                ariaLabel="Copy leaderboard URL"
+                variant="outline"
+                size="lg"
+                showCopiedPreview
+              />
+              <CopyButton
+                text={currentViewUrl}
+                label="Current View"
+                ariaLabel="Copy current leaderboard view URL"
+                variant="outline"
+                size="lg"
+                showCopiedPreview
+              />
+            </div>
           </div>
         </div>
 
