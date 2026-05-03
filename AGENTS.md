@@ -53,6 +53,13 @@ Prefer boring, explicit, predictable code over clever abstractions.
 - Prefer duplication over premature abstraction.
 - Remove unused components, state, props, and handlers.
 
+## Metadata
+
+- Root layout owns site-wide metadata defaults, `metadataBase`, verification, robots, and title template.
+- Page metadata should set only route-specific title, description, canonical URL, or genuinely route-specific previews.
+- Do not duplicate the site brand in page titles when the root title template applies it.
+- Do not reference stale static Open Graph images.
+
 ## UI
 
 - Match the existing shadcn/Radix/Tailwind style.

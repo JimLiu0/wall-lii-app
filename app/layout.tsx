@@ -22,6 +22,7 @@ const themeInitScript = `(() => {
 })();`;
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://wallii.gg'),
   title: {
     default: 'wallii - Hearthstone Battlegrounds Leaderboard & Stats Tracker',
     template: '%s | wallii'
@@ -36,20 +37,11 @@ export const metadata: Metadata = {
     siteName: 'wallii',
     title: 'wallii - Hearthstone Battlegrounds Leaderboard & Stats Tracker',
     description: 'Track Hearthstone Battlegrounds leaderboards, player stats, and MMR history with wallii.',
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'wallii - Hearthstone Battlegrounds Tracker'
-      }
-    ]
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     title: 'wallii - Hearthstone Battlegrounds Leaderboard & Stats Tracker',
     description: 'Track Hearthstone Battlegrounds leaderboards, player stats, and MMR history with wallii.',
-    images: ['/og-image.jpg']
   },
   robots: {
     index: true,
@@ -63,7 +55,10 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'your-google-site-verification',
+    google: 'Qtz9PYfR7FFiM9dXZOWfJ4RKtztrWIU2Xx3M2Bt5sHU',
+    other: {
+      'google-adsense-account': 'ca-pub-6613952474052415',
+    },
   },
 };
 
@@ -77,9 +72,6 @@ export default function RootLayout({
       <head>
         <meta name="color-scheme" content="light dark" />
         <script id="theme-init" dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <meta name="google-site-verification" content="Qtz9PYfR7FFiM9dXZOWfJ4RKtztrWIU2Xx3M2Bt5sHU" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="google-adsense-account" content="ca-pub-6613952474052415" />
         <Script
           async
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6613952474052415"

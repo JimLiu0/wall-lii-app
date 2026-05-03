@@ -12,7 +12,7 @@ import { adSlots } from '@/components/ads/adSlots';
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: 'Hearthstone Battlegrounds Leaderboard | Wallii',
+  title: 'Hearthstone Battlegrounds Leaderboard',
   description: 'View hearthstone battlegrounds leaderboard rankings for all regions in Wallii',
 };
 

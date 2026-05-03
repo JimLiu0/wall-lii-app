@@ -358,7 +358,8 @@ export async function generateMetadata({
     };
   }
 
-  const ogImageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/og?slug=${resolvedParams.slug}`;
+  const canonicalPath = `/news/${resolvedParams.slug}`;
+  const ogImageUrl = `/api/og?slug=${resolvedParams.slug}`;
 
   return {
     title: post.title,
@@ -367,7 +368,7 @@ export async function generateMetadata({
       title: post.title,
       description: post.summary,
       type: 'article',
-      url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/news/${resolvedParams.slug}`,
+      url: canonicalPath,
       images: [
         {
           url: ogImageUrl,
@@ -382,6 +383,9 @@ export async function generateMetadata({
       title: post.title,
       description: post.summary,
       images: [ogImageUrl],
+    },
+    alternates: {
+      canonical: canonicalPath,
     },
   };
 }

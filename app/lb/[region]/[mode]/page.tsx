@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   
   if (!validRegions.includes(region) || !validModes.includes(mode)) {
     return {
-      title: 'Region Not Found | Wallii',
+      title: 'Region Not Found',
       description: 'This region does not exist in Wallii'
     };
   }
@@ -60,9 +60,8 @@ export async function generateMetadata({ params }: { params: Promise<PageParams>
   const regionName = regionNames[region as keyof typeof regionNames];
   const modeName = modeNames[mode as keyof typeof modeNames];
   return {
-    title: `${regionName} ${modeName} Leaderboard | Wallii`,
+    title: `${regionName} ${modeName} Leaderboard`,
     description: `View detailed ${regionName} ${modeName} Hearthstone Battlegrounds leaderboard rankings. Track player ratings, compare performance, and analyze trends in real-time.`,
-    keywords: `hearthstone, battlegrounds, leaderboard, ${regionName.toLowerCase()}, ${modeName.toLowerCase()}, rankings, stats, hearthstone tracker, battlegrounds stats`
   };
 }
 

@@ -1,5 +1,6 @@
-'use client';
-
+import AdPageShell from '@/components/ads/AdPageShell';
+import { adSlots } from '@/components/ads/adSlots';
+import DashboardCard from '@/components/shared/DashboardCard';
 import ProfileHeader from './ProfileHeader';
 
 interface PlayerNotFoundProps {
@@ -8,15 +9,15 @@ interface PlayerNotFoundProps {
 
 export default function PlayerNotFound({ player }: PlayerNotFoundProps) {
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
-      <div className="bg-gray-900 rounded-lg p-6">
+    <AdPageShell topSlot={adSlots.top} contentMaxWidth="80rem">
+      <DashboardCard>
         <div className="flex flex-col gap-4">
           <ProfileHeader backUrl="/lb/na/solo" />
-          <div className="text-2xl font-bold text-white mb-4 text-center mt-8">
+          <p className="mt-8 text-center text-2xl font-bold text-foreground">
             {`Couldn't find ${player}`}
-          </div>
+          </p>
         </div>
-      </div>
-    </div>
+      </DashboardCard>
+    </AdPageShell>
   );
 }

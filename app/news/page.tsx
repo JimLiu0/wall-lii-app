@@ -22,17 +22,6 @@ async function getNewsPosts() {
 export const metadata = {
   title: 'Latest Battlegrounds News',
   description: 'Stay up to date with the latest news and updates for Hearthstone Battlegrounds',
-  openGraph: {
-    title: 'Latest Battlegrounds News',
-    description: 'Stay up to date with the latest news and updates for Hearthstone Battlegrounds',
-    images: [
-      {
-        url: '/og-image-news.jpg',
-        width: 1200,
-        height: 600,
-      },
-    ],
-  },
 };
 
 export default async function NewsPage() {
