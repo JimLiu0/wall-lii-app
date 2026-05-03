@@ -1,5 +1,5 @@
 import { supabase } from '@/utils/supabaseClient';
-import NewsCard from '@/components/NewsCard';
+import NewsCard from './_components/NewsCard';
 
 export const revalidate = 300; // Revalidate every 5 minutes
 
@@ -22,17 +22,6 @@ async function getNewsPosts() {
 export const metadata = {
   title: 'Latest Battlegrounds News',
   description: 'Stay up to date with the latest news and updates for Hearthstone Battlegrounds',
-  openGraph: {
-    title: 'Latest Battlegrounds News',
-    description: 'Stay up to date with the latest news and updates for Hearthstone Battlegrounds',
-    images: [
-      {
-        url: '/og-image-news.jpg',
-        width: 1200,
-        height: 600,
-      },
-    ],
-  },
 };
 
 export default async function NewsPage() {

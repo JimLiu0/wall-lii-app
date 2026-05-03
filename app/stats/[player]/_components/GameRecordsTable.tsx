@@ -13,8 +13,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { gameRecordsColumns } from '@/components/game-records/gameRecordsColumns';
-import type { GameRecordRow } from '@/utils/buildGameRecordsFromSnapshots';
+import { gameRecordsColumns } from './gameRecordsColumns';
+import type { GameRecordRow } from '../_lib/gameRecords';
 
 export interface GameRecordsTableProps {
   rows: GameRecordRow[];

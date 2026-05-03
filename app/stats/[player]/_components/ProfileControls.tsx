@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon';
 import { Info } from 'lucide-react';
 
-import DatePicker from '../DatePicker';
+import DatePicker from '@/components/shared/DatePicker';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import {
   buildGameRecordsFromSnapshots,
   type SnapshotRowForGames,
-} from '@/utils/buildGameRecordsFromSnapshots';
+} from '../_lib/gameRecords';
 
 const DEFAULT_PAGE_SIZE = 25;
 

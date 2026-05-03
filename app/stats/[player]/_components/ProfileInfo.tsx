@@ -1,6 +1,6 @@
-import SocialIndicators from '../SocialIndicators';
+import SocialIndicators from '@/components/shared/SocialIndicators';
 import StatCell from '@/components/shared/StatCell';
-import ShareStatsActions from '@/components/player-profile/ShareStatsActions';
+import ShareStatsActions from './ShareStatsActions';
 
 interface ChannelEntry {
   channel: string;

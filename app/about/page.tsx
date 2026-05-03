@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'About Wallii | Hearthstone Battlegrounds Leaderboards',
+  title: 'About',
   description: 'Learn about Wallii, your source for Hearthstone Battlegrounds leaderboard data and player statistics.',
 };
 

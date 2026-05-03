@@ -2,7 +2,7 @@
 
 import { Typography, Box, Paper, Divider } from "@mui/material";
 import Image from 'next/image';
-import CopyButton from '@/components/CopyButton';
+import CopyButton from '@/components/shared/CopyButton';
 import { Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 

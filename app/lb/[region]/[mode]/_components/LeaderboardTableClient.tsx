@@ -22,9 +22,9 @@ import {
   Info,
 } from 'lucide-react';
 
-import CopyButton from '@/components/CopyButton';
-import DatePicker from './DatePicker';
-import SocialIndicators from './SocialIndicators';
+import CopyButton from '@/components/shared/CopyButton';
+import DatePicker from '@/components/shared/DatePicker';
+import SocialIndicators from '@/components/shared/SocialIndicators';
 import PlayerSearch from '@/components/shared/PlayerSearch';
 import InlineAd from '@/components/ads/InlineAd';
 import { Button } from '@/components/ui/button';
@@ -38,79 +38,34 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { getLeaderboardDateRange } from '@/utils/dateUtils';
 import { adSlots } from '@/components/ads/adSlots';
-import { inMemoryCache } from '@/utils/inMemoryCache';
-import { supabase } from '@/utils/supabaseClient';
 import { toNewUrlParams } from '@/utils/urlParams';
-
-type Timeframe = 'day' | 'week';
-type Mode = 'solo' | 'duo';
-
-interface LeaderboardEntry {
-  player_id?: string;
-  player_name: string;
-  rating: number;
-  rank: number;
-  region: string;
-  games_played: number;
-  rating_delta: number;
-  rank_delta: number;
-  placement?: number | null;
-}
-
-interface RawLeaderboardEntry {
-  player_id?: string;
-  player_name: string;
-  rating: number;
-  rank: number;
-  region: string;
-  games_played?: number;
-  weekly_games_played?: number;
-  rating_delta?: number;
-  day_avg?: number | null;
-  weekly_avg?: number | null;
-}
-
-interface ChannelEntry {
-  channel: string;
-  player: string;
-  live: boolean;
-  youtube?: string;
-}
-
-interface ChineseChannelEntry {
-  player: string;
-  url: string;
-}
+import {
+  fetchLeaderboardMinDate,
+  fetchLeaderboardPage,
+  fetchLeaderboardSocialData,
+  getLeaderboardDateOffset,
+  getLeaderboardPageCount,
+  PAGE_SIZE,
+  type ChannelEntry,
+  type ChineseChannelEntry,
+  type InitialLeaderboardState,
+  type LeaderboardEntry,
+  type LeaderboardFetchContext,
+  type LeaderboardMode,
+  type Timeframe,
+} from '../_lib/data';
 
 interface Props {
   region: string;
   defaultSolo?: boolean;
   initialView?: Timeframe;
   initialDate?: string | null;
+  initialState: InitialLeaderboardState;
 }
 
-interface FetchContext {
-  region: string;
-  mode: Mode;
-  timeframe: Timeframe;
-  dateOffset: number;
-  pageIndex: number;
-  pageSize: number;
-  search: string;
-}
-
-interface FetchResult {
-  entries: LeaderboardEntry[];
-  totalRows: number;
-}
-
-const PAGE_SIZE = 50;
 const VIRTUAL_ROW_HEIGHT = 49;
 const VIRTUAL_OVERSCAN = 8;
-const QUERY_CHUNK_SIZE = 100;
-const CACHE_TTL_MS = 5 * 60 * 1000;
 const regions = ['na', 'eu', 'ap', 'cn'] as const;
 const regionNames = {
   na: 'Americas',
@@ -126,33 +81,12 @@ function formatDelta(value: number) {
   return <span className="font-medium text-muted-foreground">—</span>;
 }
 
-function getCacheKey(context: FetchContext) {
-  return [
-    'leaderboard-page',
-    context.region,
-    context.mode,
-    context.timeframe,
-    context.dateOffset,
-    context.pageIndex,
-    context.pageSize,
-    context.search.trim().toLowerCase(),
-  ].join(':');
-}
-
 function getPageCount(totalRows: number) {
-  return Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
+  return getLeaderboardPageCount(totalRows);
 }
 
 function getInitialSortDesc(columnId: string) {
   return !['rank', 'player_name', 'placement'].includes(columnId);
-}
-
-function chunkArray<T>(items: T[], size: number) {
-  const chunks: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size));
-  }
-  return chunks;
 }
 
 function LeaderboardPaginationBar({
@@ -296,16 +230,18 @@ function LeaderboardControlsRow({
   );
 }
 
-export default function LeaderboardContentPaginated({
+export default function LeaderboardTableClient({
   region,
   defaultSolo = true,
   initialView = 'day',
   initialDate = null,
+  initialState,
 }: Props) {
   const router = useRouter();
   const tableContainerRef = useRef<HTMLDivElement>(null);
+  const hasSkippedInitialLoadRef = useRef(false);
   const ptNow = useMemo(() => DateTime.now().setZone('America/Los_Angeles').startOf('day'), []);
-  const [mode, setMode] = useState<Mode>(defaultSolo ? 'solo' : 'duo');
+  const [mode, setMode] = useState<LeaderboardMode>(defaultSolo ? 'solo' : 'duo');
   const initialSelectedDate = useMemo(() => {
     if (!initialDate) return ptNow;
     const parsedDate = DateTime.fromISO(initialDate, { zone: 'America/Los_Angeles' }).startOf('day');
@@ -314,28 +250,31 @@ export default function LeaderboardContentPaginated({
   const [timeframe, setTimeframe] = useState<Timeframe>(initialView);
   const [selectedDate, setSelectedDate] = useState<DateTime>(initialSelectedDate);
   const [dateOffset, setDateOffset] = useState(() => (
-    Math.max(0, Math.round(ptNow.diff(initialSelectedDate.startOf('day'), 'days').days))
+    getLeaderboardDateOffset(initialDate, ptNow)
   ));
-  const [minDate, setMinDate] = useState<DateTime>(DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }));
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
-  const [channelData, setChannelData] = useState<ChannelEntry[]>([]);
-  const [chineseStreamerData, setChineseStreamerData] = useState<ChineseChannelEntry[]>([]);
-  const [totalRows, setTotalRows] = useState(0);
+  const [minDate, setMinDate] = useState<DateTime>(() => (
+    initialState.minDate
+      ? DateTime.fromISO(initialState.minDate, { zone: 'America/Los_Angeles' })
+      : DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 })
+  ));
+  const [entries, setEntries] = useState<LeaderboardEntry[]>(initialState.entries);
+  const [channelData, setChannelData] = useState<ChannelEntry[]>(initialState.channelData);
+  const [chineseStreamerData, setChineseStreamerData] = useState<ChineseChannelEntry[]>(initialState.chineseStreamerData);
+  const [totalRows, setTotalRows] = useState(initialState.totalRows);
   const [pageIndex, setPageIndex] = useState(0);
   const [pageInput, setPageInput] = useState('1');
   const [searchInput, setSearchInput] = useState('');
   const [executedSearch, setExecutedSearch] = useState('');
   const [sorting, setSorting] = useState<SortingState>([{ id: 'rank', desc: false }]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [loadingAll, setLoadingAll] = useState(false);
   const [allRowsLoaded, setAllRowsLoaded] = useState(false);
   const [virtualWindow, setVirtualWindow] = useState({ start: 0, count: 0 });
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(initialState.errorMessage ?? null);
   const [showInfo, setShowInfo] = useState(false);
 
   const pageCount = getPageCount(totalRows);
   const solo = mode === 'solo';
-  const gameMode = solo ? '0' : '1';
   const regionName = regionNames[region as keyof typeof regionNames] ?? region.toUpperCase();
   const selectedDateParam = selectedDate.startOf('day').toISODate();
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://wallii.gg';
@@ -373,254 +312,10 @@ export default function LeaderboardContentPaginated({
     router.replace(leaderboardViewPathFor(region, mode, timeframe, date.startOf('day').toISODate()), { scroll: false });
   }, [calculateDateOffset, leaderboardViewPathFor, mode, region, router, timeframe]);
 
-  const fetchMinDate = useCallback(async () => {
-    let query = supabase
-      .from('daily_leaderboard_stats')
-      .select('day_start')
-      .eq('game_mode', gameMode);
-
-    if (region !== 'all') {
-      query = query.eq('region', region.toUpperCase());
-    }
-
-    const { data, error } = await query.order('day_start', { ascending: true }).limit(1);
-    if (!error && data?.[0]?.day_start) {
-      setMinDate(DateTime.fromISO(data[0].day_start).setZone('America/Los_Angeles'));
-    }
-  }, [gameMode, region]);
-
-  const fetchTotalRows = useCallback(async (
-    currentStart: string,
-    search: string,
-  ): Promise<number> => {
-    const trimmedSearch = search.trim();
-
-    if (!trimmedSearch && region !== 'all') {
-      const { data, error } = await supabase
-        .from('daily_leaderboard_stats')
-        .select('rank')
-        .eq('region', region.toUpperCase())
-        .eq('game_mode', gameMode)
-        .eq('day_start', currentStart)
-        .order('rank', { ascending: false })
-        .limit(1);
-
-      if (error) throw error;
-      return typeof data?.[0]?.rank === 'number' ? data[0].rank : 0;
-    }
-
-    let query = supabase
-      .from('daily_leaderboard_stats')
-      .select('player_id, players!inner(player_name)', { count: 'exact', head: true })
-      .eq('game_mode', gameMode)
-      .eq('day_start', currentStart);
-
-    if (region === 'all') {
-      query = query.not('region', 'eq', 'CN');
-    } else {
-      query = query.eq('region', region.toUpperCase());
-    }
-
-    if (trimmedSearch) {
-      query = query.ilike('players.player_name', `%${trimmedSearch}%`);
-    }
-
-    const { count, error } = await query;
-    if (error) throw error;
-    return count ?? 0;
-  }, [gameMode, region]);
-
-  const fetchSocialData = useCallback(async (pageEntries: LeaderboardEntry[]) => {
-    const names = Array.from(new Set(pageEntries.map((entry) => entry.player_name)));
-    if (names.length === 0) {
-      setChannelData([]);
-      setChineseStreamerData([]);
-      return;
-    }
-
-    const nameChunks = chunkArray(names, QUERY_CHUNK_SIZE);
-    const [channelResults, chineseStreamerResults] = await Promise.all([
-      Promise.all(nameChunks.map((chunk) => (
-        supabase.from('channels').select('player, channel, youtube, live').in('player', chunk)
-      ))),
-      Promise.all(nameChunks.map((chunk) => (
-        supabase.from('chinese_streamers').select('player, url').in('player', chunk)
-      ))),
-    ]);
-
-    const channels = channelResults.flatMap((result) => result.data ?? []);
-    const chineseStreamers = chineseStreamerResults.flatMap((result) => result.data ?? []);
-
-    setChannelData((channels ?? []) as ChannelEntry[]);
-    setChineseStreamerData((chineseStreamers ?? []) as ChineseChannelEntry[]);
-  }, []);
-
-  const fetchLeaderboardPage = useCallback(async (
-    context: FetchContext,
-    options: { prefetch?: boolean } = {},
-  ): Promise<FetchResult> => {
-    const cacheKey = getCacheKey(context);
-    const cached = inMemoryCache.get<FetchResult>(cacheKey);
-    if (cached) return cached;
-
-    const { currentStart, prevStart } = await getLeaderboardDateRange(context.timeframe, context.dateOffset);
-    const total = await fetchTotalRows(currentStart, context.search);
-    const from = context.pageIndex * context.pageSize;
-    const to = from + context.pageSize - 1;
-    const trimmedSearch = context.search.trim();
-
-    let query = supabase
-      .from('daily_leaderboard_stats')
-      .select(`
-        player_id,
-        rating,
-        rank,
-        region,
-        games_played,
-        weekly_games_played,
-        day_avg,
-        weekly_avg,
-        updated_at,
-        players!inner(player_name)
-      `)
-      .eq('game_mode', context.mode === 'solo' ? '0' : '1')
-      .eq('day_start', currentStart);
-
-    if (context.region === 'all') {
-      query = query.not('region', 'eq', 'CN').order('rating', { ascending: false });
-    } else {
-      query = query
-        .eq('region', context.region.toUpperCase())
-        .order('updated_at', { ascending: false })
-        .order('rank', { ascending: true });
-    }
-
-    if (trimmedSearch) {
-      query = query.ilike('players.player_name', `%${trimmedSearch}%`);
-    }
-
-    const { data, error } = await query.range(from, to);
-    if (error) throw error;
-
-    const currentData = ((data ?? []) as unknown[]).map((row, index) => {
-      const record = row as {
-        player_id?: string;
-        rating?: number;
-        rank?: number;
-        region?: string;
-        games_played?: number;
-        weekly_games_played?: number;
-        day_avg?: number | null;
-        weekly_avg?: number | null;
-        players?: { player_name?: string };
-      };
-
-      return {
-        player_id: record.player_id,
-        player_name: record.players?.player_name ?? '',
-        rating: typeof record.rating === 'number' ? record.rating : 0,
-        rank: context.region === 'all'
-          ? from + index + 1
-          : (typeof record.rank === 'number' ? record.rank : 0),
-        region: record.region ?? context.region.toUpperCase(),
-        games_played: typeof record.games_played === 'number' ? record.games_played : 0,
-        weekly_games_played: typeof record.weekly_games_played === 'number' ? record.weekly_games_played : 0,
-        day_avg: typeof record.day_avg === 'number' ? record.day_avg : null,
-        weekly_avg: typeof record.weekly_avg === 'number' ? record.weekly_avg : null,
-      };
-    });
-
-    const playerIds = currentData.map((entry) => entry.player_id).filter(Boolean).sort() as string[];
-    let baselineData: RawLeaderboardEntry[] = [];
-
-    if (playerIds.length > 0) {
-      const baselineResults = await Promise.all(chunkArray(playerIds, QUERY_CHUNK_SIZE).map((chunk) => {
-        let baselineQuery = supabase
-          .from('daily_leaderboard_stats')
-          .select(`
-            player_id,
-            rating,
-            rank,
-            region,
-            players!inner(player_name)
-          `)
-          .eq('game_mode', context.mode === 'solo' ? '0' : '1')
-          .eq('day_start', prevStart)
-          .in('player_id', chunk);
-
-        if (context.region === 'all') {
-          baselineQuery = baselineQuery.not('region', 'eq', 'CN');
-        } else {
-          baselineQuery = baselineQuery.eq('region', context.region.toUpperCase());
-        }
-
-        return baselineQuery;
-      }));
-
-      const baselineError = baselineResults.find((result) => result.error)?.error;
-      if (baselineError) throw baselineError;
-
-      baselineData = baselineResults.flatMap((result) => result.data ?? []).map((row) => {
-        const record = row as {
-          player_id?: string;
-          rating?: number;
-          rank?: number;
-          region?: string;
-          players?: { player_name?: string };
-        };
-
-        return {
-          player_id: record.player_id,
-          player_name: record.players?.player_name ?? '',
-          rating: typeof record.rating === 'number' ? record.rating : 0,
-          rank: typeof record.rank === 'number' ? record.rank : 0,
-          region: record.region ?? context.region.toUpperCase(),
-        };
-      });
-    }
-
-    const baselineByPlayerId = new Map(baselineData.map((entry) => [entry.player_id, entry]));
-    const entriesWithDelta = currentData.map((entry) => {
-      const baseline = baselineByPlayerId.get(entry.player_id);
-      const gamesPlayed = context.timeframe === 'week'
-        ? entry.weekly_games_played
-        : entry.games_played;
-      const startingRating = typeof baseline?.rating === 'number' ? baseline.rating : 0;
-      const placement = startingRating > 9000
-        ? (context.timeframe === 'day'
-          ? (gamesPlayed >= 5 && entry.day_avg != null ? Number(entry.day_avg.toFixed(2)) : null)
-          : (gamesPlayed >= 10 && entry.weekly_avg != null ? Number(entry.weekly_avg.toFixed(2)) : null))
-        : null;
-
-      return {
-        player_id: entry.player_id,
-        player_name: entry.player_name,
-        rating: entry.rating,
-        rank: entry.rank,
-        region: entry.region,
-        games_played: gamesPlayed,
-        rating_delta: typeof baseline?.rating === 'number' ? entry.rating - baseline.rating : 0,
-        rank_delta: context.region === 'all' || typeof baseline?.rank !== 'number'
-          ? 0
-          : baseline.rank - entry.rank,
-        placement,
-      };
-    });
-
-    const result = { entries: entriesWithDelta, totalRows: total };
-    inMemoryCache.set(cacheKey, result, CACHE_TTL_MS);
-
-    if (!options.prefetch) {
-      await fetchSocialData(entriesWithDelta);
-    }
-
-    return result;
-  }, [fetchSocialData, fetchTotalRows]);
-
   const loadPage = useCallback(async (nextPageIndex: number) => {
     if (allRowsLoaded) return;
 
-    const context = {
+    const context: LeaderboardFetchContext = {
       region,
       mode,
       timeframe,
@@ -637,10 +332,13 @@ export default function LeaderboardContentPaginated({
       setEntries(result.entries);
       setTotalRows(result.totalRows);
       setPageInput(String(nextPageIndex + 1));
+      const socialData = await fetchLeaderboardSocialData(result.entries);
+      setChannelData(socialData.channelData);
+      setChineseStreamerData(socialData.chineseStreamerData);
 
       const nextPage = nextPageIndex + 1;
       if (nextPage < getPageCount(result.totalRows)) {
-        void fetchLeaderboardPage({ ...context, pageIndex: nextPage }, { prefetch: true })
+        void fetchLeaderboardPage({ ...context, pageIndex: nextPage })
           .catch((error) => console.warn('Leaderboard prefetch failed:', error));
       }
     } catch (error) {
@@ -651,7 +349,7 @@ export default function LeaderboardContentPaginated({
     } finally {
       setLoading(false);
     }
-  }, [allRowsLoaded, dateOffset, executedSearch, fetchLeaderboardPage, mode, region, timeframe]);
+  }, [allRowsLoaded, dateOffset, executedSearch, mode, region, timeframe]);
 
   useEffect(() => {
     setMode(defaultSolo ? 'solo' : 'duo');
@@ -675,10 +373,18 @@ export default function LeaderboardContentPaginated({
   }, [mode, region]);
 
   useEffect(() => {
-    void fetchMinDate();
-  }, [fetchMinDate]);
+    void fetchLeaderboardMinDate(region, mode).then((nextMinDate) => {
+      if (nextMinDate) {
+        setMinDate(DateTime.fromISO(nextMinDate, { zone: 'America/Los_Angeles' }));
+      }
+    });
+  }, [mode, region]);
 
   useEffect(() => {
+    if (!hasSkippedInitialLoadRef.current) {
+      hasSkippedInitialLoadRef.current = true;
+      return;
+    }
     void loadPage(pageIndex);
   }, [loadPage, pageIndex]);
 
@@ -731,7 +437,7 @@ export default function LeaderboardContentPaginated({
     router.push(leaderboardViewPathFor(nextRegion, mode));
   };
 
-  const handleModeChange = (nextMode: Mode) => {
+  const handleModeChange = (nextMode: LeaderboardMode) => {
     setMode(nextMode);
     setPageIndex(0);
     setAllRowsLoaded(false);
@@ -758,7 +464,7 @@ export default function LeaderboardContentPaginated({
   const loadAllRows = useCallback(async () => {
     if (loadingAll || totalRows === 0) return;
 
-    const context = {
+    const context: LeaderboardFetchContext = {
       region,
       mode,
       timeframe,
@@ -775,6 +481,9 @@ export default function LeaderboardContentPaginated({
       const result = await fetchLeaderboardPage(context);
       setEntries(result.entries);
       setTotalRows(result.totalRows);
+      const socialData = await fetchLeaderboardSocialData(result.entries);
+      setChannelData(socialData.channelData);
+      setChineseStreamerData(socialData.chineseStreamerData);
       setPageIndex(0);
       setPageInput('1');
       setAllRowsLoaded(true);
@@ -786,7 +495,7 @@ export default function LeaderboardContentPaginated({
       setLoading(false);
       setLoadingAll(false);
     }
-  }, [dateOffset, executedSearch, fetchLeaderboardPage, loadingAll, mode, region, timeframe, totalRows]);
+  }, [dateOffset, executedSearch, loadingAll, mode, region, timeframe, totalRows]);
 
   const submitPage = () => {
     const parsed = Number(pageInput);

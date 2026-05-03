@@ -1,11 +1,11 @@
 import { Suspense } from 'react';
 import { supabase } from '@/utils/supabaseClient';
-import PlayerProfile from '@/components/PlayerProfile';
+import PlayerProfile from './_components/PlayerProfile';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import PlayerNotFound from '@/components/PlayerNotFound';
+import PlayerNotFound from './_components/PlayerNotFound';
 import { normalizeUrlParams, toNewUrlParams, hasOldFormat } from '@/utils/urlParams';
-import { fetchPlayerData, generatePlayerMetadata, PlayerData, resolveSelection } from './playerPageData';
+import { fetchPlayerData, generatePlayerMetadata, PlayerData, resolveSelection } from './_lib/data';
 import DashboardCard from '@/components/shared/DashboardCard';
 
 

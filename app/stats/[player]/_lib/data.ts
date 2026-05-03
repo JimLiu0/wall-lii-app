@@ -55,7 +55,7 @@ export async function generatePlayerMetadata(player: string): Promise<Metadata> 
   const playerId = await getPlayerId(player);
   if (!playerId) {
     return {
-      title: 'Player Not Found | Wallii',
+      title: 'Player Not Found',
       description: `Player ${player} not found on Wallii`,
     };
   }
@@ -70,7 +70,7 @@ export async function generatePlayerMetadata(player: string): Promise<Metadata> 
 
   if (!latestSnapshot) {
     return {
-      title: 'Player Not Found | Wallii',
+      title: 'Player Not Found',
       description: 'This player could not be found in our database.',
     };
   }
@@ -81,25 +81,16 @@ export async function generatePlayerMetadata(player: string): Promise<Metadata> 
     openGraph: {
       title: `${player} - Player Profile`,
       description: `View ${player}'s Hearthstone Battlegrounds player profile, statistics, and MMR history.`,
-      url: `https://wallii.gg/stats/${encodeURIComponent(player)}`,
+      url: `/stats/${encodeURIComponent(player)}`,
       type: 'profile',
-      images: [
-        {
-          url: '/og-image.jpg',
-          width: 1200,
-          height: 630,
-          alt: `${player}'s Hearthstone Battlegrounds Profile`,
-        },
-      ],
     },
     twitter: {
-      card: 'summary_large_image',
+      card: 'summary',
       title: `${player} - Player Profile`,
       description: `View ${player}'s Hearthstone Battlegrounds player profile, statistics, and MMR history.`,
-      images: ['/og-image.jpg'],
     },
     alternates: {
-      canonical: `https://wallii.gg/stats/${encodeURIComponent(player)}`,
+      canonical: `/stats/${encodeURIComponent(player)}`,
     },
   };
 }

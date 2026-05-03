@@ -1,8 +1,5 @@
-'use client';
-
 import type { ColumnDef } from '@tanstack/react-table';
-import type { GameRecordRow } from '@/utils/buildGameRecordsFromSnapshots';
-import { formatRecordedAt } from '@/utils/formatRecordedAt';
+import { formatRecordedAt, type GameRecordRow } from '../_lib/gameRecords';
 
 function formatSignedDelta(delta: number): string {
   if (!Number.isFinite(delta)) return '—';
