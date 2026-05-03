@@ -5,7 +5,7 @@ import { DateTime } from 'luxon';
 import PlayerGraph from './PlayerGraph';
 import getPeriodLabel from '@/utils/getPeriodLabel';
 import { normalizeUrlParams, toNewUrlParams } from '@/utils/urlParams';
-import GameRecordsSection from './game-records/GameRecordsSection';
+import GameRecordsSection from './GameRecordsSection';
 import ProfileHeader from './ProfileHeader';
 import ProfileInfo from './ProfileInfo';
 import ProfileControls from './ProfileControls';
