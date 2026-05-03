@@ -2,43 +2,31 @@
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
-import PlayerGraph from '@/components/PlayerGraph';
+import PlayerGraph from './PlayerGraph';
 import getPeriodLabel from '@/utils/getPeriodLabel';
-import { dedupData } from '@/utils/getDedupData';
 import { normalizeUrlParams, toNewUrlParams } from '@/utils/urlParams';
-import { calculatePlacementsWithAverage } from '@/utils/calculatePlacements';
-import GameRecordsSection from '@/components/game-records/GameRecordsSection';
-import ProfileHeader from '@/components/player-profile/ProfileHeader';
-import ProfileInfo from '@/components/player-profile/ProfileInfo';
-import ProfileControls from '@/components/player-profile/ProfileControls';
-import SessionStats from '@/components/player-profile/SessionStats';
+import GameRecordsSection from './game-records/GameRecordsSection';
+import ProfileHeader from './ProfileHeader';
+import ProfileInfo from './ProfileInfo';
+import ProfileControls from './ProfileControls';
+import SessionStats from './SessionStats';
 import AdPageShell from '@/components/ads/AdPageShell';
 import InlineAd from '@/components/ads/InlineAd';
 import { adSlots } from '@/components/ads/adSlots';
-import DashboardCard from './shared/DashboardCard';
-
-type TimeView = 'all' | 'week' | 'day';
-type GameMode = 's' | 'd';
-
-interface PlayerData {
-  name: string;
-  data: {
-    game_mode: string;
-    player_name: string;
-    region: string;
-    snapshot_time: string;
-    rating: number;
-    id?: string;
-  }[];
-  availableModes: {
-    regions: string[];
-    gameModes: string[];
-    defaultRegion: string;
-    defaultGameMode: string;
-    availableCombos: string[];
-  };
-  currentRanks: Record<string, number | null>; // Key: "region-gameMode", Value: rank
-}
+import DashboardCard from '@/components/shared/DashboardCard';
+import type { PlayerData } from '../_lib/data';
+import {
+  getAvailableProfileControls,
+  getCurrentRank,
+  getFilteredProfileData,
+  getGameRecordsFilterKey,
+  getProfileCurrentRating,
+  getProfileDateOffset,
+  getProfileMinDate,
+  getProfilePlacementStats,
+  type GameMode,
+  type TimeView,
+} from '../_lib/profileDerivations';
 
 interface ChannelEntry {
   channel: string;
@@ -111,15 +99,8 @@ export default function PlayerProfile({ player, region, date, playerData, channe
     }
   }, [date]);
 
-  // Calculate current rank from pre-fetched data
   const currentRank = useMemo(() => {
-    if (currentRegion === 'all') {
-      return null;
-    }
-    
-    const gameModeEnum = gameMode === 'd' ? '1' : '0';
-    const comboKey = `${currentRegion}-${gameModeEnum}`;
-    return playerData.currentRanks[comboKey] || null;
+    return getCurrentRank(currentRegion, gameMode, playerData.currentRanks);
   }, [currentRegion, gameMode, playerData.currentRanks]);
 
   // Memoize the Info icon click handler to prevent unnecessary re-renders
@@ -133,126 +114,26 @@ export default function PlayerProfile({ player, region, date, playerData, channe
     return `/lb/${currentRegion}/${gameModeParam}`;
   };
 
-  // Calculate offset from selectedDate for internal use
   const calculatedOffset = useMemo(() => {
-    if (currentView === 'all') return 0;
-    const now = DateTime.now().setZone('America/Los_Angeles');
-    if (currentView === 'day') {
-      return Math.max(0, Math.floor(now.startOf('day').diff(selectedDate.startOf('day'), 'days').days));
-    } else if (currentView === 'week') {
-      return Math.max(0, Math.floor(now.startOf('week').startOf('day').diff(selectedDate.startOf('week').startOf('day'), 'weeks').weeks));
-    }
-    return 0;
+    return getProfileDateOffset(currentView, selectedDate);
   }, [currentView, selectedDate]);
 
-  // Calculate minDate from the oldest snapshot for the current region and game mode
   const calculatedMinDate = useMemo(() => {
-    const gameModeEnum = gameMode === 'd' ? '1' : '0';
-    const regionModeData = playerData.data.filter((row) => 
-      row.game_mode === gameModeEnum && row.region.toLowerCase() === currentRegion
-    );
-    
-    if (regionModeData.length > 0) {
-      const oldestSnapshot = regionModeData.reduce((oldest, current) => 
-        current.snapshot_time < oldest.snapshot_time ? current : oldest
-      );
-      return DateTime.fromISO(oldestSnapshot.snapshot_time, { zone: 'America/Los_Angeles' }).startOf('day');
-    }
-    
-    // Fallback to 30 days ago if no data for this region/mode
-    return DateTime.now().setZone('America/Los_Angeles').minus({ days: 30 }).startOf('day');
+    return getProfileMinDate(playerData.data, currentRegion, gameMode);
   }, [playerData.data, currentRegion, gameMode]);
 
-  let filteredData = useMemo(() => {
-    // First filter by region and game mode
-    const gameModeEnum = gameMode === 'd' ? '1' : '0';
-    let filtered = playerData.data.filter((row) => 
-      row.game_mode === gameModeEnum && row.region.toLowerCase() === currentRegion
-    );
-
-    if (currentView !== 'all') {
-      let startTime: DateTime;
-      let endTime: DateTime;
-
-      if (currentView === 'week') {
-        startTime = selectedDate.startOf('week').startOf('day');
-        endTime = startTime.plus({ weeks: 1 });
-      } else {
-        startTime = selectedDate.startOf('day');
-        endTime = startTime.plus({ days: 1 });
-      }
-
-      // Get all data before current window
-      const previousWindowData = filtered
-        .filter(item => DateTime.fromISO(item.snapshot_time).setZone('America/Los_Angeles') < startTime)
-        .sort((a, b) => DateTime.fromISO(b.snapshot_time).setZone('America/Los_Angeles').toMillis() - DateTime.fromISO(a.snapshot_time).setZone('America/Los_Angeles').toMillis());
-
-      // Get data in current window
-      filtered = filtered.filter((item) => {
-        const itemTime = DateTime.fromISO(item.snapshot_time).setZone('America/Los_Angeles');
-        return itemTime >= startTime && itemTime <= endTime;
-      });
-
-      // If we have data in current window
-      if (filtered.length > 0) {
-
-        // Get all entries before the window
-        const beforeWindow = previousWindowData.filter(item =>
-          DateTime.fromISO(item.snapshot_time).setZone('America/Los_Angeles') < startTime
-        ).sort((a, b) =>
-          DateTime.fromISO(b.snapshot_time).setZone('America/Los_Angeles').toMillis() - DateTime.fromISO(a.snapshot_time).setZone('America/Los_Angeles').toMillis()
-        );
-
-        // If we have entries before the window, add the most recent one
-        if (beforeWindow.length > 0) {
-          // Find the last consecutive duplicate rating from before the window
-          let lastDuplicateIndex = 0;
-          const firstRating = beforeWindow[0].rating;
-
-          for (let i = 1; i < beforeWindow.length; i++) {
-            if (beforeWindow[i].rating === firstRating) {
-              lastDuplicateIndex = i;
-            } else {
-              break;
-            }
-          }
-
-          filtered.unshift(beforeWindow[lastDuplicateIndex]);
-        }
-
-        // Remove any duplicates
-        filtered = dedupData(filtered);
-      } else if (previousWindowData.length > 0) {
-        // No data in current window but we have previous data
-        // Use the most recent previous rating
-        filtered = [previousWindowData[0]];
-      }
-    }
-
-    return filtered;
+  const filteredData = useMemo(() => {
+    return getFilteredProfileData(playerData.data, currentView, selectedDate, currentRegion, gameMode);
   }, [playerData.data, currentView, selectedDate, currentRegion, gameMode]);
 
-  filteredData = dedupData(filteredData);
-
   const gameRecordsFilterKey = useMemo(() => {
-    const dateKey =
-      currentView === 'all' ? 'season' : selectedDate.toISODate() ?? '';
-    return `${player}-${currentRegion}-${gameMode}-${currentView}-${dateKey}`;
+    return getGameRecordsFilterKey(player, currentRegion, gameMode, currentView, selectedDate);
   }, [player, currentRegion, gameMode, currentView, selectedDate]);
 
-  // Calculate placements and average placement from filtered data
-  const ratings = filteredData.map((d) => d.rating);
-  const { placements, average: averagePlacement } = calculatePlacementsWithAverage(ratings);
+  const { placements, average: averagePlacement } = getProfilePlacementStats(filteredData);
 
-  // Always show the latest rating for the selected region/mode, independent of timeframe filters.
   const currentRating = useMemo(() => {
-    const gameModeEnum = gameMode === 'd' ? '1' : '0';
-    const regionModeSnapshots = playerData.data.filter(
-      (row) =>
-        row.game_mode === gameModeEnum &&
-        row.region.toLowerCase() === currentRegion
-    );
-    return regionModeSnapshots[regionModeSnapshots.length - 1]?.rating ?? 0;
+    return getProfileCurrentRating(playerData.data, currentRegion, gameMode);
   }, [playerData.data, currentRegion, gameMode]);
 
   const replaceUrlWithoutNavigation = useCallback((newParams: {
@@ -344,19 +225,9 @@ export default function PlayerProfile({ player, region, date, playerData, channe
     });
   };
 
-  const { availableModes } = playerData;
-  const { availableCombos } = availableModes;
-
-  // Helper function to check if a combination exists
-  const hasCombo = (r: string, gm: string) =>
-    availableCombos.includes(`${r.toLowerCase()}-${gm === 'd' ? '1' : '0'}`);
-
-  // Determine which buttons to show
-  const showSoloButton = hasCombo(currentRegion, 's');
-  const showDuoButton = hasCombo(currentRegion, 'd');
-  const showRegionButtons = availableModes.regions.filter(r =>
-    hasCombo(r, gameMode)  // Only show regions that have data for the current game mode
-  );
+  const { showSoloButton, showDuoButton, showRegionButtons } = useMemo(() => {
+    return getAvailableProfileControls(playerData, currentRegion, gameMode);
+  }, [playerData, currentRegion, gameMode]);
 
   useEffect(() => {
     const onPopState = () => {

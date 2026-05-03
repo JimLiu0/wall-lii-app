@@ -7,7 +7,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from 'lucide-react';
-import GameRecordsTable from '@/components/game-records/GameRecordsTable';
+import GameRecordsTable from './GameRecordsTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useGameRecordsPaginated } from '@/hooks/useGameRecordsPaginated';
+import { useGameRecordsPaginated } from '../../_hooks/useGameRecordsPaginated';
 import type { SnapshotRowForGames } from '@/utils/buildGameRecordsFromSnapshots';
 
 const PAGE_SIZE = 25;

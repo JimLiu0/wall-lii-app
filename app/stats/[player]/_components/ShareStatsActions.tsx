@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import CopyButton from '@/components/CopyButton';
+import CopyButton from '@/components/shared/CopyButton';
 
 interface ShareStatsActionsProps {
   playerName: string;

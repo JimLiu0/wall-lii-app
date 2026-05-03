@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Button({ text, selected, onClick }: { text: string, selected: boolean, onClick: () => void }) {
+export default function FilterButton({ text, selected, onClick }: { text: string, selected: boolean, onClick: () => void }) {
   return (
     <button
       onClick={onClick}

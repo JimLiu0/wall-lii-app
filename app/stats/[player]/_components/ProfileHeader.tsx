@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import PlayerSearch from '@/components/shared/PlayerSearch';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
 interface ProfileHeaderProps {

@@ -1,6 +1,6 @@
 'use client';
 
-import ProfileHeader from '@/components/player-profile/ProfileHeader';
+import ProfileHeader from './ProfileHeader';
 
 interface PlayerNotFoundProps {
   player: string;

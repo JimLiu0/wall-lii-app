@@ -1,6 +1,6 @@
 'use client';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Label } from 'recharts';
-import RatingTooltip from './ToolTip';
+import RatingTooltip from './RatingTooltip';
 import { DateTime } from 'luxon';
 import { dedupData } from '@/utils/getDedupData';
 import { useEffect, useState } from 'react';

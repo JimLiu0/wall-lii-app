@@ -1,10 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Button } from './ui/button';
+import { Button } from '@/components/ui/button';
 import { Copy, Check } from 'lucide-react';
 import type { VariantProps } from 'class-variance-authority';
-import { buttonVariants } from './ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { trackEvent } from '@/lib/analytics';
 
 interface CopyButtonProps {

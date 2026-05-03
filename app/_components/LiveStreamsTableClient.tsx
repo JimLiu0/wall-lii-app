@@ -3,7 +3,7 @@
 import DashboardCard from "@/components/shared/DashboardCard";
 import { AppLink } from "@/components/ui/app-link";
 
-import SocialIndicators from "@/components/SocialIndicators";
+import SocialIndicators from "@/components/shared/SocialIndicators";
 import {
   Table,
   TableBody,

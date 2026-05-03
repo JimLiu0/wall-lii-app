@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { gameRecordsColumns } from '@/components/game-records/gameRecordsColumns';
+import { gameRecordsColumns } from './gameRecordsColumns';
 import type { GameRecordRow } from '@/utils/buildGameRecordsFromSnapshots';
 
 export interface GameRecordsTableProps {

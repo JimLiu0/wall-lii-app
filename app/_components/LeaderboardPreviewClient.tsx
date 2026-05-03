@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import SocialIndicators from '../SocialIndicators';
+import SocialIndicators from '@/components/shared/SocialIndicators';
 import DashboardCard from '@/components/shared/DashboardCard';
 import { AppLink } from '@/components/ui/app-link';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';

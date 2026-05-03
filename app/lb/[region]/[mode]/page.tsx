@@ -1,12 +1,21 @@
-import LeaderboardContentPaginated from '@/components/LeaderboardContentPaginated';
-import NewsBanner from '@/components/NewsBanner';
-import SeasonResetBanner from '@/components/SeasonResetBanner';
-import TimedAnnouncementBanner from '@/components/TimedAnnouncementBanner';
+import LeaderboardTableClient from './_components/LeaderboardTableClient';
+import NewsBanner from '@/components/shared/NewsBanner';
+import SeasonResetBanner from '@/components/shared/SeasonResetBanner';
+import TimedAnnouncementBanner from '@/components/shared/TimedAnnouncementBanner';
 import AdPageShell from '@/components/ads/AdPageShell';
 import { adSlots } from '@/components/ads/adSlots';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { normalizeUrlParams } from '@/utils/urlParams';
+import {
+  fetchLeaderboardMinDate,
+  fetchLeaderboardPage,
+  fetchLeaderboardSocialData,
+  getLeaderboardDateOffset,
+  PAGE_SIZE,
+  type InitialLeaderboardState,
+  type LeaderboardMode,
+} from './_lib/data';
 
 interface PageParams {
   region: string;
@@ -68,12 +77,49 @@ export default async function Page({ params, searchParams }: PageProps) {
   }
 
   const defaultSolo = mode.toLowerCase() === 'solo';
+  const normalizedRegion = region.toLowerCase();
+  const normalizedMode: LeaderboardMode = defaultSolo ? 'solo' : 'duo';
   const normalizedParams = normalizeUrlParams({
     ...resolvedSearchParams,
-    region: region.toLowerCase(),
-    mode: defaultSolo ? 'solo' : 'duo',
+    region: normalizedRegion,
+    mode: normalizedMode,
   });
   const initialView = normalizedParams.view === 'week' ? 'week' : 'day';
+  const dateOffset = getLeaderboardDateOffset(normalizedParams.date);
+
+  let initialState: InitialLeaderboardState;
+  try {
+    const [leaderboardData, minDate] = await Promise.all([
+      fetchLeaderboardPage({
+        region: normalizedRegion,
+        mode: normalizedMode,
+        timeframe: initialView,
+        dateOffset,
+        pageIndex: 0,
+        pageSize: PAGE_SIZE,
+        search: '',
+      }),
+      fetchLeaderboardMinDate(normalizedRegion, normalizedMode),
+    ]);
+    const socialData = await fetchLeaderboardSocialData(leaderboardData.entries);
+
+    initialState = {
+      ...leaderboardData,
+      ...socialData,
+      minDate,
+      errorMessage: null,
+    };
+  } catch (error) {
+    console.error('Error fetching initial leaderboard state:', error);
+    initialState = {
+      entries: [],
+      totalRows: 0,
+      channelData: [],
+      chineseStreamerData: [],
+      minDate: null,
+      errorMessage: 'Unable to load leaderboard data.',
+    };
+  }
 
   return (
     <div className="min-h-screen">
@@ -85,11 +131,12 @@ export default async function Page({ params, searchParams }: PageProps) {
           <SeasonResetBanner />
           <TimedAnnouncementBanner />
           <NewsBanner />
-          <LeaderboardContentPaginated
-            region={region.toLowerCase()}
+          <LeaderboardTableClient
+            region={normalizedRegion}
             defaultSolo={defaultSolo}
             initialView={initialView}
             initialDate={normalizedParams.date}
+            initialState={initialState}
           />
         </AdPageShell>
       </main>

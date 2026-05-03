@@ -1,5 +1,5 @@
 import { supabase } from '@/utils/supabaseClient';
-import NewsCard from '@/components/NewsCard';
+import NewsCard from './_components/NewsCard';
 
 export const revalidate = 300; // Revalidate every 5 minutes
 

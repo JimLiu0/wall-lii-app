@@ -1,8 +1,8 @@
-import NewsBanner from '@/components/NewsBanner';
-import SeasonResetBanner from '@/components/SeasonResetBanner';
-import TimedAnnouncementBanner from '@/components/TimedAnnouncementBanner';
-import LiveStreamsTable from '@/components/home/LiveStreamsTable';
-import LeaderboardPreview from '@/components/home/LeaderboardPreview';
+import NewsBanner from '@/components/shared/NewsBanner';
+import SeasonResetBanner from '@/components/shared/SeasonResetBanner';
+import TimedAnnouncementBanner from '@/components/shared/TimedAnnouncementBanner';
+import LiveStreamsTable from './_components/LiveStreamsTable';
+import LeaderboardPreview from './_components/LeaderboardPreview';
 import PlayerSearch from '@/components/shared/PlayerSearch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import AdPageShell from '@/components/ads/AdPageShell';

@@ -1,5 +1,5 @@
 import { supabase } from "@/utils/supabaseClient";
-import { EntityToggleContent } from "@/components/EntityToggleContent";
+import { EntityToggleContent } from "../_components/EntityToggleContent";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
