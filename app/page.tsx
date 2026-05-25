@@ -34,15 +34,15 @@ export default function HomePage() {
           <PlayerSearch />
         </div>
         
-        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex flex-col gap-6 lg:flex-row">
           <div className="lg:w-1/2">
             <LiveStreamsTable />
           </div>
-          <InlineAd slot={adSlots.inline} tabletAndBelow />
           <div className="lg:w-1/2">
             <LeaderboardPreview />
           </div>
         </div>
+        <InlineAd slot={adSlots.inline} tabletAndBelow />
       </div>
     </AdPageShell>
   );

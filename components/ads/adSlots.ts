@@ -4,5 +4,4 @@ export const ADSENSE_CLIENT_ID =
 export const adSlots = {
   top: process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP,
   inline: process.env.NEXT_PUBLIC_ADSENSE_SLOT_INLINE,
-  sideRail: process.env.NEXT_PUBLIC_ADSENSE_SLOT_SIDE_RAIL,
 } as const;
