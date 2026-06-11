@@ -34,6 +34,24 @@ export interface FetchPlayerDataResult {
   error: PostgrestError | null;
 }
 
+const UNAVAILABLE_ERROR: PostgrestError = {
+  name: 'PostgrestError',
+  message: 'Stats temporarily unavailable',
+  details: '',
+  hint: '',
+  code: 'UNAVAILABLE',
+};
+
+function emptyUnavailableResult(): FetchPlayerDataResult {
+  return {
+    channelData: [],
+    chineseStreamerData: [],
+    allData: [],
+    currentRanks: {},
+    error: UNAVAILABLE_ERROR,
+  };
+}
+
 export interface SelectionResolutionInput {
   allData: SnapshotPoint[];
   requestedRegion: string;
@@ -52,50 +70,67 @@ export interface SelectionResolution {
 }
 
 export async function generatePlayerMetadata(player: string): Promise<Metadata> {
-  const playerId = await getPlayerId(player);
-  if (!playerId) {
+  try {
+    const playerId = await getPlayerId(player);
+    if (!playerId) {
+      return {
+        title: 'Player Not Found',
+        description: `Player ${player} not found on Wallii`,
+      };
+    }
+
+    const { data: latestSnapshot } = await supabase
+      .from('leaderboard_snapshots')
+      .select('player_id, rating')
+      .eq('player_id', playerId)
+      .order('snapshot_time', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!latestSnapshot) {
+      return {
+        title: 'Player Not Found',
+        description: 'This player could not be found in our database.',
+      };
+    }
+
     return {
-      title: 'Player Not Found',
-      description: `Player ${player} not found on Wallii`,
+      title: `${player} - Player Profile`,
+      description: `View ${player}'s Hearthstone Battlegrounds player profile, statistics, and MMR history. Track rating changes, peak ratings, and performance over time.`,
+      openGraph: {
+        title: `${player} - Player Profile`,
+        description: `View ${player}'s Hearthstone Battlegrounds player profile, statistics, and MMR history.`,
+        url: `/stats/${encodeURIComponent(player)}`,
+        type: 'profile',
+      },
+      twitter: {
+        card: 'summary',
+        title: `${player} - Player Profile`,
+        description: `View ${player}'s Hearthstone Battlegrounds player profile, statistics, and MMR history.`,
+      },
+      alternates: {
+        canonical: `/stats/${encodeURIComponent(player)}`,
+      },
+    };
+  } catch (metadataError) {
+    console.error('Error generating player metadata:', player, metadataError);
+    return {
+      title: `${player} - Player Profile`,
+      description: `View ${player}'s Hearthstone Battlegrounds player profile on Wallii.`,
     };
   }
-
-  const { data: latestSnapshot } = await supabase
-    .from('leaderboard_snapshots')
-    .select('player_id, rating')
-    .eq('player_id', playerId)
-    .order('snapshot_time', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (!latestSnapshot) {
-    return {
-      title: 'Player Not Found',
-      description: 'This player could not be found in our database.',
-    };
-  }
-
-  return {
-    title: `${player} - Player Profile`,
-    description: `View ${player}'s Hearthstone Battlegrounds player profile, statistics, and MMR history. Track rating changes, peak ratings, and performance over time.`,
-    openGraph: {
-      title: `${player} - Player Profile`,
-      description: `View ${player}'s Hearthstone Battlegrounds player profile, statistics, and MMR history.`,
-      url: `/stats/${encodeURIComponent(player)}`,
-      type: 'profile',
-    },
-    twitter: {
-      card: 'summary',
-      title: `${player} - Player Profile`,
-      description: `View ${player}'s Hearthstone Battlegrounds player profile, statistics, and MMR history.`,
-    },
-    alternates: {
-      canonical: `/stats/${encodeURIComponent(player)}`,
-    },
-  };
 }
 
 export async function fetchPlayerData(player: string): Promise<FetchPlayerDataResult> {
+  try {
+    return await fetchPlayerDataUnsafe(player);
+  } catch (fetchError) {
+    console.error('Unexpected error fetching player data:', player, fetchError);
+    return emptyUnavailableResult();
+  }
+}
+
+async function fetchPlayerDataUnsafe(player: string): Promise<FetchPlayerDataResult> {
   const { data: channelData, error: channelError } = await supabase
     .from('channels')
     .select('channel, player, live, youtube')

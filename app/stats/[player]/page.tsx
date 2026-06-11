@@ -4,6 +4,7 @@ import PlayerProfile from './_components/PlayerProfile';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import PlayerNotFound from './_components/PlayerNotFound';
+import StatsUnavailable from './_components/StatsUnavailable';
 import { normalizeUrlParams, toNewUrlParams, hasOldFormat } from '@/utils/urlParams';
 import { fetchPlayerData, generatePlayerMetadata, PlayerData, resolveSelection } from './_lib/data';
 import DashboardCard from '@/components/shared/DashboardCard';
@@ -33,29 +34,32 @@ interface PageProps {
 
 // ISR: Generate static params for popular players
 export async function generateStaticParams() {
-  // Fetch top players to pre-generate their pages
-  // Use a fixed date or remove the date filter to avoid dynamic behavior
-  const { data: topPlayers } = await supabase
-    .from('daily_leaderboard_stats')
-    .select(`
-      player_id,
-      players!inner(player_name)
-    `)
-    .order('day_start', { ascending: false })
-    .limit(100);
+  try {
+    const { data: topPlayers } = await supabase
+      .from('daily_leaderboard_stats')
+      .select(`
+        player_id,
+        players!inner(player_name)
+      `)
+      .order('day_start', { ascending: false })
+      .limit(100);
 
-  if (!topPlayers) return [];
+    if (!topPlayers) return [];
 
-  const uniquePlayers = new Set<string>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  topPlayers.forEach((player: any) => {
-    const playerName = player?.players?.player_name;
-    if (typeof playerName === 'string' && playerName.length > 0) {
-      uniquePlayers.add(playerName.toLowerCase());
-    }
-  });
+    const uniquePlayers = new Set<string>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    topPlayers.forEach((player: any) => {
+      const playerName = player?.players?.player_name;
+      if (typeof playerName === 'string' && playerName.length > 0) {
+        uniquePlayers.add(playerName.toLowerCase());
+      }
+    });
 
-  return Array.from(uniquePlayers).map((player) => ({ player }));
+    return Array.from(uniquePlayers).map((player) => ({ player }));
+  } catch (staticParamsError) {
+    console.error('generateStaticParams failed for stats:', staticParamsError);
+    return [];
+  }
 }
 
 // ISR: Revalidate every 5 minutes
@@ -102,7 +106,11 @@ export default async function PlayerPage({
     youtube: entry.youtube ?? undefined,
   }));
 
-  if (error || !allData || allData.length === 0) {
+  if (error) {
+    return <StatsUnavailable player={player} />;
+  }
+
+  if (!allData || allData.length === 0) {
     return <PlayerNotFound player={player} />;
   }
 

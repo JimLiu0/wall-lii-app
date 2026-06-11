@@ -3,7 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from 'next/script'
 import NavBar from './_components/NavBar';
-import ServiceDisruptionBanner from '@/components/shared/ServiceDisruptionBanner';
 import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ['latin'] });
@@ -82,12 +81,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} antialiased min-h-screen bg-background text-foreground`}>
         <NavBar />
-        <main>
-          <div className="container mx-auto px-4 pt-4">
-            <ServiceDisruptionBanner />
-          </div>
-          {children}
-        </main>
+        <main>{children}</main>
         <Script
           strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=G-XCBFMRMS2K"
