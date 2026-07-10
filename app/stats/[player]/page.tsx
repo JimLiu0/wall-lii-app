@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import { supabase } from '@/utils/supabaseClient';
 import PlayerProfile from './_components/PlayerProfile';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
@@ -32,38 +31,7 @@ interface PageProps {
   searchParams: Promise<SearchParams>;
 }
 
-// ISR: Generate static params for popular players
-export async function generateStaticParams() {
-  try {
-    const { data: topPlayers } = await supabase
-      .from('daily_leaderboard_stats')
-      .select(`
-        player_id,
-        players!inner(player_name)
-      `)
-      .order('day_start', { ascending: false })
-      .limit(100);
-
-    if (!topPlayers) return [];
-
-    const uniquePlayers = new Set<string>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    topPlayers.forEach((player: any) => {
-      const playerName = player?.players?.player_name;
-      if (typeof playerName === 'string' && playerName.length > 0) {
-        uniquePlayers.add(playerName.toLowerCase());
-      }
-    });
-
-    return Array.from(uniquePlayers).map((player) => ({ player }));
-  } catch (staticParamsError) {
-    console.error('generateStaticParams failed for stats:', staticParamsError);
-    return [];
-  }
-}
-
-// ISR: Revalidate every 5 minutes
-export const revalidate = 300;
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ params }: { params: Promise<PageParams> }): Promise<Metadata> {
   const resolvedParams = await params;
