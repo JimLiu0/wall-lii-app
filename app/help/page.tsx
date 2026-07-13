@@ -1,10 +1,18 @@
 'use client';
 
-import { Typography, Box, Paper, Divider } from "@mui/material";
 import Image from 'next/image';
 import CopyButton from '@/components/shared/CopyButton';
 import { Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AppLink } from '@/components/ui/app-link';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 const helpMessages = {
   rank: "Use !rank [player] [server]: Get the rank of a player. Use the optional 'duo' prefix for duos. Defaults to the channel name if no player is specified. Example: !rank lii NA or !duorank lii NA",
@@ -47,95 +55,80 @@ const managementCommands = [
 
 export default function HelpPage() {
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1000, mx: "auto" }}>
+    <div className="mx-auto flex max-w-5xl flex-col gap-4 bg-background p-4 md:p-8">
       <Alert
         variant="info"
         className="text-center"
       >
         <AlertTitle>
-          <Info className="h-5 w-5 text-primary" />
+          <Info />
           Important for Wallii Bot Setup
         </AlertTitle>
         <AlertDescription>
           Wallii must be a mod or VIP in your channel if follower-only mode is enabled, otherwise it cannot chat. The bot only joins when you go live due to a 100-channel limit—if it&apos;s not present, go live and run a command in chat.
         </AlertDescription>
       </Alert>
-      <Paper
-        elevation={3}
-        sx={{
-          p: { xs: 2, md: 4 },
-          backgroundColor: "#111827",
-          borderRadius: "12px",
-          color: "#F3F4F6"
-        }}
-      >
-        <Typography variant="h4" fontWeight={700} gutterBottom>
-          🛠️ Manage Twitch Bot
-        </Typography>
-
-        <Typography variant="body1" gutterBottom>
-          These commands must be used in Twitch chat on{" "}
-          <a
-            href="https://twitch.tv/WalliiBot"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "#60A5FA" }}
-          >
-            twitch.tv/WalliiBot
-          </a>
-        </Typography>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
-          {managementCommands.map((cmd) => (
-            <div
-              key={cmd.command}
-              className="bg-gray-800 rounded-lg p-4 flex flex-col gap-2"
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            <h1>🛠️ Manage Twitch Bot</h1>
+          </CardTitle>
+          <CardDescription>
+            These commands must be used in Twitch chat on{' '}
+            <AppLink
+              href="https://twitch.tv/WalliiBot"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              <div className="flex items-center justify-between">
-                <code className="text-blue-400">{cmd.command}</code>
-                <CopyButton text={cmd.command} />
+              twitch.tv/WalliiBot
+            </AppLink>
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="flex flex-col gap-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {managementCommands.map((cmd) => (
+              <div
+                key={cmd.command}
+                className="flex flex-col gap-2 rounded-lg border border-border bg-muted/50 p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <code className="text-link">{cmd.command}</code>
+                  <CopyButton text={cmd.command} />
+                </div>
+                <p className="text-sm text-muted-foreground">{cmd.description}</p>
+                <div className="relative mt-2 h-48">
+                  <Image
+                    src={cmd.image}
+                    alt={`Example of ${cmd.command}`}
+                    fill
+                    className="rounded-md object-contain"
+                  />
+                </div>
               </div>
-              <p className="text-sm text-gray-300">{cmd.description}</p>
-              <div className="relative h-48 mt-2">
-                <Image
-                  src={cmd.image}
-                  alt={`Example of ${cmd.command}`}
-                  fill
-                  className="rounded-md object-contain"
-                />
+            ))}
+          </div>
+
+          <Separator />
+
+          <h2 className="text-xl font-semibold text-foreground">📚 Command Reference</h2>
+
+          <div className="flex flex-col gap-3">
+            {Object.entries(helpMessages).map(([key, desc]) => (
+              <div
+                key={key}
+                className="rounded-lg border border-border bg-muted/50 p-4"
+              >
+                <div className="mb-2 flex items-center justify-between">
+                  <code className="font-bold text-link">!{key}</code>
+                  <CopyButton text={`!${key}`} />
+                </div>
+                <p className="text-sm text-muted-foreground">{desc}</p>
               </div>
-            </div>
-          ))}
-        </div>
-
-        <Divider sx={{ my: 4, borderColor: "#374151" }} />
-
-        <Typography variant="h5" fontWeight={600} gutterBottom>
-          📚 Command Reference
-        </Typography>
-
-        {Object.entries(helpMessages).map(([key, desc]) => (
-          <Box
-            key={key}
-            sx={{
-              mb: 3,
-              backgroundColor: "#1F2937",
-              p: 2,
-              borderRadius: "8px"
-            }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <Typography variant="subtitle1" fontWeight="bold" sx={{ fontFamily: "monospace", color: "#93C5FD" }}>
-                !{key}
-              </Typography>
-              <CopyButton text={`!${key}`} />
-            </div>
-            <Typography variant="body2" sx={{ mt: 0.5 }}>
-              {desc}
-            </Typography>
-          </Box>
-        ))}
-      </Paper>
-    </Box>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

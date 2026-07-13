@@ -58,10 +58,6 @@
     --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-body {
-    @apply text-white;
-}
-
 html {
     color-scheme: light;
 }
@@ -94,27 +90,27 @@ html.theme-transition-disabled *::after {
     }
 
     .prose a {
-        @apply text-blue-400 hover:text-blue-300;
+        @apply text-link hover:text-link-hover;
     }
 
     .prose table {
-        @apply w-full text-sm text-left border border-gray-700 rounded-lg overflow-hidden;
+        @apply w-full overflow-hidden rounded-lg border border-border text-left text-sm;
     }
 
     .prose thead {
-        @apply bg-gray-800 text-white;
+        @apply bg-muted text-foreground;
     }
 
     .prose th {
-        @apply px-4 py-3 border border-gray-600 font-semibold;
+        @apply border border-border px-4 py-3 font-semibold;
     }
 
     .prose tbody tr {
-        @apply even:bg-gray-900 odd:bg-gray-800 transition-colors hover:bg-gray-700;
+        @apply bg-card transition-colors even:bg-muted/50 hover:bg-accent;
     }
 
     .prose td {
-        @apply px-4 py-2 border border-gray-700 text-white;
+        @apply border border-border px-4 py-2 text-foreground;
     }
 
     .prose span:has(img) {
@@ -133,10 +129,10 @@ html.theme-transition-disabled *::after {
     }
 
     .entity-highlight {
-        background-color: rgba(234, 179, 8, 0.15);
-        color: #eab308;
+        background-color: var(--banner-warning);
+        color: var(--banner-warning-foreground);
         cursor: help;
-        border-bottom: 1px dashed #eab308;
+        border-bottom: 1px dashed var(--banner-warning-border);
         position: relative;
         display: inline;
         padding: 0 2px;
@@ -144,7 +140,7 @@ html.theme-transition-disabled *::after {
     }
 
     .entity-highlight:hover {
-        background-color: rgba(234, 179, 8, 0.3);
+        background-color: color-mix(in oklch, var(--banner-warning) 80%, var(--banner-warning-foreground));
     }
 
     @media (max-width: 768px) {

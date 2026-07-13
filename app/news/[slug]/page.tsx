@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { JSDOM } from "jsdom";
+import { ArrowLeft } from "lucide-react";
 import { getBattlegroundsEntities, getNewsPost } from "./_lib/data";
 
 export const revalidate = 3600; // Revalidate every hour
@@ -23,7 +24,7 @@ function enhancePlaceholdersWithLinks(html: string): string {
     link.textContent = text;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.className = "text-blue-400 hover:text-blue-500 underline";
+    link.className = "text-link hover:text-link-hover underline";
 
     placeholder.textContent = ""; // clear existing text
     placeholder.appendChild(link);
@@ -397,30 +398,18 @@ export default async function NewsPostPage({
   const processedContentWithLinks = enhancePlaceholdersWithLinks(processedContent);
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         {/* Back button */}
         <Link
           href="/news"
-          className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-8 transition-colors"
+          className="mb-8 inline-flex items-center gap-2 font-medium text-link transition-colors hover:text-link-hover"
         >
-          <svg
-            className="w-5 h-5 mr-2"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M10 19l-7-7m0 0l7-7m-7 7h18"
-            />
-          </svg>
+          <ArrowLeft className="size-5" />
           Back to News
         </Link>
 
-        <article className="max-w-4xl mx-auto bg-gray-900 rounded-xl overflow-hidden shadow-xl">
+        <article className="mx-auto max-w-4xl overflow-hidden rounded-xl bg-card text-card-foreground shadow-xl ring-1 ring-border">
           {/* Hero Image */}
           {post.image_url && (
             <div className="relative w-full h-[400px]">
@@ -436,40 +425,40 @@ export default async function NewsPostPage({
 
           <div className="p-8">
             {/* Metadata */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-400 mb-6">
-              <span className="bg-gray-800 px-3 py-1 rounded-full">
+            <div className="mb-6 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+              <span className="rounded-full bg-muted px-3 py-1">
                 {new Date(post.created_at).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
                 })}
               </span>
-              <span className="bg-gray-800 px-3 py-1 rounded-full">
+              <span className="rounded-full bg-muted px-3 py-1">
                 By {post.author}
               </span>
               {post.type && (
-                <span className="bg-blue-900 text-blue-200 px-3 py-1 rounded-full">
+                <span className="rounded-full bg-secondary px-3 py-1 text-secondary-foreground">
                   {post.type}
                 </span>
               )}
             </div>
 
             {/* Title */}
-            <h1 className="text-4xl font-bold text-white mb-6 leading-tight">
+            <h1 className="mb-6 text-4xl font-bold leading-tight text-foreground">
               {post.title}
             </h1>
 
             {/* Summary */}
             {post.summary && (
-              <div className="text-xl text-gray-300 mb-8 font-medium leading-relaxed">
+              <div className="mb-8 text-xl font-medium leading-relaxed text-muted-foreground">
                 {post.summary}
               </div>
             )}
 
             {/* Source */}
-            <div className="text-xl text-gray-300 mb-8 font-medium leading-relaxed">
+            <div className="mb-8 text-xl font-medium leading-relaxed text-muted-foreground">
               <a
-                className="text-blue-400 hover:text-blue-300"
+                className="text-link hover:text-link-hover"
                 href={post.source}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -485,7 +474,7 @@ export default async function NewsPostPage({
             />
             
             {/* Footer metadata */}
-            <div className="mt-12 pt-6 border-t border-gray-800 text-sm text-gray-400">
+            <div className="mt-12 border-t border-border pt-6 text-sm text-muted-foreground">
               Last updated:{" "}
               {new Date(post.updated_at || post.created_at).toLocaleDateString(
                 "en-US",

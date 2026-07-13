@@ -321,7 +321,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
               {filteredData.length > 0 ? (
                 <PlayerGraph data={filteredData} playerName={playerData.name} placements={placements} />
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
+                <div className="flex h-full items-center justify-center text-muted-foreground">
                   No data found during this period
                 </div>
               )}
