@@ -1,27 +1,13 @@
-import { supabase } from "@/utils/supabaseClient";
 import { EntityToggleContent } from "../_components/EntityToggleContent";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { JSDOM } from "jsdom";
+import { getBattlegroundsEntities, getNewsPost } from "./_lib/data";
 
 export const revalidate = 3600; // Revalidate every hour
 export const dynamic = 'force-static';
-
-interface NewsPost {
-  id: string;
-  title: string;
-  slug: string;
-  content: string;
-  summary?: string;
-  image_url?: string;
-  author: string;
-  created_at: string;
-  updated_at?: string;
-  type?: string;
-  source?: string;
-}
 
 function enhancePlaceholdersWithLinks(html: string): string {
   const dom = new JSDOM(html);
@@ -328,22 +314,6 @@ function escapeRegExp(string: string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-async function getNewsPost(slug: string): Promise<NewsPost | null> {
-  const { data, error } = await supabase
-    .from("news_posts")
-    .select("*")
-    .eq("slug", slug)
-    .eq("is_published", true)
-    .single();
-
-  if (error || !data) {
-    console.error("Error fetching news post:", error);
-    return null;
-  }
-
-  return data;
-}
-
 export async function generateMetadata({
   params,
 }: {
@@ -402,44 +372,7 @@ export default async function NewsPostPage({
     notFound();
   }
 
-  // Fetch all bg_entities in chunks
-  async function fetchAllEntities(): Promise<
-    { entity_name: string; image_url: string }[]
-  > {
-    const chunkSize = 1000;
-    const allEntities: { entity_name: string; image_url: string }[] = [];
-    let from = 0;
-    let to = chunkSize - 1;
-
-    while (true) {
-      const { data, error } = await supabase
-        .from("bg_entities")
-        .select("entity_name, image_url")
-        .range(from, to);
-
-      if (error) {
-        console.error("Error fetching bg_entities:", error);
-        break;
-      }
-
-      if (!data || data.length === 0) {
-        break;
-      }
-
-      allEntities.push(...data);
-
-      if (data.length < chunkSize) {
-        break; // final chunk
-      }
-
-      from += chunkSize;
-      to += chunkSize;
-    }
-
-    return allEntities;
-  }
-
-  const entities = await fetchAllEntities();
+  const entities = await getBattlegroundsEntities();
 
   const entityMap = new Map<string, string>();
   for (const e of entities) {

@@ -1,5 +1,7 @@
 import { PostgrestError } from '@supabase/supabase-js';
 import type { Metadata } from 'next';
+import { unstable_cache } from 'next/cache';
+import { cache } from 'react';
 import { getCurrentLeaderboardDate } from '@/utils/dateUtils';
 import { getPlayerId } from '@/utils/playerUtils';
 import { supabase } from '@/utils/supabaseClient';
@@ -71,23 +73,8 @@ export interface SelectionResolution {
 
 export async function generatePlayerMetadata(player: string): Promise<Metadata> {
   try {
-    const playerId = await getPlayerId(player);
-    if (!playerId) {
-      return {
-        title: 'Player Not Found',
-        description: `Player ${player} not found on Wallii`,
-      };
-    }
-
-    const { data: latestSnapshot } = await supabase
-      .from('leaderboard_snapshots')
-      .select('player_id, rating')
-      .eq('player_id', playerId)
-      .order('snapshot_time', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (!latestSnapshot) {
+    const { allData, error } = await fetchPlayerData(player);
+    if (error || allData.length === 0) {
       return {
         title: 'Player Not Found',
         description: 'This player could not be found in our database.',
@@ -123,7 +110,7 @@ export async function generatePlayerMetadata(player: string): Promise<Metadata> 
 
 export async function fetchPlayerData(player: string): Promise<FetchPlayerDataResult> {
   try {
-    return await fetchPlayerDataUnsafe(player);
+    return await getCachedPlayerData(player);
   } catch (fetchError) {
     console.error('Unexpected error fetching player data:', player, fetchError);
     return emptyUnavailableResult();
@@ -256,6 +243,21 @@ async function fetchPlayerDataUnsafe(player: string): Promise<FetchPlayerDataRes
     error,
   };
 }
+
+const getPersistedPlayerData = unstable_cache(
+  async (player: string) => {
+    const result = await fetchPlayerDataUnsafe(player);
+    if (result.error) {
+      throw result.error;
+    }
+    return result;
+  },
+  ['player-profile-data'],
+  { revalidate: 5 * 60 },
+);
+
+// Metadata and page rendering share one promise during a request.
+const getCachedPlayerData = cache(getPersistedPlayerData);
 
 function determineDefaultView(timestamp: string): 'all' | 'week' | 'day' {
   const changeTime = new Date(timestamp);
