@@ -1,5 +1,4 @@
 import { supabase } from '@/utils/supabaseClient';
-import { unstable_noStore } from 'next/cache';
 import { DateTime } from 'luxon';
 import LiveStreamsTableClient from './LiveStreamsTableClient';
 
@@ -22,9 +21,6 @@ interface ChannelEntry {
 }
 
 export default async function LiveStreamsTable() {
-  // Prevent caching for live data
-  unstable_noStore();
-  
   // Fetch all live channels
   const { data: fetchedChannels, error: channelError } = await supabase
     .from('channels')

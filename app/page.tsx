@@ -9,7 +9,7 @@ import AdPageShell from '@/components/ads/AdPageShell';
 import InlineAd from '@/components/ads/InlineAd';
 import { adSlots } from '@/components/ads/adSlots';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300;
 
 export const metadata = {
   title: 'Hearthstone Battlegrounds Leaderboard',

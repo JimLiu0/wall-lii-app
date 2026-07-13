@@ -125,13 +125,13 @@ export default function NavBar() {
 
           <div className="flex items-center gap-1">
             <Button asChild variant="outline" size="lg" aria-label="Leaderboard">
-              <Link href={leaderboardUrl}>
+              <Link href={leaderboardUrl} prefetch={false}>
                 <Trophy data-icon="inline-start" />
                 <span className="hidden [@media(min-width:431px)]:block">Leaderboard</span>
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" aria-label="Latest News">
-              <Link href="/news">
+              <Link href="/news" prefetch={false}>
                 <Newspaper data-icon="inline-start" />
                 <span className="hidden [@media(min-width:431px)]:block">News</span>
               </Link>
@@ -215,7 +215,7 @@ export default function NavBar() {
               </DropdownMenuContent>
             </DropdownMenu>
             <Button asChild variant="outline" size="lg" aria-label="Help">
-              <Link href="/help">
+              <Link href="/help" prefetch={false}>
                 <HelpCircle data-icon="inline-start" />
                 <span className="hidden [@media(min-width:431px)]:block">Help</span>
               </Link>

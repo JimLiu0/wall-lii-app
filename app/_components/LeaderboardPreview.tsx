@@ -1,5 +1,4 @@
 import { supabase } from '@/utils/supabaseClient';
-import { unstable_noStore } from 'next/cache';
 import { DateTime } from 'luxon';
 import LeaderboardPreviewClient from './LeaderboardPreviewClient';
 
@@ -25,9 +24,6 @@ interface ChannelEntry {
 }
 
 export default async function LeaderboardPreview() {
-  // Prevent caching for live data
-  unstable_noStore();
-  
   // Get today and yesterday dates
   const ptNow = DateTime.now().setZone('America/Los_Angeles');
   const today = ptNow.startOf('day').toISODate() || '';
@@ -141,7 +137,8 @@ export default async function LeaderboardPreview() {
     const mode = obj.value;
     const top10Global = baseLB
       .filter(a => a.region !== 'CN' && a.game_mode === mode)
-      .toSorted((a, b) => b.rating - a.rating)
+      .slice()
+      .sort((a, b) => b.rating - a.rating)
       .slice(0, 10)
       .map((item, index) => ({
         ...item,

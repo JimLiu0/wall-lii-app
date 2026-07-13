@@ -200,23 +200,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Handle /lb/[region] URLs (with or without query params)
-  const lbRegionMatch = pathname.match(/^\/lb\/([^/]+)$/);
-  if (lbRegionMatch) {
-    const region = lbRegionMatch[1].toLowerCase();
-    if (validRegions.includes(region)) {
-      const mode = searchParams.get('mode')?.toLowerCase();
-      const validMode = mode === 'solo' || mode === 'duo' ? mode : 'solo';
-      const url = request.nextUrl.clone();
-      url.pathname = `/lb/${region}/${validMode}`;
-      url.search = '';
-      return NextResponse.redirect(url);
-    }
-  }
-
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/', '/na', '/eu', '/ap', '/cn', '/all', '/lb/:path*', '/stats/:path*'],
+  matcher: ['/na', '/eu', '/ap', '/cn', '/all', '/stats/:path*'],
 };
