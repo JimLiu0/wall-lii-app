@@ -1,5 +1,4 @@
 import { DateTime } from 'luxon';
-import { supabase } from './supabaseClient';
 
 export interface DateRange {
   currentStart: string;
@@ -14,58 +13,24 @@ export interface DateRange {
 export async function getLeaderboardDateRange(timeframe: 'day' | 'week' = 'day', dayOffset: number): Promise<DateRange> {
   const ptNow = DateTime.now().setZone('America/Los_Angeles');
   const today = ptNow.minus({ days: dayOffset }).startOf('day');
-  const todayStr = today.toISODate() || '';
 
-  // First, try to get today's data to see if it exists
-  const { data: todayData, error } = await supabase
-    .from('daily_leaderboard_stats')
-    .select('day_start')
-    .eq('day_start', todayStr)
-    .limit(1);
+  // Avoid a database availability probe on every request. The probe can block
+  // the whole serverless function when Supabase is slow. The leaderboard data
+  // is refreshed after midnight, so use yesterday only during the short window
+  // when today's snapshot may not exist yet.
+  const cutoffTime = today.plus({ minutes: 5 });
+  const isUsingFallback = dayOffset === 0 && ptNow < cutoffTime;
+  const current = isUsingFallback ? today.minus({ days: 1 }) : today;
+  const currentStart = current.toISODate() || '';
 
-  // If today's data exists, use it
-  if (!error && todayData && todayData.length > 0) {
-    let currentStart: string;
-    let prevStart: string;
-
-    if (timeframe === 'day') {
-      currentStart = todayStr;
-      prevStart = today.minus({ days: 1 }).toISODate() || '';
-    } else {
-      // Weekly baseline: day before Monday of the current week (Sunday)
-      const weekStart = today.startOf('week').minus({ days: 1 });
-      currentStart = todayStr;
-      prevStart = weekStart.toISODate() || '';
-    }
-
-    return {
-      currentStart,
-      prevStart,
-      isUsingFallback: false
-    };
-  }
-
-  // If today's data doesn't exist, fall back to yesterday
-  const yesterday = today.minus({ days: 1 });
-  const yesterdayStr = yesterday.toISODate() || '';
-
-  let currentStart: string;
-  let prevStart: string;
-
-  if (timeframe === 'day') {
-    currentStart = yesterdayStr;
-    prevStart = yesterday.minus({ days: 1 }).toISODate() || '';
-  } else {
-    // Weekly baseline: day before Monday of the current week (Sunday)
-    const weekStart = yesterday.startOf('week').minus({ days: 1 });
-    currentStart = yesterdayStr;
-    prevStart = weekStart.toISODate() || '';
-  }
+  const prevStart = timeframe === 'day'
+    ? current.minus({ days: 1 }).toISODate() || ''
+    : current.startOf('week').minus({ days: 1 }).toISODate() || '';
 
   return {
     currentStart,
     prevStart,
-    isUsingFallback: true
+    isUsingFallback,
   };
 }
 
@@ -87,4 +52,4 @@ export function getCurrentLeaderboardDate(): { date: string; isUsingFallback: bo
     date: targetDate.toISODate() || '',
     isUsingFallback
   };
-} 
+}
