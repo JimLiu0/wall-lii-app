@@ -95,7 +95,7 @@ export default function RootLayout({
             gtag('config', 'G-XCBFMRMS2K');
           `}
         </Script>
-        <Analytics />
+        {process.env.VERCEL === '1' && <Analytics />}
       </body>
     </html>
   );

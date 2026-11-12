@@ -31,6 +31,35 @@ To run the app locally:
 
 ---
 
+## Temporary hosting on Netlify
+
+Import `JimLiu0/wall-lii-app` from GitHub and select the Free plan. The repository's
+`netlify.toml` uses Node.js 22, `npm run build`, and `.next`. Netlify automatically
+applies its Next.js adapter; do not deploy `.next` as a plain static folder.
+
+Before the first build, configure these variables in Netlify's project environment
+settings (never commit their values):
+
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`: required for data,
+  available at build time and runtime. Use the public anon key, not a service-role key.
+- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`: required to retain stats
+  rate limiting and automatic IP blocking. Without them, the existing middleware
+  skips those protections. Ensure they are available to middleware at runtime.
+
+Vercel Analytics is enabled only on Vercel; Google Analytics remains enabled on both
+hosts. The removed Edge Config integration is not needed.
+
+Verify the Netlify preview's homepage, leaderboard, player Day/Week/Season views,
+news, and `/api/og` before switching domains. Add `wallii.gg` and `www.wallii.gg`
+to Netlify, then use the exact DNS records shown by its domain setup. Keep the
+existing DNS provider and unrelated mail/TXT records. Record the old web records
+before replacing them so the cutover can be reversed.
+
+Netlify Free has a shared monthly usage cap and pauses projects at the limit.
+Keep the team on Free and check usage after publishing. See the current
+[Netlify pricing](https://www.netlify.com/pricing/) and
+[Next.js deployment documentation](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/).
+
 ## 🛠️ Contributing
 
 Contributions are welcome! Here’s how to get started:
