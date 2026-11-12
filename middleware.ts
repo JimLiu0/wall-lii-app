@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
-import { get } from '@vercel/edge-config';
 
 const validRegions = ['na', 'eu', 'ap', 'cn', 'all'];
 
+// Keep manual blocks local to avoid a billed config read on every stats request.
+// Changes to this list take effect on the next deployment.
 const blockedIPs = new Set(['98.92.59.8']);
 
 const AUTO_BLOCK_THRESHOLD = 3;
@@ -95,16 +96,6 @@ function isPrefetchRequest(request: NextRequest): boolean {
   );
 }
 
-async function isEdgeConfigBlocked(ip: string): Promise<boolean> {
-  try {
-    const edgeBlockedIPs = await get<string[]>('blocked_ips');
-    return Array.isArray(edgeBlockedIPs) && edgeBlockedIPs.includes(ip);
-  } catch (error) {
-    console.error('Failed to read blocked_ips from Edge Config', error);
-    return false;
-  }
-}
-
 async function isAutoBlocked(ip: string): Promise<boolean> {
   try {
     const redis = getRedisClient();
@@ -153,10 +144,6 @@ export async function middleware(request: NextRequest) {
 
   if (shouldProtect && !isPrefetch) {
     if (blockedIPs.has(ip)) {
-      return new NextResponse('Blocked', { status: 403 });
-    }
-
-    if (await isEdgeConfigBlocked(ip)) {
       return new NextResponse('Blocked', { status: 403 });
     }
 

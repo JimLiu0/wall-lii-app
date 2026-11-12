@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation';
 import PlayerNotFound from './_components/PlayerNotFound';
 import StatsUnavailable from './_components/StatsUnavailable';
 import { normalizeUrlParams, toNewUrlParams, hasOldFormat } from '@/utils/urlParams';
-import { fetchPlayerData, generatePlayerMetadata, PlayerData, resolveSelection } from './_lib/data';
+import { fetchPlayerSummary, generatePlayerMetadata, PlayerData, resolveSelection, fetchInitialHistory } from './_lib/data';
+import { historyKey } from './_lib/history';
 import DashboardCard from '@/components/shared/DashboardCard';
 
 
@@ -62,13 +63,13 @@ export default async function PlayerPage({
   }
   
   // Normalize URL parameters (now only new format)
-  const normalized = normalizeUrlParams(resolvedSearchParams);
+  const normalized = normalizeUrlParams({ ...resolvedSearchParams, view: resolvedSearchParams.view ?? 'day' });
   const requestedRegion = normalized.region;
   const requestedView = normalized.view;
   const requestedGameMode = normalized.mode;
 
   // Use shared data fetching function
-  const { channelData, chineseStreamerData, allData, currentRanks, error } = await fetchPlayerData(player);
+  const { playerId, channelData, chineseStreamerData, summarySnapshots, currentRanks, error } = await fetchPlayerSummary(player);
   const normalizedChannelData = channelData.map((entry) => ({
     ...entry,
     youtube: entry.youtube ?? undefined,
@@ -78,7 +79,7 @@ export default async function PlayerPage({
     return <StatsUnavailable player={player} />;
   }
 
-  if (!allData || allData.length === 0) {
+  if (!summarySnapshots || summarySnapshots.length === 0) {
     return <PlayerNotFound player={player} />;
   }
 
@@ -91,7 +92,7 @@ export default async function PlayerPage({
     finalView,
     shouldRedirect,
   } = resolveSelection({
-    allData,
+    summarySnapshots,
     requestedRegion,
     requestedView,
     requestedGameMode,
@@ -108,9 +109,26 @@ export default async function PlayerPage({
     redirect(`/stats/${encodeURIComponent(player)}?${params.toString()}`);
   }
 
+  const initialSelection = {
+    region: finalRegion,
+    mode: validGameMode,
+    view: finalView,
+    date: normalized.date,
+  };
+  let history;
+  try {
+    history = await fetchInitialHistory(playerId, player, initialSelection);
+  } catch (historyError) {
+    console.error('Error fetching selected player history:', historyError);
+    return <StatsUnavailable player={player} />;
+  }
+
   const playerData: PlayerData = {
     name: player,
-    data: allData,
+    data: history,
+    playerId,
+    summarySnapshots,
+    initialSelection,
     availableModes: {
       regions,
       gameModes,
@@ -130,6 +148,7 @@ export default async function PlayerPage({
       </div>
     }>
       <PlayerProfile
+        key={`${player}-${historyKey(initialSelection)}`}
         player={player}
         region={requestedRegion}
         view={requestedView}

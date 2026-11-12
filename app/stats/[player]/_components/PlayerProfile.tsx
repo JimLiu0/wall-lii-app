@@ -14,6 +14,8 @@ import AdPageShell from '@/components/ads/AdPageShell';
 import InlineAd from '@/components/ads/InlineAd';
 import { adSlots } from '@/components/ads/adSlots';
 import DashboardCard from '@/components/shared/DashboardCard';
+import { Button } from '@/components/ui/button';
+import { useProfileHistory } from '../_hooks/useProfileHistory';
 import type { PlayerData } from '../_lib/data';
 import {
   getAvailableProfileControls,
@@ -65,7 +67,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
 
   const [gameMode, setGameMode] = useState<GameMode>(normalizedParams.mode === 'duo' ? 'd' : 's');
   const [currentRegion, setCurrentRegion] = useState<string>(region);
-  const [currentView, setCurrentView] = useState<TimeView>(normalizedParams.view);
+  const [currentView, setCurrentView] = useState<TimeView>(playerData.initialSelection.view);
   
   // Initialize selectedDate from date parameter or calculate from offset
   const [selectedDate, setSelectedDate] = useState<DateTime>(() => {
@@ -78,7 +80,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
       }
     }
     // Fall back to calculating from offset using normalizedParams
-    const view = normalizedParams.view;
+    const view = playerData.initialSelection.view;
     const offset = normalizedParams.offset;
     if (view === 'day') {
       return ptNow.minus({ days: offset }).startOf('day');
@@ -98,6 +100,13 @@ export default function PlayerProfile({ player, region, date, playerData, channe
       }
     }
   }, [date]);
+
+  const history = useProfileHistory(playerData, {
+    region: currentRegion,
+    mode: gameMode === 'd' ? 'duo' : 'solo',
+    view: currentView,
+    date: currentView === 'all' ? null : selectedDate.toISODate(),
+  });
 
   const currentRank = useMemo(() => {
     return getCurrentRank(currentRegion, gameMode, playerData.currentRanks);
@@ -119,12 +128,12 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   }, [currentView, selectedDate]);
 
   const calculatedMinDate = useMemo(() => {
-    return getProfileMinDate(playerData.data, currentRegion, gameMode);
-  }, [playerData.data, currentRegion, gameMode]);
+    return getProfileMinDate(playerData.summarySnapshots, currentRegion, gameMode);
+  }, [playerData.summarySnapshots, currentRegion, gameMode]);
 
   const filteredData = useMemo(() => {
-    return getFilteredProfileData(playerData.data, currentView, selectedDate, currentRegion, gameMode);
-  }, [playerData.data, currentView, selectedDate, currentRegion, gameMode]);
+    return getFilteredProfileData(history.data, currentView, selectedDate, currentRegion, gameMode);
+  }, [history.data, currentView, selectedDate, currentRegion, gameMode]);
 
   const gameRecordsFilterKey = useMemo(() => {
     return getGameRecordsFilterKey(player, currentRegion, gameMode, currentView, selectedDate);
@@ -133,8 +142,8 @@ export default function PlayerProfile({ player, region, date, playerData, channe
   const { placements, average: averagePlacement } = getProfilePlacementStats(filteredData);
 
   const currentRating = useMemo(() => {
-    return getProfileCurrentRating(playerData.data, currentRegion, gameMode);
-  }, [playerData.data, currentRegion, gameMode]);
+    return getProfileCurrentRating(playerData.summarySnapshots, currentRegion, gameMode);
+  }, [playerData.summarySnapshots, currentRegion, gameMode]);
 
   const replaceUrlWithoutNavigation = useCallback((newParams: {
     region: string;
@@ -143,7 +152,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
     date: string | null;
   }) => {
     const params = toNewUrlParams(newParams);
-    const url = `/stats/${player}?${params.toString()}`;
+    const url = `/stats/${encodeURIComponent(player)}?${params.toString()}`;
     window.history.replaceState(null, '', url);
   }, [player]);
 
@@ -236,7 +245,7 @@ export default function PlayerProfile({ player, region, date, playerData, channe
       sp.forEach((value, key) => {
         params[key] = value;
       });
-      const normalized = normalizeUrlParams(params);
+      const normalized = normalizeUrlParams({ ...params, view: params.view ?? 'day' });
       
       setGameMode(normalized.mode === 'duo' ? 'd' : 's');
       setCurrentRegion(normalized.region.toLowerCase());
@@ -318,7 +327,16 @@ export default function PlayerProfile({ player, region, date, playerData, channe
             </div>
 
             <div className="h-[300px] w-full">
-              {filteredData.length > 0 ? (
+              {history.isLoading ? (
+                <div role="status" className="flex h-full items-center justify-center text-muted-foreground">
+                  Loading rating history…
+                </div>
+              ) : history.error ? (
+                <div role="alert" className="flex h-full flex-col items-center justify-center gap-2">
+                  <p>{history.error}</p>
+                  <Button variant="outline" onClick={history.retry}>Try again</Button>
+                </div>
+              ) : filteredData.length > 0 ? (
                 <PlayerGraph data={filteredData} playerName={playerData.name} placements={placements} />
               ) : (
                 <div className="flex h-full items-center justify-center text-muted-foreground">
@@ -332,6 +350,8 @@ export default function PlayerProfile({ player, region, date, playerData, channe
         <GameRecordsSection
           filterKey={gameRecordsFilterKey}
           snapshots={filteredData}
+          isLoading={history.isLoading}
+          error={history.error}
         />
       </DashboardCard>
     </AdPageShell>
