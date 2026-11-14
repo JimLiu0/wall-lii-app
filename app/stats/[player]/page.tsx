@@ -32,7 +32,8 @@ interface PageProps {
   searchParams: Promise<SearchParams>;
 }
 
-export const dynamic = 'force-dynamic';
+// Reading searchParams keeps this route dynamic while allowing its five-minute Data Cache.
+export const revalidate = 300;
 
 export async function generateMetadata({ params }: { params: Promise<PageParams> }): Promise<Metadata> {
   const resolvedParams = await params;

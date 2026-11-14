@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon';
 
-import { getLeaderboardDateRange } from '@/utils/dateUtils';
+import { getLeaderboardDateRange, type DateRange } from '@/utils/dateUtils';
 import { inMemoryCache } from '@/utils/inMemoryCache';
 import { supabase } from '@/utils/supabaseClient';
 
@@ -193,11 +193,21 @@ export async function fetchLeaderboardSocialData(pageEntries: LeaderboardEntry[]
 }
 
 export async function fetchLeaderboardPage(context: LeaderboardFetchContext): Promise<LeaderboardFetchResult> {
-  const cacheKey = getLeaderboardCacheKey(context);
+  const dateRange = await getLeaderboardDateRange(context.timeframe, context.dateOffset);
+  const cacheKey = `${getLeaderboardCacheKey(context)}:${dateRange.currentStart}:${dateRange.prevStart}`;
   const cached = inMemoryCache.get<LeaderboardFetchResult>(cacheKey);
   if (cached) return cached;
 
-  const { currentStart, prevStart } = await getLeaderboardDateRange(context.timeframe, context.dateOffset);
+  const result = await fetchLeaderboardPageUncached(context, dateRange);
+  inMemoryCache.set(cacheKey, result, CACHE_TTL_MS);
+  return result;
+}
+
+// Server persistence and browser memory caching each wrap this once, avoiding stacked TTLs.
+export async function fetchLeaderboardPageUncached(
+  context: LeaderboardFetchContext,
+  { currentStart, prevStart }: DateRange,
+): Promise<LeaderboardFetchResult> {
   const gameMode = context.mode === 'solo' ? '0' : '1';
   const total = await fetchTotalRows(context.region, gameMode, currentStart, context.search);
   const from = context.pageIndex * context.pageSize;
@@ -342,8 +352,5 @@ export async function fetchLeaderboardPage(context: LeaderboardFetchContext): Pr
     };
   });
 
-  const result = { entries, totalRows: total };
-  inMemoryCache.set(cacheKey, result, CACHE_TTL_MS);
-
-  return result;
+  return { entries, totalRows: total };
 }

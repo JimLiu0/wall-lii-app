@@ -309,8 +309,8 @@ export default function LeaderboardTableClient({
     setDateOffset(calculateDateOffset(date));
     setPageIndex(0);
     setAllRowsLoaded(false);
-    router.replace(leaderboardViewPathFor(region, mode, timeframe, date.startOf('day').toISODate()), { scroll: false });
-  }, [calculateDateOffset, leaderboardViewPathFor, mode, region, router, timeframe]);
+    window.history.replaceState(null, '', leaderboardViewPathFor(region, mode, timeframe, date.startOf('day').toISODate()));
+  }, [calculateDateOffset, leaderboardViewPathFor, mode, region, timeframe]);
 
   const loadPage = useCallback(async (nextPageIndex: number) => {
     if (allRowsLoaded) return;
@@ -350,6 +350,23 @@ export default function LeaderboardTableClient({
       setLoading(false);
     }
   }, [allRowsLoaded, dateOffset, executedSearch, mode, region, timeframe]);
+
+  useEffect(() => {
+    // Date/view changes are fetched by loadPage; URL updates must not also render the server page.
+    function restoreView() {
+      if (window.location.pathname !== `/lb/${region}/${mode}`) return;
+      const params = new URLSearchParams(window.location.search);
+      const parsedDate = DateTime.fromISO(params.get('date') ?? '', { zone: 'America/Los_Angeles' }).startOf('day');
+      const date = parsedDate.isValid ? parsedDate : ptNow;
+      setTimeframe(params.get('view') === 'week' ? 'week' : 'day');
+      setSelectedDate(date);
+      setDateOffset(calculateDateOffset(date));
+      setPageIndex(0);
+      setAllRowsLoaded(false);
+    }
+    window.addEventListener('popstate', restoreView);
+    return () => window.removeEventListener('popstate', restoreView);
+  }, [calculateDateOffset, mode, ptNow, region]);
 
   useEffect(() => {
     setMode(defaultSolo ? 'solo' : 'duo');
@@ -433,6 +450,7 @@ export default function LeaderboardTableClient({
     if (region === nextRegion) return;
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferredRegion', nextRegion);
+      window.dispatchEvent(new Event('localStorageChange'));
     }
     router.push(leaderboardViewPathFor(nextRegion, mode));
   };
@@ -443,6 +461,7 @@ export default function LeaderboardTableClient({
     setAllRowsLoaded(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem('preferredGameMode', nextMode);
+      window.dispatchEvent(new Event('localStorageChange'));
     }
     router.push(leaderboardViewPathFor(region, nextMode));
   };
@@ -721,7 +740,7 @@ export default function LeaderboardTableClient({
                   setTimeframe(value);
                   setPageIndex(0);
                   setAllRowsLoaded(false);
-                  router.replace(leaderboardViewPathFor(region, mode, value), { scroll: false });
+                  window.history.replaceState(null, '', leaderboardViewPathFor(region, mode, value));
                 }
               }}
             >

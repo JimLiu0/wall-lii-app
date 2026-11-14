@@ -2,7 +2,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState, useCallback, useEffect } from 'react';
 import { DateTime } from 'luxon';
-import PlayerGraph from './PlayerGraph';
+import dynamic from 'next/dynamic';
 import getPeriodLabel from '@/utils/getPeriodLabel';
 import { normalizeUrlParams, toNewUrlParams } from '@/utils/urlParams';
 import GameRecordsSection from './GameRecordsSection';
@@ -29,6 +29,11 @@ import {
   type GameMode,
   type TimeView,
 } from '../_lib/profileDerivations';
+
+const PlayerGraph = dynamic(() => import('./PlayerGraph'), {
+  ssr: false,
+  loading: () => <div role="status" className="flex h-full items-center justify-center text-muted-foreground">Loading chart…</div>,
+});
 
 interface ChannelEntry {
   channel: string;

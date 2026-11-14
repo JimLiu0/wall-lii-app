@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import logo from '@/public/android-chrome-192x192.png';
+import { SHOW_NEWS } from '@/lib/features';
 import { useState, useEffect } from 'react';
 import { Heart, Newspaper, HelpCircle, Trophy, Sun, Moon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -78,23 +80,14 @@ export default function NavBar() {
       setLeaderboardUrl(getLeaderboardUrlFromStorage());
     }
     
-    // Poll for localStorage changes (fallback for same-tab updates)
-    const interval = setInterval(() => {
-      const currentUrl = getLeaderboardUrlFromStorage();
-      if (currentUrl !== leaderboardUrl) {
-        setLeaderboardUrl(currentUrl);
-      }
-    }, 100);
-    
     window.addEventListener('storage', handleStorage);
     window.addEventListener('localStorageChange', handleLocalStorageChange);
     
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('localStorageChange', handleLocalStorageChange);
-      clearInterval(interval);
     };
-  }, [leaderboardUrl]);
+  }, []);
 
   function toggleTheme() {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -108,9 +101,9 @@ export default function NavBar() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16 relative">
           <div className="flex-shrink-0">
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/" prefetch={false} className="flex items-center gap-3">
               <Image
-                src="/android-chrome-192x192.png"
+                src={logo}
                 width={64}
                 height={64}
                 alt="wallii Logo"
@@ -130,12 +123,14 @@ export default function NavBar() {
                 <span className="hidden [@media(min-width:431px)]:block">Leaderboard</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" aria-label="Latest News">
-              <Link href="/news" prefetch={false}>
-                <Newspaper data-icon="inline-start" />
-                <span className="hidden [@media(min-width:431px)]:block">News</span>
-              </Link>
-            </Button>
+            {SHOW_NEWS && (
+              <Button asChild variant="outline" size="lg" aria-label="Latest News">
+                <Link href="/news" prefetch={false}>
+                  <Newspaper data-icon="inline-start" />
+                  <span className="hidden [@media(min-width:431px)]:block">News</span>
+                </Link>
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="lg" aria-label="Support Wallii">

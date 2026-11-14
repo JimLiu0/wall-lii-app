@@ -25,7 +25,7 @@ export default function HomePage() {
         <NewsBanner />
         <Alert variant="neutral" className="text-center">
           <AlertDescription>
-            Track Hearthstone Battlegrounds leaderboards, player stats, livestreams, and stay updated with the latest patch notes.
+            Track Hearthstone Battlegrounds leaderboards, player stats, and livestreams.
           </AlertDescription>
         </Alert>
         

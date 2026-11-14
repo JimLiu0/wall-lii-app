@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from 'next/script'
 import NavBar from './_components/NavBar';
 import { Analytics } from "@vercel/analytics/react"
-
-const inter = Inter({ subsets: ['latin'] });
 
 const themeInitScript = `(() => {
   try {
@@ -79,7 +76,7 @@ export default function RootLayout({
           strategy="afterInteractive"
         />
       </head>
-      <body className={`${inter.className} antialiased min-h-screen bg-background text-foreground`}>
+      <body className="font-sans antialiased min-h-screen bg-background text-foreground">
         <NavBar />
         <main>{children}</main>
         <Script

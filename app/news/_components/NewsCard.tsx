@@ -22,6 +22,7 @@ export default function NewsCard({ title, slug, summary, imageUrl, author, creat
   return (
     <Link
       href={`/news/${slug}`}
+      prefetch={false}
       target="_blank"
       rel="noopener noreferrer"
       className="block h-full"

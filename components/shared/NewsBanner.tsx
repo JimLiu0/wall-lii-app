@@ -1,3 +1,5 @@
+import { unstable_cache } from 'next/cache';
+import { SHOW_NEWS } from '@/lib/features';
 import { supabase } from '@/utils/supabaseClient';
 import { Newspaper } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -12,7 +14,7 @@ interface NewsPost {
   created_at: string;
 }
 
-async function getLatestNewsPost(): Promise<NewsPost | null> {
+const getLatestNewsPost = unstable_cache(async (): Promise<NewsPost | null> => {
   const { data, error } = await supabase
     .from('news_posts')
     .select('id, title, slug, summary, image_url, author, created_at')
@@ -20,18 +22,22 @@ async function getLatestNewsPost(): Promise<NewsPost | null> {
     .eq('battlegrounds_relevant', true)
     .order('created_at', { ascending: false })
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    console.error('Error fetching latest news post:', error);
-    return null;
+    throw error;
   }
 
   return data;
-}
+}, ['latest-news-banner-v1'], { revalidate: 300 });
 
 export default async function NewsBanner() {
-  const latestPost = await getLatestNewsPost();
+  if (!SHOW_NEWS) return null;
+
+  const latestPost = await getLatestNewsPost().catch(error => {
+    console.error('Error fetching latest news post:', error);
+    return null;
+  });
 
   if (!latestPost) {
     return null;
@@ -68,4 +74,4 @@ export default async function NewsBanner() {
       </AlertDescription>
     </Alert>
   );
-} 
+}

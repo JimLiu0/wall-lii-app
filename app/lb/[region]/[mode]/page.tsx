@@ -1,3 +1,4 @@
+import { fetchInitialLeaderboardState } from './_lib/server';
 import LeaderboardTableClient from './_components/LeaderboardTableClient';
 import NewsBanner from '@/components/shared/NewsBanner';
 import SeasonResetBanner from '@/components/shared/SeasonResetBanner';
@@ -8,9 +9,6 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { normalizeUrlParams } from '@/utils/urlParams';
 import {
-  fetchLeaderboardMinDate,
-  fetchLeaderboardPage,
-  fetchLeaderboardSocialData,
   getLeaderboardDateOffset,
   PAGE_SIZE,
   type InitialLeaderboardState,
@@ -88,26 +86,15 @@ export default async function Page({ params, searchParams }: PageProps) {
 
   let initialState: InitialLeaderboardState;
   try {
-    const [leaderboardData, minDate] = await Promise.all([
-      fetchLeaderboardPage({
-        region: normalizedRegion,
-        mode: normalizedMode,
-        timeframe: initialView,
-        dateOffset,
-        pageIndex: 0,
-        pageSize: PAGE_SIZE,
-        search: '',
-      }),
-      fetchLeaderboardMinDate(normalizedRegion, normalizedMode),
-    ]);
-    const socialData = await fetchLeaderboardSocialData(leaderboardData.entries);
-
-    initialState = {
-      ...leaderboardData,
-      ...socialData,
-      minDate,
-      errorMessage: null,
-    };
+    initialState = await fetchInitialLeaderboardState({
+      region: normalizedRegion,
+      mode: normalizedMode,
+      timeframe: initialView,
+      dateOffset,
+      pageIndex: 0,
+      pageSize: PAGE_SIZE,
+      search: '',
+    });
   } catch (error) {
     console.error('Error fetching initial leaderboard state:', error);
     initialState = {
