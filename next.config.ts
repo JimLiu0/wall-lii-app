@@ -1,6 +1,19 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async rewrites() {
+    return {
+      // Keep query-dependent SSR separate from the default five-minute ISR page.
+      // Legacy view/offset links use the same normalization as before.
+      beforeFiles: ['view', 'date', 'v', 'o'].map(key => ({
+        source: '/lb/:region/:mode',
+        has: [{ type: 'query' as const, key }],
+        destination: '/lb/:region/:mode/selected',
+      })),
+      afterFiles: [],
+      fallback: [],
+    };
+  },
   async headers() {
     // Unversioned public icons can change on deploy; avoid immutable caching here.
     // The navbar's static import gets a content hash and Next's one-year cache.
