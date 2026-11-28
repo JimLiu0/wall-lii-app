@@ -46,7 +46,7 @@ export function buildGameRecordsFromSnapshots(
     const start = sorted[i];
     const end = sorted[i + 1];
     const deltaMmr = end.rating - start.rating;
-    const { placement } = estimatePlacement(start.rating, end.rating);
+    const { placement } = estimatePlacement(start.rating, end.rating, end.snapshot_time);
 
     rows.push({
       rowKey: stableEndSnapshotKey(end),

@@ -145,5 +145,6 @@ export function getAvailableProfileControls(playerData: PlayerData, currentRegio
 
 export function getProfilePlacementStats(filteredData: SnapshotPoint[]) {
   const ratings = filteredData.map((snapshot) => snapshot.rating);
-  return calculatePlacementsWithAverage(ratings);
+  const timestamps = filteredData.map((snapshot) => snapshot.snapshot_time);
+  return calculatePlacementsWithAverage(ratings, 2, timestamps);
 }
